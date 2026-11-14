@@ -27,6 +27,8 @@ public partial class App : Application
     public App()
     {
         AppDomain.CurrentDomain.UnhandledException += (_, e) => Crashed(e.ExceptionObject);
+        var traced = 0; // TEMP: every managed exception where it is thrown, before it crosses into WinUI and loses its message
+        AppDomain.CurrentDomain.FirstChanceException += (_, e) => { if (traced++ < 6) Trace("first chance: " + e.Exception + "\n" + Environment.StackTrace); };
         UnhandledException += (_, e) => Crashed(e.Exception);
         var theme = Arg("--theme");
         if (theme == "dark") RequestedTheme = ApplicationTheme.Dark;

@@ -89,25 +89,6 @@ public sealed class MainWindow : Window
             badges.Children.Add(row);
         }
 
-        // TEMP trace: reveal the gallery one row at a time, logging each, to find the one that fails to measure.
-        if (page == "gallery")
-        {
-            var rows = buttons.Children.Concat(badges.Children).Cast<StackPanel>().ToList();
-            foreach (var r in rows) foreach (var c in r.Children) c.Visibility = Visibility.Collapsed;
-            Activated += async (_, _) =>
-            {
-                foreach (var r in rows)
-                    foreach (var c in r.Children)
-                    {
-                        await Task.Delay(20);
-                        App.Trace($"show {AutomationProperties.GetAutomationId((FrameworkElement)c)}");
-                        c.Visibility = Visibility.Visible;
-                        Content.UpdateLayout();
-                    }
-                App.Trace("all shown");
-            };
-        }
-
         var gallery = new OuroCard { Title = "Gallery", Description = "Every Button and Badge tone and variant", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = Column(16, buttons, badges) };
         AutomationProperties.SetAutomationId(gallery, "card.gallery");
 
