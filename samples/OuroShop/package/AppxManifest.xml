@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ouro Shop's MSIX manifest. Package identity is what App Actions and the On-device Agent Registry need. The app
+     registers its App Actions (com.microsoft.windows.ai.actions) and its URI scheme; the MCP server registers itself
+     with the registry (com.microsoft.windows.ai.mcpServer). Both registration files are generated from the
+     declarations: Assets\Actions\app-actions.json and Assets\Mcp\manifest.json. -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+  xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap3 uap5 desktop4 rescap">
+  <Identity Name="Ouro.Shop" Publisher="CN=Ouro Shop Sample" Version="0.1.0.0" ProcessorArchitecture="x64" />
+  <Properties>
+    <DisplayName>Ouro Shop</DisplayName>
+    <PublisherDisplayName>Ouro</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+  <Applications>
+    <Application Id="App" Executable="OuroShop.WinUI.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements DisplayName="Ouro Shop" Description="Ouro UI for Windows sample: a shopping list whose actions people press and agents call."
+        BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" />
+      <Extensions>
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="ouro-shop" />
+        </uap:Extension>
+        <uap5:Extension Category="windows.appExecutionAlias">
+          <uap5:AppExecutionAlias>
+            <uap5:ExecutionAlias Alias="OuroShop.exe" />
+          </uap5:AppExecutionAlias>
+        </uap5:Extension>
+        <uap3:Extension Category="windows.appExtension">
+          <uap3:AppExtension Name="com.microsoft.windows.ai.actions" Id="ouroshopactions" DisplayName="Ouro Shop actions" PublicFolder="Assets\Actions">
+            <uap3:Properties>
+              <Registration>app-actions.json</Registration>
+            </uap3:Properties>
+          </uap3:AppExtension>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+    <Application Id="Mcp" Executable="OuroShop.Mcp.exe" EntryPoint="Windows.FullTrustApplication" desktop4:Subsystem="console" desktop4:SupportsMultipleInstances="true">
+      <uap:VisualElements AppListEntry="none" DisplayName="Ouro Shop MCP" Description="Ouro Shop's MCP server."
+        BackgroundColor="transparent" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" />
+      <Extensions>
+        <uap5:Extension Category="windows.appExecutionAlias">
+          <uap5:AppExecutionAlias desktop4:Subsystem="console">
+            <uap5:ExecutionAlias Alias="OuroShop.Mcp.exe" />
+          </uap5:AppExecutionAlias>
+        </uap5:Extension>
+        <uap3:Extension Category="windows.appExtension">
+          <uap3:AppExtension Name="com.microsoft.windows.ai.mcpServer" Id="ouroshopmcp" DisplayName="Ouro Shop MCP" PublicFolder="Assets\Mcp">
+            <uap3:Properties>
+              <Registration>manifest.json</Registration>
+            </uap3:Properties>
+          </uap3:AppExtension>
+        </uap3:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

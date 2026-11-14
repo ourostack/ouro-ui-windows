@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Ouro Shop's MCP server: stdio, served from the generated catalog through Ouro.Actions. In the package it is
+       registered with the On-device Agent Registry through the generated MCP bundle manifest. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Ouro.Actions\Ouro.Actions.csproj" />
+    <Compile Include="..\Generated\OuroActions.g.cs" Link="Generated\OuroActions.g.cs" />
+    <Compile Include="..\Shared\ShoppingHandler.cs" Link="Shared\ShoppingHandler.cs" />
+  </ItemGroup>
+</Project>

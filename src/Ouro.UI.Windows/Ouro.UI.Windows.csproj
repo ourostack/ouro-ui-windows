@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Ouro UI for Windows: core's components as templated WinUI 3 controls, drawn from core's tokens. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RootNamespace>Ouro.UI.Windows</RootNamespace>
+    <UseWinUI>true</UseWinUI>
+    <PackageId>Ouro.UI.Windows</PackageId>
+    <Description>Ouro UI for Windows: Button, Badge, Card and Item as templated WinUI 3 controls from ouro-ui-core's specs and tokens, with light, dark and contrast themes, and buttons that run defineAction actions through Ouro.Actions.</Description>
+    <!-- core v0.12.0's OuroTokens.cs documents OuroTheme's Radius but not its other parameters; vendored files are never
+         edited, so this waits on core's fix. -->
+    <NoWarn>$(NoWarn);CS1573</NoWarn>
+    <PackageTags>ouro;winui;windows-app-sdk;design-system;accessibility;agents</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.6.5" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Ouro.Actions\Ouro.Actions.csproj" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <!-- Vendored from ouro-ui-core by scripts/provenance.mjs. The controls read OuroTokens.cs; the XAML dictionary is
+         for an app's own surfaces and ships beside the package in each release. -->
+    <Page Remove="Vendor\OuroTokens.xaml" />
+  </ItemGroup>
+</Project>
