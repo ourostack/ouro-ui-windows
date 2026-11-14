@@ -11,6 +11,9 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <UseWinUI>true</UseWinUI>
     <WindowsPackageType>None</WindowsPackageType>
+    <!-- Unpackaged, the app still needs its resources.pri: without it WinUI can't find the kit's Themes/Generic.xaml and
+         every Ouro control draws nothing, with no error. This makes the build write it (and merge the kit's into it). -->
+    <EnableMsixTooling>true</EnableMsixTooling>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <SelfContained>false</SelfContained>
     <IsPackable>false</IsPackable>

@@ -12,7 +12,8 @@ Copy-Item -Recurse -Force "$McpDir\*" $stage
 $pris = @(Get-ChildItem $stage -Filter *.pri)
 Write-Host "PRI files in the publish: $(($pris | ForEach-Object Name) -join ', ')"
 # Only the app's own PRI becomes resources.pri; the framework PRIs (Microsoft.UI*.pri) stay as they are.
-if (Test-Path "$stage\OuroShop.WinUI.pri") { Copy-Item -Force "$stage\OuroShop.WinUI.pri" "$stage\resources.pri" }
+if (-not (Test-Path "$stage\resources.pri") -and (Test-Path "$stage\OuroShop.WinUI.pri")) { Copy-Item -Force "$stage\OuroShop.WinUI.pri" "$stage\resources.pri" }
+if (-not (Test-Path "$stage\resources.pri")) { throw "The app's publish has no resources.pri, so the kit's control templates can't load" }
 Copy-Item -Force $Manifest "$stage\AppxManifest.xml"
 Copy-Item -Force "$Generated\app-actions.json" "$stage\Assets\Actions\app-actions.json"
 Copy-Item -Force "$Generated\mcpb.manifest.json" "$stage\Assets\Mcp\manifest.json"

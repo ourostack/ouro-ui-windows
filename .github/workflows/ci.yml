@@ -103,6 +103,7 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           dotnet publish samples/OuroShop/OuroShop.WinUI -c Release -o out/app
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          if (-not (Test-Path out/app/resources.pri) -and -not (Test-Path out/app/OuroShop.WinUI.pri)) { Write-Host "::error::Ouro Shop's publish has no resources.pri: Ouro controls would draw nothing (EnableMsixTooling)"; exit 1 }
           dotnet publish samples/OuroShop/OuroShop.Mcp -c Release -o out/mcp
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           dotnet publish tools/catalog -c Release -o out/catalog

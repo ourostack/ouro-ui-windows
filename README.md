@@ -37,6 +37,8 @@ var runtime = new OuroActionRuntime(OuroActions.Catalog, MyHandler.Handle, new O
 var add = new OuroButton { Action = OuroActions.AddShoppingListItem, Runtime = runtime, Input = () => new() { ["name"] = field.Text } };
 ```
 
+An unpackaged app needs `<EnableMsixTooling>true</EnableMsixTooling>` in its project so the build writes its `resources.pri`; without it the controls' templates don't load and they draw nothing, with no error.
+
 The MCP server is three lines (`samples/OuroShop/OuroShop.Mcp/Program.cs`). An App Action launch is `OuroAppActionUri.Read(catalog, uri)` passed to the same runtime.
 
 ## How it's checked
