@@ -73,7 +73,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $env:EV | Out-Null
           $os = Get-CimInstance Win32_OperatingSystem
           $odr = Get-Command odr.exe -ErrorAction SilentlyContinue
-          [ordered]@{ caption = $os.Caption; version = $os.Version; build = $os.BuildNumber; ubr = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').UBR; odr = if ($odr) { $odr.Source } else { $null }; dotnet = (dotnet --version) } | ConvertTo-Json | Tee-Object "$env:EV\machine.json"
+          [ordered]@{ caption = $os.Caption; version = $os.Version; build = $os.BuildNumber; ubr = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').UBR; odr = if ($odr) { $odr.Source } else { $null }; dotnet = (dotnet --version) } | ConvertTo-Json | Set-Content -Encoding utf8 "$env:EV\machine.json"; Get-Content "$env:EV\machine.json"
       - name: Build WinUI 3, WPF, the MCP server and the catalog probe
         id: build
         run: |
@@ -90,7 +90,7 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $wpf = $sw.Elapsed.TotalSeconds
           $size = { param($d) [math]::Round(((Get-ChildItem -Recurse $d | Measure-Object Length -Sum).Sum / 1MB), 1) }
-          [ordered]@{ winuiBuildSeconds = [math]::Round($winui, 1); wpfBuildSeconds = [math]::Round($wpf, 1); winuiOutputMB = (& $size out/winui); wpfOutputMB = (& $size out/wpf); mcpOutputMB = (& $size out/mcp) } | ConvertTo-Json | Tee-Object "$env:EV\build.json"
+          [ordered]@{ winuiBuildSeconds = [math]::Round($winui, 1); wpfBuildSeconds = [math]::Round($wpf, 1); winuiOutputMB = (& $size out/winui); wpfOutputMB = (& $size out/wpf); mcpOutputMB = (& $size out/mcp) } | ConvertTo-Json | Set-Content -Encoding utf8 "$env:EV\build.json"; Get-Content "$env:EV\build.json"
       - name: MCP server answers over stdio (unpackaged)
         run: node spikes/shared/mcp-probe.mts "$env:EV\mcp-probe.json" out\mcp\OuroShop.Mcp.exe
       - name: Package, sign and install the MSIX
@@ -103,10 +103,10 @@ jobs:
       - name: Ask Windows for its App Actions catalog
         continue-on-error: true
         run: |
-          out\catalog\OuroShop.Catalog.exe | Tee-Object "$env:EV\catalog.json"
-          if (Get-Command odr.exe -ErrorAction SilentlyContinue) { odr.exe mcp list | Tee-Object "$env:EV\odr-mcp-list.txt" } else { "odr.exe is not on this machine (it needs Windows build 26220.7262 or later)" | Tee-Object "$env:EV\odr-mcp-list.txt" }
+          out\catalog\OuroShop.Catalog.exe | Set-Content -Encoding utf8 "$env:EV\catalog.json"; Get-Content "$env:EV\catalog.json"
+          if (Get-Command odr.exe -ErrorAction SilentlyContinue) { odr.exe mcp list | Set-Content -Encoding utf8 "$env:EV\odr-mcp-list.txt" } else { "odr.exe is not on this machine (it needs Windows build 26220.7262 or later)" | Set-Content -Encoding utf8 "$env:EV\odr-mcp-list.txt" }
           $text = "$env:EV\registration.txt"
-          "Installed package and its extensions:" | Set-Content $text
+          "Installed package and its extensions:" | Set-Content -Encoding utf8 $text
           Get-Content "$env:EV\package.json" | Add-Content $text
           "", "Windows.AI.Actions catalog (ActionCatalog.GetAllActions):" | Add-Content $text
           Get-Content "$env:EV\catalog.json" | Add-Content $text

@@ -7,7 +7,10 @@ $stage = Join-Path $Out "stage"
 New-Item -ItemType Directory -Force -Path $stage, "$stage\Assets\Actions", "$stage\Assets\Mcp" | Out-Null
 Copy-Item -Recurse -Force "$AppDir\*" $stage
 Copy-Item -Recurse -Force "$McpDir\*" $stage
-Copy-Item -Force "$stage\OuroShop.WinUI.pri" "$stage\resources.pri"
+# A packaged app reads its resources from resources.pri; the unpackaged publish may name it after the app.
+$pris = @(Get-ChildItem $stage -Filter *.pri)
+Write-Host "PRI files in the publish: $(($pris | ForEach-Object Name) -join ', ')"
+if (-not (Test-Path "$stage\resources.pri") -and $pris.Count) { Copy-Item -Force $pris[0].FullName "$stage\resources.pri" }
 Copy-Item -Force $Manifest "$stage\AppxManifest.xml"
 Copy-Item -Force "$Generated\windows\app-actions.json" "$stage\Assets\Actions\app-actions.json"
 Copy-Item -Force "$Generated\windows\mcpb.manifest.json" "$stage\Assets\Mcp\manifest.json"
