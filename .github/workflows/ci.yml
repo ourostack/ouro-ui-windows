@@ -75,6 +75,7 @@ jobs:
           $odr = Get-Command odr.exe -ErrorAction SilentlyContinue
           [ordered]@{ caption = $os.Caption; version = $os.Version; build = $os.BuildNumber; ubr = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').UBR; odr = if ($odr) { $odr.Source } else { $null }; dotnet = (dotnet --version) } | ConvertTo-Json | Tee-Object "$env:EV\machine.json"
       - name: Build WinUI 3, WPF, the MCP server and the catalog probe
+        id: build
         run: |
           $sw = [Diagnostics.Stopwatch]::StartNew()
           dotnet publish spikes/winui/OuroShop.WinUI -c Release -o out/winui
@@ -133,14 +134,14 @@ jobs:
           Get-Content "$env:EV\xray.md" | Add-Content $env:GITHUB_STEP_SUMMARY
           exit $code
       - name: Core's Button claims
-        if: always()
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
           node spikes/shared/button-claims.mts $env:EV spikes/shared/tokens.pearl.json
           $code = $LASTEXITCODE
           Get-Content "$env:EV\button-claims.md" | Add-Content $env:GITHUB_STEP_SUMMARY
           exit $code
       - name: Measure feel (WinUI 3 unpackaged, WinUI 3 packaged, WPF Fluent)
-        if: always()
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
           & spikes/tools/measure.ps1 -Label "WinUI 3" -Command out\winui\OuroShop.WinUI.exe -ProcessName OuroShop.WinUI -Out "$env:EV\measure-winui.json"
           & spikes/tools/measure.ps1 -Label "WinUI 3 (MSIX)" -Command "$env:LOCALAPPDATA\Microsoft\WindowsApps\OuroShopSpike.exe" -ProcessName OuroShop.WinUI -Out "$env:EV\measure-winui-msix.json"

@@ -40,9 +40,9 @@ while ((line = Console.ReadLine()) is not null)
             break;
         case "tools/call":
             var name = request["params"]?["name"]?.GetValue<string>() ?? "";
-            var args = request["params"]?["arguments"] as JsonObject ?? new JsonObject();
+            var arguments = request["params"]?["arguments"] as JsonObject ?? new JsonObject();
             if (OuroActions.Find(name) is null) { error = new JsonObject { ["code"] = -32602, ["message"] = $"unknown tool {name}" }; break; }
-            var outcome = await OuroActions.InvokeAsync(name, (JsonObject)args.DeepClone(), OuroDoor.Mcp);
+            var outcome = await OuroActions.InvokeAsync(name, (JsonObject)arguments.DeepClone(), OuroDoor.Mcp);
             var refused = outcome["state"]?.GetValue<string>() == "refused";
             result = new JsonObject
             {
