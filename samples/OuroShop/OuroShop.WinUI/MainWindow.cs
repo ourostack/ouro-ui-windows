@@ -90,6 +90,14 @@ public sealed class MainWindow : Window
         }
 
         var gallery = new OuroCard { Title = "Gallery", Description = "Every Button and Badge tone and variant", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = Column(16, buttons, badges) };
+        var t = Environment.GetEnvironmentVariable("OURO_TEST") ?? ""; // TEMP bisect
+        if (t.Contains('o')) gallery.Variant = OuroFrame.Outline;
+        if (t.Contains('m')) gallery.Density = OuroDensity.Medium;
+        if (t.Contains('e')) gallery.Content = Column(0);
+        if (t.Contains('b')) gallery.Content = Column(16, buttons);
+        if (t.Contains('g')) gallery.Content = Column(16, badges);
+        if (t.Contains('a')) gallery.Action = new OuroBadge { Text = "x" };
+        if (t.Contains('f')) gallery.Footer = new TextBlock { Text = "f" };
         AutomationProperties.SetAutomationId(gallery, "card.gallery");
 
         var root = page == "gallery" ? Column(16, gallery, status) : Column(16, heading, list, status);

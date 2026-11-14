@@ -138,6 +138,19 @@ jobs:
           $answer | Wait-Process -Timeout 30 -ErrorAction SilentlyContinue
           Get-Content "$env:EV\answer-dialog.log" -ErrorAction SilentlyContinue
           exit $code
+      - name: TEMP bisect the gallery crash
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          foreach ($t in "x", "o", "m", "om", "e", "b", "g", "a", "f", "af", "omaf", "omafe") {
+            Get-Process -Name OuroShop.WinUI -ErrorAction SilentlyContinue | Stop-Process -Force
+            Remove-Item "$env:LOCALAPPDATA\OuroShop\crash.txt" -ErrorAction SilentlyContinue
+            $env:OURO_TEST = $t
+            $p = Start-Process -FilePath $env:APP -ArgumentList "--page gallery" -PassThru
+            Start-Sleep -Seconds 6
+            Write-Host "bisect $t : $(if ($p.HasExited) { 'CRASHED' } else { 'alive' })"
+          }
+          Get-Process -Name OuroShop.WinUI -ErrorAction SilentlyContinue | Stop-Process -Force
+          $env:OURO_TEST = ""
       - name: Read each page as people and agents see it, under each setting
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
