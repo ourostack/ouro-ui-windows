@@ -1,0 +1,13 @@
+{
+  "from": "https://github.com/ourostack/ouro-ui-core/releases/tag/v0.10.0",
+  "files": {
+    "ouro-actions.mts": {
+      "release": "dist/actions/ouro-actions.mts",
+      "sha256": "e343d27993276dbd4bbd9a5351f1c3935eebd8db19039d37671a774d8dbefa84"
+    },
+    "components.claims.json": {
+      "release": "dist/hx/components.claims.json",
+      "sha256": "0da8e34c5044add8e120d4e1265e6bfac0b53941ad9b8a9b5c5bcb4a19e1d31e"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "generator": "ouro-actions-windows 0.1.0-spike",
+  "set": "shopping",
+  "skipped": {
+    "place_grocery_order": "person-only: no agent door offers it"
+  }
+}

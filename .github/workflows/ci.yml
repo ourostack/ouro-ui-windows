@@ -1,0 +1,161 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, "spike/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  attribution:
+    # No AI attribution in a pull request's commits (AGENTS.md); a copy of ouro-ui-core's check.
+    name: attribution
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          filter: tree:0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - env:
+          BASE_REF: ${{ github.base_ref }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/attribution.mjs "origin/$BASE_REF" "$PR_HEAD"
+
+  generated:
+    # The Windows projections match the declarations, and the vendored core files match their release hashes.
+    name: generated
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node --test spikes/shared/*.test.mts
+      - run: node spikes/shared/windows-actions.mts check spikes/shared/shopping.actions.mts spikes/shared/generated
+
+  windows:
+    # The spike on a free windows-latest runner: build WinUI 3 and WPF, package and install the MSIX, then check that
+    # agents and people agree (X-ray), that the Button passes core's claims, and measure how each build feels.
+    name: windows spike
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: powershell
+    env:
+      EV: ${{ github.workspace }}\evidence
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Machine
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:EV | Out-Null
+          $os = Get-CimInstance Win32_OperatingSystem
+          $odr = Get-Command odr.exe -ErrorAction SilentlyContinue
+          [ordered]@{ caption = $os.Caption; version = $os.Version; build = $os.BuildNumber; ubr = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').UBR; odr = if ($odr) { $odr.Source } else { $null }; dotnet = (dotnet --version) } | ConvertTo-Json | Set-Content -Encoding utf8 "$env:EV\machine.json"; Get-Content "$env:EV\machine.json"
+      - name: Build WinUI 3, WPF, the MCP server and the catalog probe
+        id: build
+        run: |
+          $sw = [Diagnostics.Stopwatch]::StartNew()
+          dotnet publish spikes/winui/OuroShop.WinUI -c Release -o out/winui
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $winui = $sw.Elapsed.TotalSeconds
+          dotnet publish spikes/winui/OuroShop.Mcp -c Release -o out/mcp
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          dotnet publish spikes/winui/OuroShop.Catalog -c Release -o out/catalog
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $sw.Restart()
+          dotnet publish spikes/wpf/OuroShop.Wpf -c Release -o out/wpf
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $wpf = $sw.Elapsed.TotalSeconds
+          $size = { param($d) [math]::Round(((Get-ChildItem -Recurse $d | Measure-Object Length -Sum).Sum / 1MB), 1) }
+          [ordered]@{ winuiBuildSeconds = [math]::Round($winui, 1); wpfBuildSeconds = [math]::Round($wpf, 1); winuiOutputMB = (& $size out/winui); wpfOutputMB = (& $size out/wpf); mcpOutputMB = (& $size out/mcp) } | ConvertTo-Json | Set-Content -Encoding utf8 "$env:EV\build.json"; Get-Content "$env:EV\build.json"
+      - name: MCP server answers over stdio (unpackaged)
+        run: node spikes/shared/mcp-probe.mts "$env:EV\mcp-probe.json" out\mcp\OuroShop.Mcp.exe
+      - name: Package, sign and install the MSIX
+        run: |
+          & spikes/tools/pack.ps1 -AppDir out\winui -McpDir out\mcp -Generated spikes\shared\generated -Manifest spikes\winui\package\AppxManifest.xml -Out out\msix
+          Copy-Item out\msix\package.json "$env:EV\package.json"
+          $pkg = Get-AppxPackage -Name Ouro.ShopSpike
+          Copy-Item "$($pkg.InstallLocation)\Assets\Actions\app-actions.json" "$env:EV\registered-app-actions.json"
+          Copy-Item "$($pkg.InstallLocation)\Assets\Mcp\manifest.json" "$env:EV\registered-mcpb-manifest.json"
+      - name: Ask Windows for its App Actions catalog
+        continue-on-error: true
+        run: |
+          out\catalog\OuroShop.Catalog.exe | Set-Content -Encoding utf8 "$env:EV\catalog.json"; Get-Content "$env:EV\catalog.json"
+          if (Get-Command odr.exe -ErrorAction SilentlyContinue) { odr.exe mcp list | Set-Content -Encoding utf8 "$env:EV\odr-mcp-list.txt" } else { "odr.exe is not on this machine (it needs Windows build 26220.7262 or later)" | Set-Content -Encoding utf8 "$env:EV\odr-mcp-list.txt" }
+          $text = "$env:EV\registration.txt"
+          "Installed package and its extensions:" | Set-Content -Encoding utf8 $text
+          Get-Content "$env:EV\package.json" | Add-Content $text
+          "", "Windows.AI.Actions catalog (ActionCatalog.GetAllActions):" | Add-Content $text
+          Get-Content "$env:EV\catalog.json" | Add-Content $text
+          "", "On-device Agent Registry:" | Add-Content $text
+          Get-Content "$env:EV\odr-mcp-list.txt" | Add-Content $text
+          & spikes/tools/render-text.ps1 -In $text -Out "$env:EV\app-action-registration.png" -Title "Ouro Shop spike: what Windows registered (rendered from CI output)"
+      - name: MCP server answers from the package, through its execution alias
+        run: node spikes/shared/mcp-probe.mts "$env:EV\mcp-probe-packaged.json" "$env:LOCALAPPDATA\Microsoft\WindowsApps\OuroShop.Mcp.exe"
+      - name: Read the window as people and agents see it
+        run: |
+          & spikes/tools/a11y.ps1 -Animations on -TextScale 100
+          & spikes/tools/dump.ps1 -Command "$env:LOCALAPPDATA\Microsoft\WindowsApps\OuroShopSpike.exe" -ProcessName OuroShop.WinUI -Out "$env:EV\uia-default.json" -Screenshot "$env:EV\window-winui.png"
+          & spikes/tools/dump.ps1 -Command "ouro-shop-spike://action/place_grocery_order?token=spoofed" -ProcessName OuroShop.WinUI -Out "$env:EV\uia-uri-place_grocery_order.json" -Screenshot "$env:EV\refusal-app-action.png"
+          & spikes/tools/dump.ps1 -Command "ouro-shop-spike://action/add_shopping_list_item?name=oat%20milk&token=t" -ProcessName OuroShop.WinUI -Out "$env:EV\uia-uri-add_shopping_list_item.json" -Screenshot "$env:EV\app-action-add.png"
+          & spikes/tools/a11y.ps1 -Animations off -TextScale 100
+          & spikes/tools/dump.ps1 -Command "$env:LOCALAPPDATA\Microsoft\WindowsApps\OuroShopSpike.exe" -ProcessName OuroShop.WinUI -Out "$env:EV\uia-noanim.json"
+          & spikes/tools/a11y.ps1 -Animations on -TextScale 225
+          & spikes/tools/dump.ps1 -Command "$env:LOCALAPPDATA\Microsoft\WindowsApps\OuroShopSpike.exe" -ProcessName OuroShop.WinUI -Out "$env:EV\uia-text225.json" -Screenshot "$env:EV\window-winui-text225.png"
+          & spikes/tools/a11y.ps1 -Animations on -TextScale 100
+          & spikes/tools/dump.ps1 -Command out\wpf\OuroShop.Wpf.exe -ProcessName OuroShop.Wpf -Out "$env:EV\uia-wpf.json" -Screenshot "$env:EV\window-wpf.png"
+      - name: X-ray (agents and people agree)
+        run: |
+          node spikes/shared/xray.mts spikes/shared/shopping.actions.mts $env:EV
+          $code = $LASTEXITCODE
+          Get-Content "$env:EV\xray.md" | Add-Content $env:GITHUB_STEP_SUMMARY
+          exit $code
+      - name: Core's Button claims
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          node spikes/shared/button-claims.mts $env:EV spikes/shared/tokens.pearl.json
+          $code = $LASTEXITCODE
+          Get-Content "$env:EV\button-claims.md" | Add-Content $env:GITHUB_STEP_SUMMARY
+          exit $code
+      - name: Measure feel (WinUI 3 unpackaged, WinUI 3 packaged, WPF Fluent)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          & spikes/tools/measure.ps1 -Label "WinUI 3" -Command out\winui\OuroShop.WinUI.exe -ProcessName OuroShop.WinUI -Out "$env:EV\measure-winui.json"
+          & spikes/tools/measure.ps1 -Label "WinUI 3 (MSIX)" -Command "$env:LOCALAPPDATA\Microsoft\WindowsApps\OuroShopSpike.exe" -ProcessName OuroShop.WinUI -Out "$env:EV\measure-winui-msix.json"
+          & spikes/tools/measure.ps1 -Label "WPF Fluent" -Command out\wpf\OuroShop.Wpf.exe -ProcessName OuroShop.Wpf -Out "$env:EV\measure-wpf.json"
+          node spikes/shared/measure-report.mts "$env:EV\measure.md" "$env:EV\measure-winui.json" "$env:EV\measure-winui-msix.json" "$env:EV\measure-wpf.json"
+          Get-Content "$env:EV\measure.md" | Add-Content $env:GITHUB_STEP_SUMMARY
+      - name: Remove the package and the CI certificate
+        if: always()
+        run: |
+          Get-AppxPackage -Name Ouro.ShopSpike | Remove-AppxPackage -ErrorAction SilentlyContinue
+          Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object Subject -eq "CN=Ouro Spike" | Remove-Item -ErrorAction SilentlyContinue
+          Get-ChildItem Cert:\CurrentUser\My | Where-Object Subject -eq "CN=Ouro Spike" | Remove-Item -ErrorAction SilentlyContinue
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-spike-evidence
+          path: evidence
