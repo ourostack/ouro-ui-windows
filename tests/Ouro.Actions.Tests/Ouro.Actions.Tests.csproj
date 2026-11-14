@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Ouro.Actions\Ouro.Actions.csproj" />
+    <!-- The sample's generated actions, so the tests run the real catalog. -->
+    <Compile Include="..\..\samples\OuroShop\Generated\OuroActions.g.cs" Link="Generated\OuroActions.g.cs" />
+    <Compile Include="..\..\samples\OuroShop\Shared\ShoppingHandler.cs" Link="Generated\ShoppingHandler.cs" />
+  </ItemGroup>
+</Project>

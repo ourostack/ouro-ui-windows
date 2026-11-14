@@ -1,0 +1,45 @@
+{
+  "coreTag": "v0.12.0",
+  "files": {
+    "vendor/core/ouro-actions.mts": {
+      "from": "dist/actions/ouro-actions.mts",
+      "sha256": "71b3fd3c8a7fb5c7c8aac17622bc9a87b2c24bf1f886a3e0b1ed6598a9d71b32"
+    },
+    "vendor/core/ouro-actions-windows.mts": {
+      "from": "dist/actions/ouro-actions-windows.mts",
+      "sha256": "ec86d842a11b1fe67bb821cdd38d0c0d4c9119c82df93aaf5db2ff02714d9c28"
+    },
+    "vendor/core/components.claims.json": {
+      "from": "dist/hx/components.claims.json",
+      "sha256": "cedf49e97ef7620bf8cde130c4e86c2642ae254666c3160b48d1d5bc6025b59f"
+    },
+    "vendor/core/components/component.schema.json": {
+      "from": "dist/hx/components/component.schema.json",
+      "sha256": "b0d4645e9d48528245246e0b113024146f6a69ceed3fb595a816309009ffdfe1"
+    },
+    "vendor/core/components/button.spec.json": {
+      "from": "dist/hx/components/button.spec.json",
+      "sha256": "8e7e7d6357268e204f32194462f8f949763be0fd0cf84138458c31ed35565cd9"
+    },
+    "vendor/core/components/badge.spec.json": {
+      "from": "dist/hx/components/badge.spec.json",
+      "sha256": "150b1746628e3f89e8417eae30349d19f7d231791a004470d1ff42c7fd82580c"
+    },
+    "vendor/core/components/card.spec.json": {
+      "from": "dist/hx/components/card.spec.json",
+      "sha256": "195f2ebcb4363d3fce015f3496065289732d1e9a2d05522b3123a6f745c186e9"
+    },
+    "vendor/core/components/item.spec.json": {
+      "from": "dist/hx/components/item.spec.json",
+      "sha256": "698c8ef847161729d0a284204777c733da64f083e864014167dcaed1d0a74f4b"
+    },
+    "src/Ouro.UI.Windows/Vendor/OuroTokens.cs": {
+      "from": "dist/windows/OuroTokens.cs",
+      "sha256": "8ade7880614f37c22cdb732deda18ef13107c5ba87673b9f9b2f022f7e8245f4"
+    },
+    "src/Ouro.UI.Windows/Vendor/OuroTokens.xaml": {
+      "from": "dist/windows/OuroTokens.xaml",
+      "sha256": "1433cf6a75db52d9be91ba921eba94aaf4adaf803d7ce7b9464014d0f400357d"
+    }
+  }
+}

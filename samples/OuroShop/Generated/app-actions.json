@@ -1,0 +1,61 @@
+{
+  "version": 3,
+  "actions": [
+    {
+      "id": "Ouro.AddShoppingListItem",
+      "description": "Add an item to your shopping list.",
+      "displaysUI": true,
+      "usesGenerativeAI": false,
+      "isAvailable": true,
+      "allowedAppInvokers": [
+        "*"
+      ],
+      "inputs": [
+        {
+          "name": "name",
+          "kind": "Text"
+        }
+      ],
+      "inputCombinations": [
+        {
+          "inputs": [
+            "name"
+          ],
+          "description": "Add to list: ${name.Text}"
+        }
+      ],
+      "invocation": {
+        "type": "uri",
+        "uri": "ouro-shop://action/add_shopping_list_item?name=${name.Text}&token=${$.Token}"
+      }
+    },
+    {
+      "id": "Ouro.ShareShoppingList",
+      "description": "Share your shopping list with someone in your household.",
+      "displaysUI": true,
+      "usesGenerativeAI": false,
+      "isAvailable": true,
+      "allowedAppInvokers": [
+        "*"
+      ],
+      "inputs": [
+        {
+          "name": "with",
+          "kind": "Text"
+        }
+      ],
+      "inputCombinations": [
+        {
+          "inputs": [
+            "with"
+          ],
+          "description": "Share list: ${with.Text}"
+        }
+      ],
+      "invocation": {
+        "type": "uri",
+        "uri": "ouro-shop://action/share_shopping_list?with=${with.Text}&token=${$.Token}"
+      }
+    }
+  ]
+}

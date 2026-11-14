@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Ouro UI's action runtime for Windows: the one entry point every door goes through, the App Action URI reader
+       and the MCP server. Plain .NET, so its tests run anywhere. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>Ouro.Actions</PackageId>
+    <Description>Ouro UI's action runtime for Windows apps: input validation, idempotency, audit, confirmation and core's person-only refusal, behind App Actions and an MCP server generated from ouro-ui-core's defineAction.</Description>
+    <PackageTags>ouro;mcp;app-actions;agents;winui</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>
