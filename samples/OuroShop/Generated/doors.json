@@ -1,0 +1,41 @@
+{
+  "generator": "ouro-actions-windows 0.12.0",
+  "set": "shopping",
+  "actions": {
+    "add_shopping_list_item": {
+      "person": {
+        "carries": true
+      },
+      "mcp": {
+        "carries": true
+      },
+      "appAction": {
+        "carries": true
+      }
+    },
+    "share_shopping_list": {
+      "person": {
+        "carries": true
+      },
+      "mcp": {
+        "carries": true
+      },
+      "appAction": {
+        "carries": true
+      }
+    },
+    "place_grocery_order": {
+      "person": {
+        "carries": true
+      },
+      "mcp": {
+        "carries": false,
+        "why": "person-only: only the person starts it, so every agent door answers the typed refusal"
+      },
+      "appAction": {
+        "carries": false,
+        "why": "person-only: only the person starts it, so every agent door answers the typed refusal"
+      }
+    }
+  }
+}
