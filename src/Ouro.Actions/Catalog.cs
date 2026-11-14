@@ -32,6 +32,7 @@ public enum OuroDoor
 
 /// <summary>One declared action, as the generated <c>OuroActions.g.cs</c> describes it.</summary>
 /// <param name="Id">The snake_case id: the MCP tool's name.</param>
+/// <param name="Consent">What it needs before it runs.</param>
 /// <param name="Label">The person's button text.</param>
 /// <param name="Description">The person's one sentence: the control's help text.</param>
 /// <param name="Agent">The agent's description: the MCP tool's description.</param>
