@@ -63,7 +63,7 @@ function Get-OuroTree([string]$ProcessName) {
     [ordered]@{
       automationId = $c.AutomationId; name = $c.Name; controlType = $c.ControlType.ProgrammaticName; className = $c.ClassName
       itemStatus = $c.ItemStatus; helpText = $c.HelpText; isKeyboardFocusable = $c.IsKeyboardFocusable
-      rect = [ordered]@{ x = $r.X; y = $r.Y; width = $r.Width; height = $r.Height }
+      rect = if ($r.IsEmpty) { $null } else { [ordered]@{ x = $r.X; y = $r.Y; width = $r.Width; height = $r.Height } }
     }
   }
   $wr = $w.Current.BoundingRectangle

@@ -5,7 +5,8 @@ param([ValidateSet("on", "off")][string]$Animations = "on", [ValidateRange(100, 
 Add-Type @"
 using System; using System.Runtime.InteropServices;
 public static class OuroSpi {
-  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] public struct HIGHCONTRAST { public uint cbSize; public uint dwFlags; public string lpszDefaultScheme; }
+  // The scheme name is a raw pointer: on a GET Windows hands back its own string, which a marshalled string would free.
+  [StructLayout(LayoutKind.Sequential)] public struct HIGHCONTRAST { public uint cbSize; public uint dwFlags; public IntPtr lpszDefaultScheme; }
   [DllImport("user32.dll", SetLastError = true)] public static extern bool SystemParametersInfo(uint action, uint uiParam, IntPtr pvParam, uint winIni);
   [DllImport("user32.dll", SetLastError = true)] public static extern bool SystemParametersInfo(uint action, uint uiParam, ref bool pvParam, uint winIni);
   [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)] public static extern bool SystemParametersInfo(uint action, uint uiParam, ref HIGHCONTRAST pvParam, uint winIni);
@@ -20,8 +21,9 @@ Set-ItemProperty -Path "HKCU:\Software\Microsoft\Accessibility" -Name TextScaleF
 $hc = New-Object OuroSpi+HIGHCONTRAST
 $hc.cbSize = [Runtime.InteropServices.Marshal]::SizeOf([type][OuroSpi+HIGHCONTRAST])
 $hc.dwFlags = if ($Contrast -eq "on") { 1 } else { 0 }
-$hc.lpszDefaultScheme = "High Contrast Black"
+$hc.lpszDefaultScheme = [Runtime.InteropServices.Marshal]::StringToHGlobalUni("High Contrast Black")
 [void][OuroSpi]::SystemParametersInfo($SPI_SETHIGHCONTRAST, $hc.cbSize, [ref]$hc, 3)
+[Runtime.InteropServices.Marshal]::FreeHGlobal($hc.lpszDefaultScheme)
 $read = New-Object OuroSpi+HIGHCONTRAST
 $read.cbSize = $hc.cbSize
 [void][OuroSpi]::SystemParametersInfo($SPI_GETHIGHCONTRAST, $read.cbSize, [ref]$read, 0)

@@ -64,7 +64,7 @@ const pairs = (r: Record<string, string>): [string, string, string][] =>
 
 const checks: Record<string, (kind: string) => Result> = {
   "name.spoken": (kind) => all(of("light", kind).map((x) => ({ ok: spoken[kind]!(x), why: `${key(x)}: ${x.e.controlType} "${x.e.name}" focusable ${x.e.isKeyboardFocusable}` })), `${kind}s named and typed as the spec says`),
-  "target.touch": (kind) => all(of("light", kind).map((x) => ({ ok: x.e.rect.width / x.dpi >= 44 && x.e.rect.height / x.dpi >= 44, why: `${key(x)} ${(x.e.rect.width / x.dpi).toFixed(0)}x${(x.e.rect.height / x.dpi).toFixed(0)} epx` })), `${kind}s at least 44x44 epx`),
+  "target.touch": (kind) => all(of("light", kind).map((x) => !x.e.rect ? { ok: false, why: `${key(x)} not on screen` } : ({ ok: x.e.rect.width / x.dpi >= 44 && x.e.rect.height / x.dpi >= 44, why: `${key(x)} ${(x.e.rect.width / x.dpi).toFixed(0)}x${(x.e.rect.height / x.dpi).toFixed(0)} epx` })), `${kind}s at least 44x44 epx`),
   "motion.reduced": (kind) => {
     const on = of("light", kind), off = of("noanim", kind);
     if (!on.length || !off.length) return none(`${kind}s with animations on and off`);
