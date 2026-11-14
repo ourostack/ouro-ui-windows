@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Ouro Shop: the kit's sample and gallery. A shopping list whose buttons people press and agents call, and every
+       Button and Badge tone and variant, so CI can screenshot and check each in light, dark and a contrast theme. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RootNamespace>OuroShop</RootNamespace>
+    <Platforms>x64</Platforms>
+    <Platform>x64</Platform>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <SelfContained>false</SelfContained>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.6.5" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Ouro.UI.Windows\Ouro.UI.Windows.csproj" />
+    <Compile Include="..\Generated\OuroActions.g.cs" Link="Generated\OuroActions.g.cs" />
+    <Compile Include="..\Shared\ShoppingHandler.cs" Link="Shared\ShoppingHandler.cs" />
+  </ItemGroup>
+</Project>
