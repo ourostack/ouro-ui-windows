@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <!-- ThemeMode (the Fluent theme) is still experimental in WPF: WPF0001. -->
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\shared\generated\windows\OuroActions.g.cs" Link="Generated\OuroActions.g.cs" />
+    <Compile Include="..\..\shared\handlers\ShoppingHandler.cs" Link="Shared\ShoppingHandler.cs" />
+  </ItemGroup>
+</Project>

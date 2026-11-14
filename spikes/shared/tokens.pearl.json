@@ -1,0 +1,5 @@
+{
+  "source": "ouro-ui-core v0.10.0 OuroTokens.swift, Pearl theme; replaced by core's dist/windows/OuroTokens.cs once released",
+  "light": { "primary": "#0066cc", "primaryForeground": "#ffffff", "secondary": "#f2f2f5", "secondaryForeground": "#1d1d1f" },
+  "dark": { "primary": "#2997ff", "primaryForeground": "#00172e", "secondary": "#2c2c2e", "secondaryForeground": "#f5f5f7" }
+}

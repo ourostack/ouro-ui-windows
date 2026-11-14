@@ -1,0 +1,76 @@
+{
+  "generator": "ouro-actions 0.10.0",
+  "set": "shopping",
+  "tools": [
+    {
+      "name": "add_shopping_list_item",
+      "title": "Add to list",
+      "description": "Add one item to the person's shopping list. Give the name as the person said it; leave quantity out when they gave none.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "What to buy, as the person said it, such as \"oat milk\"."
+          },
+          "quantity": {
+            "type": "number",
+            "description": "How many or how much.",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The new item's id."
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "refusals": {
+    "place_grocery_order": {
+      "ax": "outcome/1",
+      "action": "list order",
+      "effect": "private",
+      "audience": {
+        "only": true,
+        "who": "only you"
+      },
+      "target": null,
+      "state": "refused",
+      "summary": "list order: You can't place an order or pay for the person; only they can. Ask the person, who does it with Place order on the shopping list.",
+      "postcondition": {
+        "checked": false,
+        "holds": null,
+        "how": "not checked"
+      },
+      "receipt": null,
+      "next": [],
+      "error": {
+        "code": "person-only",
+        "exit": 2,
+        "thing": "list order",
+        "problem": "You can't place an order or pay for the person; only they can. Ask the person, who does it with Place order on the shopping list",
+        "fix": null,
+        "message": "list order: You can't place an order or pay for the person; only they can. Ask the person, who does it with Place order on the shopping list."
+      }
+    }
+  }
+}
