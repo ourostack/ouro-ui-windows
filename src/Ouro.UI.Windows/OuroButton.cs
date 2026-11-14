@@ -29,7 +29,9 @@ public sealed partial class OuroButton : Button
     /// <summary>Core's minimum target, in effective pixels.</summary>
     public const double MinTarget = 44;
 
-    private readonly TextBlock label = new() { TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, TextAlignment = TextAlignment.Center, IsTextScaleFactorEnabled = true };
+    // No backplate: under a contrast theme the button already draws the system highlight pair, and WinUI's own backplate
+    // put a black box behind the words on the highlight fill (CI, 2026-11-14).
+    private readonly TextBlock label = new() { TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, TextAlignment = TextAlignment.Center, IsTextScaleFactorEnabled = true, HighContrastAdjustment = ElementHighContrastAdjustment.None };
     private ProgressRing? spinner;
     private OuroPaintResult paint;
     private bool wasBusy;

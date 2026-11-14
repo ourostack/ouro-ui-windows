@@ -60,6 +60,7 @@
                         MinHeight="{TemplateBinding MinHeight}">
                         <TextBlock
                             x:Name="Words"
+                            HighContrastAdjustment="None"
                             Text="{TemplateBinding Text}"
                             Foreground="{TemplateBinding Foreground}"
                             VerticalAlignment="Center"
