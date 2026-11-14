@@ -10,7 +10,8 @@ Copy-Item -Recurse -Force "$McpDir\*" $stage
 # A packaged app reads its resources from resources.pri; the unpackaged publish may name it after the app.
 $pris = @(Get-ChildItem $stage -Filter *.pri)
 Write-Host "PRI files in the publish: $(($pris | ForEach-Object Name) -join ', ')"
-if (-not (Test-Path "$stage\resources.pri") -and $pris.Count) { Copy-Item -Force $pris[0].FullName "$stage\resources.pri" }
+# Only the app's own PRI becomes resources.pri; the framework PRIs (Microsoft.UI*.pri) stay as they are.
+if (Test-Path "$stage\OuroShop.WinUI.pri") { Copy-Item -Force "$stage\OuroShop.WinUI.pri" "$stage\resources.pri" }
 Copy-Item -Force $Manifest "$stage\AppxManifest.xml"
 Copy-Item -Force "$Generated\windows\app-actions.json" "$stage\Assets\Actions\app-actions.json"
 Copy-Item -Force "$Generated\windows\mcpb.manifest.json" "$stage\Assets\Mcp\manifest.json"
