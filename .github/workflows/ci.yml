@@ -140,6 +140,13 @@ jobs:
           $code = $LASTEXITCODE
           Get-Content "$env:EV\button-claims.md" | Add-Content $env:GITHUB_STEP_SUMMARY
           exit $code
+      - name: Core's Badge claims
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          node spikes/shared/badge-claims.mts $env:EV spikes/shared/tokens.pearl.json
+          $code = $LASTEXITCODE
+          Get-Content "$env:EV\badge-claims.md" | Add-Content $env:GITHUB_STEP_SUMMARY
+          exit $code
       - name: Measure feel (WinUI 3 unpackaged, WinUI 3 packaged, WPF Fluent)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |

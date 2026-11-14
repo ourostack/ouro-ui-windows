@@ -21,7 +21,7 @@ public sealed class MainWindow : Window
     {
         Title = "Ouro Shop (WinUI spike)";
         SystemBackdrop = new MicaBackdrop();
-        AppWindow.Resize(new Windows.Graphics.SizeInt32(640, 420));
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(640, 480));
 
         var title = new TextBlock { Text = "Shopping list", Style = (Style)Application.Current.Resources["TitleTextBlockStyle"] };
         AutomationProperties.SetHeadingLevel(title, AutomationHeadingLevel.Level1);
@@ -36,12 +36,18 @@ public sealed class MainWindow : Window
             buttons.Children.Add(button);
         }
 
+        // Ouro badges: how many actions the window declares, and which one only a person can run.
+        var badges = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        badges.Children.Add(new OuroBadge($"{OuroActions.All.Count()} actions", "badge.actions", OuroBadgeTone.Primary));
+        badges.Children.Add(new OuroBadge("Person only", "badge.person-only", OuroBadgeTone.Secondary, "\uE72E"));
+
         status = new TextBlock { Text = "Ready", TextWrapping = TextWrapping.Wrap, MaxWidth = 560 };
         AutomationProperties.SetAutomationId(status, "status");
         AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite);
 
         var root = new StackPanel { Spacing = 16, Padding = new Thickness(32) };
         root.Children.Add(title);
+        root.Children.Add(badges);
         root.Children.Add(name);
         root.Children.Add(buttons);
         root.Children.Add(status);
