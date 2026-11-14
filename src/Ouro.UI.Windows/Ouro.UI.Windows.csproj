@@ -7,6 +7,9 @@
     <UseWinUI>true</UseWinUI>
     <PackageId>Ouro.UI.Windows</PackageId>
     <Description>Ouro UI for Windows: Button, Badge, Card and Item as templated WinUI 3 controls from ouro-ui-core's specs and tokens, with light, dark and contrast themes, and buttons that run defineAction actions through Ouro.Actions.</Description>
+    <!-- core v0.12.0's OuroTokens.cs documents OuroTheme's Radius but not its other parameters; vendored files are never
+         edited, so this waits on core's fix. -->
+    <NoWarn>$(NoWarn);CS1573</NoWarn>
     <PackageTags>ouro;winui;windows-app-sdk;design-system;accessibility;agents</PackageTags>
   </PropertyGroup>
   <ItemGroup>

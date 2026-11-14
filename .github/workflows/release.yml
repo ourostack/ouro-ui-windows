@@ -1,0 +1,65 @@
+name: Release
+
+# A tag vX.Y.Z on main becomes a GitHub release: the two NuGet packages and the Ouro Shop sample MSIX with its
+# certificate (RELEASING.md).
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: release
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: powershell
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: The tag matches the version, and its notes exist
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version
+          if ("v$version" -ne $tag) { throw "Tag $tag isn't Directory.Build.props' version $version. Fix: set the version in a pull request, then tag (RELEASING.md)." }
+          if (-not (Test-Path "docs/releases/$tag.md")) { throw "No docs/releases/$tag.md. Fix: write the notes in the version pull request (RELEASING.md)." }
+      - run: node scripts/provenance.mjs check
+      - run: dotnet test tests/Ouro.Tests -c Release
+      - name: Pack Ouro.Actions and Ouro.UI.Windows
+        run: |
+          dotnet pack src/Ouro.Actions -c Release -o out/packages
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          dotnet pack src/Ouro.UI.Windows -c Release -o out/packages
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Build and sign the Ouro Shop sample MSIX
+        run: |
+          dotnet publish samples/OuroShop/OuroShop.WinUI -c Release -o out/app
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          dotnet publish samples/OuroShop/OuroShop.Mcp -c Release -o out/mcp
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          & tools/pack.ps1 -AppDir out\app -McpDir out\mcp -Generated samples\OuroShop\Generated -Manifest samples\OuroShop\package\AppxManifest.xml -Out out\msix -File "OuroShop-${{ github.ref_name }}.msix"
+          Get-AppxPackage -Name Ouro.Shop | Remove-AppxPackage
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $assets = @(Get-ChildItem out/packages/*.nupkg) + @(Get-Item "out/msix/OuroShop-$tag.msix", "out/msix/OuroShop-$tag.cer", "vendor/core/components/*.spec.json", "src/Ouro.UI.Windows/Vendor/OuroTokens.xaml") | ForEach-Object FullName
+          gh release create $tag --title $tag --notes-file "docs/releases/$tag.md" --verify-tag @assets
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Remove the certificate
+        if: always()
+        run: |
+          Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object Subject -eq "CN=Ouro Shop Sample" | Remove-Item -ErrorAction SilentlyContinue
+          Get-ChildItem Cert:\CurrentUser\My | Where-Object Subject -eq "CN=Ouro Shop Sample" | Remove-Item -ErrorAction SilentlyContinue
