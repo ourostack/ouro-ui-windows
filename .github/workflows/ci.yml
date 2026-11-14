@@ -131,12 +131,14 @@ jobs:
           & tools/render-text.ps1 -In $text -Out "$env:EV\app-action-registration.png" -Title "Ouro Shop: what Windows registered (rendered from CI output)"
       - name: MCP server, from the package, asks the person before a consequential call
         run: |
-          $answer = Start-Job -FilePath tools/answer-dialog.ps1 -ArgumentList "Ouro Shop: Share list", "No", "$env:EV\confirm-mcp.json", "$env:EV\confirm-mcp.png"
+          $answer = Start-Process powershell -PassThru -NoNewWindow -RedirectStandardOutput "$env:EV\answer-dialog.log" -ArgumentList "-NoProfile", "-File", "tools\answer-dialog.ps1", "-Title", "`"Ouro Shop: Share list`"", "-Press", "No", "-Out", "$env:EV\confirm-mcp.json", "-Screenshot", "$env:EV\confirm-mcp.png"
           node tools/mcp-probe.mts "$env:EV\mcp-probe.json" "$env:LOCALAPPDATA\Microsoft\WindowsApps\OuroShop.Mcp.exe"
           $code = $LASTEXITCODE
-          Receive-Job $answer -Wait -AutoRemoveJob
+          $answer | Wait-Process -Timeout 30 -ErrorAction SilentlyContinue
+          Get-Content "$env:EV\answer-dialog.log" -ErrorAction SilentlyContinue
           exit $code
       - name: Read each page as people and agents see it, under each setting
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
           $pages = { param([string]$s, [string]$extra = "", [switch]$Shots)
             $a = @{}; if ($Shots) { $a.Screenshot = "$env:EV\list-$s.png" }
@@ -177,6 +179,12 @@ jobs:
           & tools/measure.ps1 -Label "Ouro Shop (MSIX)" -Command "$env:LOCALAPPDATA\Microsoft\WindowsApps\OuroShop.exe" -ProcessName OuroShop.WinUI -Out "$env:EV\measure-msix.json"
           node tools/measure-report.mts "$env:EV\measure.md" "$env:EV\measure-app.json" "$env:EV\measure-msix.json"
           Get-Content "$env:EV\measure.md" | Add-Content $env:GITHUB_STEP_SUMMARY
+      - name: If the app didn't start, what Windows logged
+        if: failure()
+        run: |
+          Get-WinEvent -FilterHashtable @{ LogName = "Application"; StartTime = (Get-Date).AddMinutes(-40) } -ErrorAction SilentlyContinue |
+            Where-Object { $_.ProviderName -in ".NET Runtime", "Application Error", "Windows Error Reporting" } |
+            Select-Object -First 8 | ForEach-Object { "[$($_.TimeCreated)] $($_.ProviderName) $($_.Id)"; $_.Message; "" } | Tee-Object "$env:EV\app-errors.txt"
       - name: Remove the package, the certificate and the contrast theme
         if: always()
         run: |

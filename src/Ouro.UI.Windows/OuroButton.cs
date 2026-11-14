@@ -33,9 +33,9 @@ public sealed partial class OuroButton : Button
     private ProgressRing? spinner;
     private OuroPaintResult paint;
     private bool wasBusy;
+    private OuroActionInfo? action;
 
     public static readonly DependencyProperty LabelProperty = Register(nameof(Label), typeof(string), "");
-    public static readonly DependencyProperty ActionProperty = Register(nameof(Action), typeof(OuroActionInfo), null);
     public static readonly DependencyProperty ToneProperty = Register(nameof(Tone), typeof(OuroTone), OuroTone.Primary);
     public static readonly DependencyProperty VariantProperty = Register(nameof(Variant), typeof(OuroVariant), OuroVariant.Solid);
     public static readonly DependencyProperty SizeProperty = Register(nameof(Size), typeof(OuroSize), OuroSize.Medium);
@@ -58,7 +58,11 @@ public sealed partial class OuroButton : Button
     public string Label { get => (string)GetValue(LabelProperty); set => SetValue(LabelProperty, value); }
 
     /// <summary>The declared action it runs: its label, description and id become the words, the hint and the automation id.</summary>
-    public OuroActionInfo? Action { get => (OuroActionInfo?)GetValue(ActionProperty); set => SetValue(ActionProperty, value); }
+    public OuroActionInfo? Action
+    {
+        get => action;
+        set { action = value; Changed(); }
+    }
 
     /// <summary>The colour role from the theme.</summary>
     public OuroTone Tone { get => (OuroTone)GetValue(ToneProperty); set => SetValue(ToneProperty, value); }
