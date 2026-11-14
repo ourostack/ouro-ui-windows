@@ -14,8 +14,18 @@ public partial class App : Application
     private static readonly string[] Args = Environment.GetCommandLineArgs().Skip(1).ToArray();
     private MainWindow? window;
 
+    /// <summary>Where the app writes an exception it could not handle, so CI (and a person) can read why it stopped.</summary>
+    public static string CrashLog { get; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OuroShop", "crash.txt");
+
+    private static void Crashed(object? error)
+    {
+        try { Directory.CreateDirectory(Path.GetDirectoryName(CrashLog)!); File.AppendAllText(CrashLog, $"[{DateTimeOffset.Now:O}] {error}\n\n"); } catch (IOException) { }
+    }
+
     public App()
     {
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => Crashed(e.ExceptionObject);
+        UnhandledException += (_, e) => Crashed(e.Exception);
         var theme = Arg("--theme");
         if (theme == "dark") RequestedTheme = ApplicationTheme.Dark;
         else if (theme == "light") RequestedTheme = ApplicationTheme.Light;
@@ -30,6 +40,11 @@ public partial class App : Application
         new OuroJsonlAudit(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OuroShop", "audit.jsonl")));
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
+    {
+        try { Launch(); } catch (Exception e) { Crashed(e); throw; }
+    }
+
+    private void Launch()
     {
         var w = window = new MainWindow(Arg("--page") ?? "list");
         Runtime.Confirm = OuroPerson.Dialog(() => w.Content?.XamlRoot);

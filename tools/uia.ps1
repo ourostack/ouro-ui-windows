@@ -24,12 +24,33 @@ function Find-ByAutomationId($Root, [string]$Id) {
 
 function Wait-OuroElement([string]$ProcessName, [string]$Id, [int]$TimeoutMs = 60000) {
   $sw = [Diagnostics.Stopwatch]::StartNew()
+  $seen = $false
   while ($sw.ElapsedMilliseconds -lt $TimeoutMs) {
     $w = Get-OuroWindow $ProcessName
     if ($w) { $e = Find-ByAutomationId $w $Id; if ($e) { return $e } }
+    if (Get-Process -Name $ProcessName -ErrorAction SilentlyContinue) { $seen = $true } elseif ($seen) { break }
     Start-Sleep -Milliseconds 10
   }
-  throw "No element '$Id' in a '$ProcessName' window after $TimeoutMs ms"
+  throw "No element '$Id' in a '$ProcessName' window after $($sw.ElapsedMilliseconds) ms. $(Get-OuroWhy $ProcessName)"
+}
+
+# Why a wait failed, in one line: whether the process is running and responding, what window UI Automation sees and
+# how much is in it, and the app's own crash log when it wrote one. Also saves the whole screen beside the evidence.
+function Get-OuroWhy([string]$ProcessName) {
+  $p = @(Get-Process -Name $ProcessName -ErrorAction SilentlyContinue)
+  $why = if ($p) { "Running: pid $($p[0].Id), responding $($p[0].Responding), main window '$($p[0].MainWindowTitle)'." } else { "Not running." }
+  $w = Get-OuroWindow $ProcessName
+  if ($w) { $why += " UI Automation sees '$($w.Current.Name)' ($($w.Current.ClassName)) with $($w.FindAll([System.Windows.Automation.TreeScope]::Descendants, [System.Windows.Automation.Condition]::TrueCondition).Count) elements." }
+  $crash = Join-Path $env:LOCALAPPDATA "OuroShop\crash.txt"
+  if (Test-Path $crash) { $why += " Crash log: $(Get-Content -Raw $crash)" }
+  if ($env:EV) {
+    Add-Type -AssemblyName System.Drawing, System.Windows.Forms
+    $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+    $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+    $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen(0, 0, 0, 0, $bmp.Size)
+    $bmp.Save((Join-Path $env:EV "timeout-$ProcessName.png"), [System.Drawing.Imaging.ImageFormat]::Png); $g.Dispose(); $bmp.Dispose()
+  }
+  return $why
 }
 
 function Get-OuroTree([string]$ProcessName) {

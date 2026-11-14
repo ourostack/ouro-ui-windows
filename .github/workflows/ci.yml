@@ -183,8 +183,10 @@ jobs:
         if: failure()
         run: |
           Get-WinEvent -FilterHashtable @{ LogName = "Application"; StartTime = (Get-Date).AddMinutes(-40) } -ErrorAction SilentlyContinue |
-            Where-Object { $_.ProviderName -in ".NET Runtime", "Application Error", "Windows Error Reporting" } |
+            Where-Object { $_.ProviderName -in ".NET Runtime", "Application Error", "Application Hang", "Windows Error Reporting" } |
             Select-Object -First 8 | ForEach-Object { "[$($_.TimeCreated)] $($_.ProviderName) $($_.Id)"; $_.Message; "" } | Tee-Object "$env:EV\app-errors.txt"
+          $crash = "$env:LOCALAPPDATA\OuroShop\crash.txt"
+          if (Test-Path $crash) { Copy-Item $crash "$env:EV\crash.txt"; Get-Content $crash }
       - name: Remove the package, the certificate and the contrast theme
         if: always()
         run: |
