@@ -1,9 +1,8 @@
 # Saves a PNG of the screen, or of one process's window when -ProcessName is given.
 param([Parameter(Mandatory)][string]$Out, [string]$ProcessName)
 . "$PSScriptRoot\uia.ps1"
-Add-Type -AssemblyName System.Drawing
-$bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds 2>$null
-if (-not $bounds) { Add-Type -AssemblyName System.Windows.Forms; $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds }
+Add-Type -AssemblyName System.Drawing, System.Windows.Forms
+$bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
 $x = $bounds.X; $y = $bounds.Y; $w = $bounds.Width; $h = $bounds.Height
 if ($ProcessName) {
   $win = Get-OuroWindow $ProcessName
