@@ -2,7 +2,7 @@
 
 Ouro UI's native kit for Windows, and the agent doors (App Actions and an MCP server for the On-device Agent Registry) generated from [ouro-ui-core](https://github.com/ourostack/ouro-ui-core)'s one action declaration.
 
-**Status: spike.** Nothing here is released. `spikes/` holds the measured experiments behind the native-strategy decision record in [ourostack/ouro-ui](https://github.com/ourostack/ouro-ui/tree/main/docs/decisions).
+**Status: spike.** Nothing here is released. The kit is WinUI 3, and a component is specified once in core and rendered here by hand: [the decision record](https://github.com/ourostack/ouro-ui-core/blob/main/docs/decisions/2026-11-14-native-kits.md), whose "Windows v0.1.0" section is the plan. `spikes/` holds the measured experiments behind it.
 
 ## How the kits fit together
 
