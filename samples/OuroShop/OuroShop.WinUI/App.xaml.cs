@@ -17,6 +17,8 @@ public partial class App : Application
     /// <summary>Where the app writes an exception it could not handle, so CI (and a person) can read why it stopped.</summary>
     public static string CrashLog { get; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OuroShop", "crash.txt");
 
+    internal static void Trace(string line) => Crashed(line); // TEMP
+
     private static void Crashed(object? error)
     {
         try { Directory.CreateDirectory(Path.GetDirectoryName(CrashLog)!); File.AppendAllText(CrashLog, $"[{DateTimeOffset.Now:O}] {error}\n\n"); } catch (IOException) { }
