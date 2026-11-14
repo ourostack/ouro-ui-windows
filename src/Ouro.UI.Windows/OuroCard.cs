@@ -30,7 +30,7 @@ public sealed partial class OuroCard : ContentControl
 {
     private TextBlock? title, description;
     private Grid? header;
-    private FrameworkElement? action;
+    private FrameworkElement? action, body, footer;
     private StackPanel? stack;
 
     public static readonly DependencyProperty TitleProperty = Register(nameof(Title), typeof(string), "");
@@ -77,6 +77,14 @@ public sealed partial class OuroCard : ContentControl
         header = GetTemplateChild("Header") as Grid;
         action = GetTemplateChild("ActionPresenter") as FrameworkElement;
         stack = GetTemplateChild("Stack") as StackPanel;
+        body = GetTemplateChild("BodyPresenter") as FrameworkElement;
+        footer = GetTemplateChild("FooterPresenter") as FrameworkElement;
+        Refresh();
+    }
+
+    protected override void OnContentChanged(object oldContent, object newContent)
+    {
+        base.OnContentChanged(oldContent, newContent);
         Refresh();
     }
 
@@ -112,6 +120,10 @@ public sealed partial class OuroCard : ContentControl
             action.HorizontalAlignment = stacked ? HorizontalAlignment.Left : HorizontalAlignment.Right;
             action.Visibility = Action is null ? Visibility.Collapsed : Visibility.Visible;
         }
+        // An empty part is collapsed, not left as an empty presenter: WinUI fails to measure a card whose footer
+        // presenter shows nothing (CI, 2026-11-14), and it would also leave a gap the size of the stack's spacing.
+        if (body is not null) body.Visibility = Content is null ? Visibility.Collapsed : Visibility.Visible;
+        if (footer is not null) footer.Visibility = Footer is null ? Visibility.Collapsed : Visibility.Visible;
         var behind = Variant == OuroFrame.Plain && !hc ? OuroUI.Argb(c.Background) : surface;
         OuroUI.Report(this, "", "card", ("title", OuroPaint.Hex(ink)), ("description", OuroPaint.Hex(muted)), ("surface", OuroPaint.Hex(behind)),
             ("stacked", stacked), ("trimmed", (title?.IsTextTrimmed ?? false) || (description?.IsTextTrimmed ?? false)), ("textHeight", Math.Round(title?.ActualHeight ?? 0)));
