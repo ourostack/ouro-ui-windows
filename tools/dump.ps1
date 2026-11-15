@@ -1,6 +1,7 @@
 # Launches the app, waits for an element, and writes its UI Automation tree as JSON. With -Screenshot it also saves the
 # window as a PNG and samples, for each control that reports a fill, the pixel at its left edge's middle (4 px in), so
-# the claims can check what was drawn against what the control says it drew.
+# the claims can check what was drawn against what the control says it drew. For a Button or Badge it also keeps the
+# middle row of pixels, which crosses its words (tools/pixels.mts).
 param([Parameter(Mandatory)][string]$Command, [string]$Arguments, [Parameter(Mandatory)][string]$ProcessName, [Parameter(Mandatory)][string]$Out, [string]$Screenshot, [string]$ReadyId = "action.add_shopping_list_item", [int]$SettleMs = 2000)
 . "$PSScriptRoot\uia.ps1"
 Add-Type -AssemblyName System.Drawing
@@ -18,6 +19,10 @@ if ($Screenshot) {
     if ($e.itemStatus -notmatch "ouro:" -or $e.rect.width -le 8) { continue }
     $x = [int]($e.rect.x - $tree.windowRect.x + 4); $y = [int]($e.rect.y - $tree.windowRect.y + $e.rect.height / 2)
     if ($x -ge 0 -and $y -ge 0 -and $x -lt $bmp.Width -and $y -lt $bmp.Height) { $e["sampled"] = "#{0:X8}" -f $bmp.GetPixel($x, $y).ToArgb() }
+    # A Button's or Badge's words sit on its middle row: keep that row, so claims can check the words were drawn as reported.
+    if ($e.itemStatus -match "ouro:(button|badge);" -and $y -ge 0 -and $y -lt $bmp.Height) {
+      $e["textLine"] = @(for ($i = $x; $i -lt [int]($x + $e.rect.width - 8) -and $i -lt $bmp.Width; $i++) { "#{0:X8}" -f $bmp.GetPixel($i, $y).ToArgb() })
+    }
   }
   $bmp.Dispose()
 }

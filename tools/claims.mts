@@ -5,6 +5,7 @@
 // Usage: node tools/claims.mts <evidence dir>. Exit 1 when any claim fails or can't run.
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { wordsAsReported } from "./pixels.mts";
 
 const [dir] = process.argv.slice(2);
 if (!dir) {
@@ -84,7 +85,8 @@ const checks: Record<string, (kind: string) => Result> = {
     return all(xs.flatMap((x) => [
       ...pairs(x.r).map(([what, fg, bg]) => ({ ok: ratio(fg, bg) >= 4.5, why: `${x.s} ${key(x)} ${what} ${ratio(fg, bg).toFixed(2)}:1` })),
       ...(x.e.sampled && x.r.fill && !x.r.fill.startsWith("#00") ? [{ ok: near(x.e.sampled, x.r.fill), why: `${x.s} ${key(x)} drew ${x.e.sampled}, reports ${x.r.fill}` }] : []),
-    ]), `${kind} text pairs at 4.5:1 or better in light, dark and a contrast theme, and sampled fills matching the reports`);
+      ...(x.e.textLine ? [(({ ok, why }) => ({ ok, why: `${x.s} ${key(x)} words: ${why}` }))(wordsAsReported(x.e.textLine, x.r.fill!.startsWith("#00") ? x.r.behind! : x.r.fill!, x.r.label!))] : []),
+    ]), `${kind} text pairs at 4.5:1 or better in light, dark and a contrast theme, and sampled fills and words matching the reports`);
   },
 };
 

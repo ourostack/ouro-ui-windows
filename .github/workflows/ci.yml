@@ -46,6 +46,8 @@ jobs:
           node-version: 24
       - name: Vendored core files match their release, by SHA-256
         run: node scripts/provenance.mjs check
+      - name: The pixel checks catch what CI has caught before
+        run: node --test tools/*.test.mts
       - name: The sample's Windows projections match its declarations
         run: node vendor/core/ouro-actions-windows.mts check samples/OuroShop/shopping.actions.mts samples/OuroShop/Generated
 
