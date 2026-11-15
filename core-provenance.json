@@ -1,9 +1,9 @@
 {
-  "coreTag": "v0.12.0",
+  "coreTag": "v0.13.1",
   "files": {
     "vendor/core/ouro-actions.mts": {
       "from": "dist/actions/ouro-actions.mts",
-      "sha256": "71b3fd3c8a7fb5c7c8aac17622bc9a87b2c24bf1f886a3e0b1ed6598a9d71b32"
+      "sha256": "ec93fa27d81f7c4802396a904dfc6c52e0d3319bf5ef85f19b38487d54800717"
     },
     "vendor/core/ouro-actions-windows.mts": {
       "from": "dist/actions/ouro-actions-windows.mts",
@@ -11,11 +11,11 @@
     },
     "vendor/core/components.claims.json": {
       "from": "dist/hx/components.claims.json",
-      "sha256": "cedf49e97ef7620bf8cde130c4e86c2642ae254666c3160b48d1d5bc6025b59f"
+      "sha256": "d634ea48cae87fb445bc2e072d0a4def5eb289bf5767a6aef4aa6cdd79fb5aa3"
     },
     "vendor/core/components/component.schema.json": {
       "from": "dist/hx/components/component.schema.json",
-      "sha256": "b0d4645e9d48528245246e0b113024146f6a69ceed3fb595a816309009ffdfe1"
+      "sha256": "805f33e08eb2be861f7bf02f42e05f8649599ce96b0ed4471faf8b7c40d19d27"
     },
     "vendor/core/components/button.spec.json": {
       "from": "dist/hx/components/button.spec.json",
@@ -35,11 +35,11 @@
     },
     "src/Ouro.UI.Windows/Vendor/OuroTokens.cs": {
       "from": "dist/windows/OuroTokens.cs",
-      "sha256": "8ade7880614f37c22cdb732deda18ef13107c5ba87673b9f9b2f022f7e8245f4"
+      "sha256": "755587461f8f2e86cc62da61cf5b03553e5b13ff6a2d1f2aeabe5577ef6efb65"
     },
     "src/Ouro.UI.Windows/Vendor/OuroTokens.xaml": {
       "from": "dist/windows/OuroTokens.xaml",
-      "sha256": "1433cf6a75db52d9be91ba921eba94aaf4adaf803d7ce7b9464014d0f400357d"
+      "sha256": "3d71e4c728074d016932176d724025e36ec7dcb199c289938d7737944ddda8e7"
     }
   }
 }
