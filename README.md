@@ -1,3 +1,9 @@
+<!-- ourostack:brand:start -->
+<p align="center">
+  <a href="https://github.com/ourostack"><img src="https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-ui-windows.webp" alt="Ouro basking on a cabin windowsill while a small robot swings open one pane of the window and a person at the desk points at it" width="100%"></a>
+</p>
+<!-- ourostack:brand:end -->
+
 # Ouro UI for Windows
 
 Ouro UI's native kit for Windows: core's components as WinUI 3 controls, and the agent doors (Windows App Actions and an MCP server for the On-device Agent Registry), all generated from [ouro-ui-core](https://github.com/ourostack/ouro-ui-core)'s one `defineAction` declaration.
