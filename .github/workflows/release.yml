@@ -1,13 +1,14 @@
 name: Release
 
-# A tag vX.Y.Z on main becomes a GitHub release: the two NuGet packages and the Ouro Shop sample MSIX with its
-# certificate (RELEASING.md).
+# A tag vX.Y.Z on main becomes a GitHub release (the two NuGet packages and the Ouro Shop sample MSIX with its
+# certificate) and the two packages on GitHub Packages, ourostack's NuGet feed (RELEASING.md).
 on:
   push:
     tags: ["v*.*.*"]
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   release:
@@ -58,6 +59,12 @@ jobs:
           $assets = @(Get-ChildItem out/packages/*.nupkg) + @(Get-Item "out/msix/OuroShop-$tag.msix", "out/msix/OuroShop-$tag.cer", "vendor/core/components/*.spec.json", "src/Ouro.UI.Windows/Vendor/OuroTokens.xaml") | ForEach-Object FullName
           gh release create $tag --title $tag --notes-file "docs/releases/$tag.md" --verify-tag @assets
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Publish the packages to GitHub Packages
+        run: |
+          foreach ($p in Get-ChildItem out/packages/*.nupkg) {
+            dotnet nuget push $p.FullName --source "https://nuget.pkg.github.com/ourostack/index.json" --api-key "${{ github.token }}" --skip-duplicate
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
       - name: Remove the certificate
         if: always()
         run: |
