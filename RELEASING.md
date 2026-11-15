@@ -16,7 +16,9 @@ Releases are tags `vX.Y.Z` on `main`, published as GitHub releases by `.github/w
 
    The release workflow checks the tag matches `Directory.Build.props`, runs the tests, packs `Ouro.Actions` and
    `Ouro.UI.Windows` as `.nupkg`, builds the Ouro Shop sample MSIX signed with a certificate made in the run (its public
-   `.cer` beside it), and creates the release with the notes in `docs/releases/vX.Y.Z.md`. Write that file in step 2.
+   `.cer` beside it), creates the release with the notes in `docs/releases/vX.Y.Z.md`, and pushes both packages to
+   GitHub Packages (`https://nuget.pkg.github.com/ourostack/index.json`) with the run's own token. Write the notes
+   file in step 2.
 4. Wait for the release workflow to pass. A failure with no open issue is a bug: file it before anything is rerun.
 
 ## What a release can't prove yet
@@ -31,7 +33,9 @@ that Windows lists them to agents. A Windows 11 client check (build 26220.7262 o
 
 Until then, the release notes say so.
 
-## nuget.org
+## nuget.org (later)
 
-The packages are attached to each GitHub release. Publishing them to nuget.org needs an account and API key that only
-Ari can create; until then, consumers add the release's packages to a local feed (README).
+Each release publishes the packages to GitHub Packages and attaches them to the GitHub release. nuget.org would let
+consumers install with no sign-in, but it needs an account and API key that only Ari can create. When there is one:
+add the key as the `NUGET_API_KEY` secret and a `dotnet nuget push ... --source https://api.nuget.org/v3/index.json`
+step beside the GitHub Packages one.

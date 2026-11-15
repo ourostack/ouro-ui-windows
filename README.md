@@ -14,12 +14,14 @@ Ouro UI's native kit for Windows: core's components as WinUI 3 controls, and the
 
 ## Use it
 
-The packages are attached to each [release](https://github.com/ourostack/ouro-ui-windows/releases) (nuget.org is pending; RELEASING.md). Add them to a local feed:
+Each release publishes the packages to GitHub Packages, ourostack's NuGet feed. GitHub's NuGet feed needs a sign-in even for public packages: a token with `read:packages` (for example `gh auth token`, after `gh auth refresh -s read:packages`).
 
 ```sh
-dotnet nuget add source ./packages --name ouro
-dotnet add package Ouro.UI.Windows --version 0.1.0 --source ouro
+dotnet nuget add source https://nuget.pkg.github.com/ourostack/index.json --name ourostack --username <your GitHub login> --password <token> --store-password-in-clear-text
+dotnet add package Ouro.UI.Windows --source ourostack
 ```
+
+The `.nupkg` files are also attached to each [release](https://github.com/ourostack/ouro-ui-windows/releases), for a local feed with no sign-in. nuget.org comes later (RELEASING.md).
 
 Declare actions once in TypeScript with core's `defineAction` and generate the Windows files:
 
