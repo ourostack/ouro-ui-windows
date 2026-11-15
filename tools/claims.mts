@@ -1,4 +1,4 @@
-// Core's claims, run on Windows for every component the kit ships. Each component spec in vendor/core/components
+// Core's claims, run on Windows for every component the kit ships (KIT below). Each component spec in vendor/core/components
 // names its claims; every one must have a Windows check here, so a claim core adds fails this until Windows proves it.
 // The checks read UI Automation trees of the real window under the Windows settings each claim names (light, dark, a
 // contrast theme, animations off, text size 225%), the controls' self-reports, and pixels sampled from screenshots.
@@ -21,7 +21,14 @@ const json = async (p: string) => {
 };
 const vendor = new URL("../vendor/core/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const claims = (await json(join(vendor, "components.claims.json")))?.claims as { id: string; tier: string; appliesTo: string[] }[];
-const specs = await Promise.all((await readdir(join(vendor, "components"))).filter((f) => f.endsWith(".spec.json")).map((f) => json(join(vendor, "components", f))));
+/** The components this kit ships. Core specs more; each one joins here when its control does, with a check for each claim. */
+const KIT = ["button", "badge", "card", "item"];
+const specs = (await Promise.all((await readdir(join(vendor, "components"))).filter((f) => f.endsWith(".spec.json")).map((f) => json(join(vendor, "components", f))))).filter((s: any) => KIT.includes(s?.name));
+const missing = KIT.filter((k) => !specs.some((s: any) => s.name === k));
+if (missing.length) {
+  process.stderr.write(`claims: no vendored spec for ${missing.join(", ")}. Fix: node scripts/provenance.mjs update <core tag>.\n`);
+  process.exit(1);
+}
 
 /** Every dump, by the setting it was taken under. Each holds the list page and the gallery page. */
 const settings = ["light", "dark", "contrast", "noanim", "text225"] as const;
