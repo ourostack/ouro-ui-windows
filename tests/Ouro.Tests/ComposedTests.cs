@@ -183,6 +183,46 @@ public class ComposedTests
         Assert.StartsWith("share_recipe's confirm sheet shows a row", First(unbound));
     }
 
+    [Theory]
+    [InlineData("constructor")]
+    [InlineData("toString")]
+    [InlineData("__proto__")]
+    [InlineData("hasOwnProperty")]
+    public void A_name_a_sender_chooses_is_the_catalogs_only_when_the_catalog_itself_has_it(string name)
+    {
+        var extra = Child(Buttons, 2);
+        extra["props"]!["input"] = JsonNode.Parse($$"""{"recipe":"rcp_123","with":"sam@example.com",{{JsonValue.Create(name).ToJsonString()}}:true}""");
+        Assert.Contains(OuroComposed.ValidateTree(App, Card(extra)), p => p.Message.StartsWith($"share_recipe has no input {name}", StringComparison.Ordinal));
+        Assert.Matches("is not in this catalog", OuroComposed.ValidateTree(App, Card(new JsonObject { ["id"] = "x", ["component"] = name, ["props"] = new JsonObject(), ["children"] = new JsonArray() }))[0].Message);
+        var button = Child(Buttons, 0);
+        button["props"]!["action"] = name;
+        Assert.Matches("not one of the app's actions", OuroComposed.ValidateTree(App, Card(button))[0].Message);
+        var catalog = JsonNode.Parse("""{"catalogId":"x","components":{"Text":{}}}""")!;
+        catalog["components"]![name] = new JsonObject();
+        Assert.Matches($"component {System.Text.RegularExpressions.Regex.Escape(name)} is not Ouro HX's", Assert.Throws<InvalidDataException>(() => OuroComposedCatalog.Load(catalog)).Message);
+    }
+
+    [Fact]
+    public void A_pointer_never_names_an_objects_prototype_writes_through_one_write_nothing_and_the_validator_refuses_it()
+    {
+        foreach (var p in new[] { "/__proto__/polluted", "/constructor/prototype/polluted", "/a/__proto__/toString", "/a/prototype" })
+        {
+            Assert.Equal("""{"a":{}}""", OuroPointer.Set(JsonNode.Parse("""{"a":{}}"""), p, "yes").ToJsonString());
+            Assert.Equal("""{"a":{"prototype":1}}""", OuroPointer.Set(JsonNode.Parse("""{"a":{"prototype":1}}"""), p, null).ToJsonString());
+            Assert.False(OuroPointer.IsData(p), p);
+        }
+        Assert.False(OuroPointer.IsSafe("constructor"));
+        Assert.False(OuroPointer.IsSafe("items/__proto__"));
+        Assert.True(OuroPointer.IsData("/servings"));
+        Assert.Null(OuroPointer.Get(JsonNode.Parse("""{"a":1}"""), "/toString"));
+        Assert.Null(OuroPointer.Get(JsonNode.Parse("""{"a":1}"""), "/__proto__"));
+        var field = Card(Node("TextField", """{"label":"X","value":"/__proto__/x","type":"text","multiline":false}"""));
+        Assert.Matches("JSON pointer into the data model", OuroComposed.ValidateTree(Hx, field)[0].Message);
+        var bound = Child(Buttons, 1);
+        bound["props"]!["input"] = JsonNode.Parse("""{"recipe":"rcp_123","servings":{"@path":"/__proto__/servings"}}""");
+        Assert.Contains(OuroComposed.ValidateTree(App, Card(bound)), p => p.Path == "/children/0/props/input/servings");
+    }
+
     [Fact]
     public void The_apps_label_resolver_names_only_an_id_and_every_other_row_shows_what_is_sent()
     {

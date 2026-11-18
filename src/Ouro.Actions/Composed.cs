@@ -242,12 +242,14 @@ public static class OuroPointer
     /// <summary>
     /// A copy of the data with the value written at the pointer, creating objects on the way; null deletes. The data is left
     /// as it was. An array takes a value at an index it has or the one after its last; a write further on goes nowhere,
-    /// so no path can make it grow without end.
+    /// so no path can make it grow without end. A pointer with a segment that names an object's prototype in JavaScript
+    /// (<c>__proto__</c>, <c>constructor</c>, <c>prototype</c>) writes nothing, as in every other kit.
     /// </summary>
     public static JsonNode Set(JsonNode? data, string pointer, JsonNode? value)
     {
         if (pointer is "" or "/") return value?.DeepClone() ?? new JsonObject();
         var keys = Keys(pointer);
+        if (keys.Any(Unsafe.Contains)) return data?.DeepClone() ?? new JsonObject();
         var root = data is JsonObject or JsonArray ? data.DeepClone() : new JsonObject();
         JsonNode cur = root;
         for (var i = 0; i < keys.Length; i++)
@@ -289,6 +291,16 @@ public static class OuroPointer
         }
         return root;
     }
+
+    // The segments that would reach an object's prototype in JavaScript (ouro-ui-core#91). C#'s JSON objects have no
+    // prototype, but every kit refuses the same pointers, so a tree one kit refuses no other draws.
+    private static readonly HashSet<string> Unsafe = ["__proto__", "constructor", "prototype"];
+
+    /// <summary>Whether no segment of a pointer, absolute or relative, is <c>__proto__</c>, <c>constructor</c> or <c>prototype</c> (core's <c>isSafePointer</c>).</summary>
+    public static bool IsSafe(string pointer) => !Keys(pointer).Any(Unsafe.Contains);
+
+    /// <summary>Whether a pointer stays in the data: absolute, and safe (core's <c>isDataPointer</c>).</summary>
+    public static bool IsData(string pointer) => pointer.StartsWith('/') && IsSafe(pointer);
 
     private static string[] Keys(string pointer) =>
         (pointer.StartsWith('/') ? pointer[1..] : pointer).Split('/').Select(k => k.Replace("~1", "/").Replace("~0", "~")).ToArray();
@@ -580,7 +592,7 @@ public static class OuroComposed
             // A field the catalog doesn't carry would be sent without a row on the confirm sheet.
             if (!a.Input.ContainsKey(k))
                 problems.Add(new($"{at}/props/input/{k}", $"{id} has no input {k}; its fields are {(a.Input.Count > 0 ? string.Join(", ", a.Input.Keys) : "none")}."));
-            if (v is JsonObject o && o.ContainsKey("@path") && !(IsBinding(v) && BindingPath(v).StartsWith('/')))
+            if (v is JsonObject o && o.ContainsKey("@path") && !(IsBinding(v) && OuroPointer.IsData(BindingPath(v))))
                 problems.Add(new($"{at}/props/input/{k}", $"{k} is a value, or {{\"@path\": \"/...\"}} bound to the data model."));
         }
         var expected = ActionButtonProps(cat, id, input);
@@ -652,7 +664,7 @@ public static class OuroComposed
             OuroPropKind.Boolean when v is not JsonValue b || b.GetValueKind() is not (JsonValueKind.True or JsonValueKind.False) => "true or false",
             OuroPropKind.Enum when !OuroComposedCatalog.IsString(v, out var e) || !p.Values!.Contains(e) => $"one of {string.Join(", ", p.Values!)}",
             OuroPropKind.Level when v is not JsonValue n || n.GetValueKind() != JsonValueKind.Number || ToDouble(n) is not (1d or 2d or 3d) => "1, 2 or 3",
-            OuroPropKind.Path when !OuroComposedCatalog.IsString(v, out var path) || !path.StartsWith('/') => "a JSON pointer into the data model, such as /servings",
+            OuroPropKind.Path when !OuroComposedCatalog.IsString(v, out var path) || !OuroPointer.IsData(path) => "a JSON pointer into the data model, such as /servings",
             OuroPropKind.Terms when v is not JsonArray terms || !terms.All(t => t is JsonObject o && o.Count == 2 && OuroComposedCatalog.IsString(o["term"], out _) && OuroComposedCatalog.IsString(o["detail"], out _)) => "a list of { term, detail } text",
             _ => null,
         };

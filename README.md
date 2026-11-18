@@ -72,6 +72,7 @@ Its limits:
 - **A2UI messages aren't read on Windows.** Send the tree itself (`structuredContent.ouro`). Core's A2UI adapter turns A2UI messages into that same tree, but this kit doesn't include it.
 - **The surface is the person's.** It has no way for an agent to press a button; agents run actions through their own doors (App Actions, the MCP server). Like any Windows button, UI Automation can still press one, as with person-only buttons below.
 - **Pictures load only from `https` URLs**, so an agent's card never shows a file from the person's machine.
+- **No pointer names `__proto__`, `constructor` or `prototype`.** C#'s JSON objects have no prototype, but the surface refuses such a field or bound input, and `OuroPointer.Set` writes nothing through one, so Windows refuses the same trees every other kit does.
 
 An unpackaged app needs `<EnableMsixTooling>true</EnableMsixTooling>` in its project so the build writes its `resources.pri`; without it the controls' templates don't load and they draw nothing, with no error.
 
