@@ -90,6 +90,33 @@ public static class OuroUI
     /// <summary>What the element sits on: the theme's background, or the system window colour under a contrast theme.</summary>
     public static uint Surface(FrameworkElement e) => HighContrast ? System(UIElementType.Window) : Argb(Colors(e).Background);
 
+    /// <summary>
+    /// What the element's words sit on: an outlined card's surface when it is inside one, else the page's background; the
+    /// system window colour under a contrast theme.
+    /// </summary>
+    public static uint Behind(FrameworkElement e)
+    {
+        if (HighContrast) return System(UIElementType.Window);
+        for (var p = VisualTreeHelper.GetParent(e); p is not null; p = VisualTreeHelper.GetParent(p))
+            if (p is OuroCard { Variant: OuroFrame.Outline }) return Argb(Colors(e).Card);
+        return Argb(Colors(e).Background);
+    }
+
+    /// <summary>
+    /// What a field, a checkbox, a line or a list draws (<see cref="OuroPaint.Surface"/>): the theme's, or under a contrast
+    /// theme the system's, where an error and every other word take the window text and a checked box the highlight pair.
+    /// </summary>
+    public static OuroSurfacePaint SurfacePaint(FrameworkElement e)
+    {
+        if (HighContrast)
+        {
+            uint window = System(UIElementType.Window), text = System(UIElementType.WindowText), highlight = System(UIElementType.Highlight);
+            return new OuroSurfacePaint(window, window, text, text, text, text, text, highlight, text, highlight, System(UIElementType.HighlightText));
+        }
+        var c = Colors(e);
+        return OuroPaint.Surface(new OuroSurfaceSource(Behind(e), Argb(c.Background), Argb(c.Foreground), Argb(c.MutedForeground), Argb(c.Border), Argb(c.Input), Argb(c.Ring), Argb(c.Primary), Argb(c.PrimaryForeground), Argb(c.Destructive)));
+    }
+
     /// <summary>Paint for the element: the theme's, or the system's under a contrast theme.</summary>
     public static OuroPaintResult Paint(FrameworkElement e, OuroTone tone, OuroVariant variant) =>
         HighContrast ? SystemPaint(variant) : OuroPaint.Resolve(Source(e, tone), variant);

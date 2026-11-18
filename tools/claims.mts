@@ -22,7 +22,7 @@ const json = async (p: string) => {
 const vendor = new URL("../vendor/core/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const claims = (await json(join(vendor, "components.claims.json")))?.claims as { id: string; tier: string; appliesTo: string[] }[];
 /** The components this kit ships. Core specs more; each one joins here when its control does, with a check for each claim. */
-const KIT = ["button", "badge", "card", "item"];
+const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list"];
 const specs = (await Promise.all((await readdir(join(vendor, "components"))).filter((f) => f.endsWith(".spec.json")).map((f) => json(join(vendor, "components", f))))).filter((s: any) => KIT.includes(s?.name));
 const missing = KIT.filter((k) => !specs.some((s: any) => s.name === k));
 if (missing.length) {
@@ -30,18 +30,18 @@ if (missing.length) {
   process.exit(1);
 }
 
-/** Every dump, by the setting it was taken under. Each holds the list page and the gallery page. */
+/** Every dump, by the setting it was taken under. Each holds the list page and the gallery's two pages. */
 const settings = ["light", "dark", "contrast", "noanim", "text225"] as const;
 type Setting = (typeof settings)[number];
-const dumps = Object.fromEntries(await Promise.all(settings.map(async (s) => [s, [await json(join(dir, `uia-${s}.json`)), await json(join(dir, `uia-gallery-${s}.json`))].filter(Boolean)] as const))) as Record<Setting, any[]>;
+const dumps = Object.fromEntries(await Promise.all(settings.map(async (s) => [s, [await json(join(dir, `uia-${s}.json`)), await json(join(dir, `uia-gallery-${s}.json`)), await json(join(dir, `uia-fields-${s}.json`))].filter(Boolean)] as const))) as Record<Setting, any[]>;
 
 const report = (e: any): Record<string, string> => {
-  const m = /ouro:(\w+);(.*)$/.exec(String(e?.itemStatus ?? ""));
+  const m = /ouro:([\w-]+);(.*)$/.exec(String(e?.itemStatus ?? ""));
   return m ? { kind: m[1]!, ...Object.fromEntries(m[2]!.split(";").filter(Boolean).map((kv) => kv.split("=") as [string, string])) } : {};
 };
-/** The kit's controls of one kind under a setting, each with its self-report, keyed by automation id or name. */
+/** The kit's controls of one kind under a setting, each with its self-report and the rest of its page, keyed by automation id or name. */
 const of = (setting: Setting, kind: string) =>
-  dumps[setting].flatMap((d) => (d.elements as any[]).map((e) => ({ e, r: report(e), dpi: (d.systemDpi ?? 96) / 96 })).filter((x) => x.r.kind === kind));
+  dumps[setting].flatMap((d) => (d.elements as any[]).map((e) => ({ e, r: report(e), dpi: (d.systemDpi ?? 96) / 96, page: d.elements as any[] })).filter((x) => x.r.kind === kind));
 const key = (x: { e: any }) => x.e.automationId || x.e.name;
 
 const lum = (hex: string) => {
@@ -60,15 +60,38 @@ const all = (xs: { ok: boolean; why: string }[], what: string): Result =>
   xs.length === 0 ? none(what) : { ok: xs.every((x) => x.ok), detail: `${xs.filter((x) => x.ok).length}/${xs.length} ${what}${xs.some((x) => !x.ok) ? `; failing: ${xs.filter((x) => !x.ok).map((x) => x.why).slice(0, 6).join("; ")}` : ""}` };
 
 /** What UI Automation must see for each component (its spec's accessibility.windows). */
-const spoken: Record<string, (x: { e: any; r: Record<string, string> }) => boolean> = {
+const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[] }) => boolean> = {
   button: ({ e }) => e.controlType === "ControlType.Button" && Boolean(e.name) && e.isKeyboardFocusable,
   badge: ({ e }) => e.controlType === "ControlType.Text" && Boolean(e.name) && !e.isKeyboardFocusable,
   card: ({ e }) => e.controlType === "ControlType.Group" && Boolean(e.name),
   item: ({ e, r }) => (r.pressable === "true" ? e.controlType === "ControlType.Button" && e.isKeyboardFocusable && Boolean(e.helpText) : e.controlType === "ControlType.Group" && !e.isKeyboardFocusable) && Boolean(e.name),
+  checkbox: ({ e, r }) =>
+    e.controlType === "ControlType.CheckBox" && e.isKeyboardFocusable && Boolean(e.name) && e.toggleState === { on: "On", off: "Off", mixed: "Indeterminate" }[r.state!] && (r.required !== "true" || e.name.endsWith(", required")),
+  "text-field": ({ e, r }) => e.controlType === "ControlType.Edit" && e.isKeyboardFocusable && Boolean(e.name) && (r.described === "true") === Boolean(e.helpText) && (r.required !== "true" || e.name.endsWith(", required")),
+  separator: ({ e, r }) => (r.labelled === "true" ? e.controlType === "ControlType.Text" && Boolean(e.name) : e.controlType === "ControlType.Separator") && !e.isKeyboardFocusable,
+  "description-list": ({ e, r, page }) =>
+    e.controlType === "ControlType.List" && Number(r.items) > 0 && page.filter((x) => x.controlType === "ControlType.ListItem" && /, ./.test(x.name ?? "")).length >= Number(r.items),
 };
-/** The colour pairs each component's words sit on, from its self-report. */
-const pairs = (r: Record<string, string>): [string, string, string][] =>
-  r.kind === "button" || r.kind === "badge" ? [["label", r.label!, r.behind!]] : [["title", r.title!, r.surface!], ["description", r.description!, r.surface!]];
+/** The colour pairs each component draws, from its self-report: words at 4.5:1, and edges and marks a person must see at 3:1. */
+const pairs = (r: Record<string, string>): [string, string, string, number][] => {
+  switch (r.kind) {
+    case "button":
+    case "badge":
+      return [["label", r.label!, r.behind!, 4.5]];
+    case "text-field":
+      return [["label", r.label!, r.behind!, 4.5], ["text", r.text!, r.field!, 4.5], ["description", r.description!, r.behind!, 4.5], ["placeholder", r.placeholder!, r.field!, 4.5], ["error", r.error!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3]];
+    case "checkbox":
+      return [["label", r.label!, r.behind!, 4.5], ["description", r.description!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3], ...(r.state === "off" ? [] : [["tick", r.tick!, r.checked!, 3] as [string, string, string, number]])];
+    case "separator":
+      return r.labelled === "true" ? [["label", r.label!, r.behind!, 4.5]] : [];
+    case "description-list":
+      return [["term", r.term!, r.behind!, 4.5], ["details", r.details!, r.behind!, 4.5]];
+    default:
+      return [["title", r.title!, r.surface!, 4.5], ["description", r.description!, r.surface!, 4.5]];
+  }
+};
+/** The components whose side-by-side parts stack at large text sizes. */
+const STACKS = ["card", "item", "description-list"];
 
 const checks: Record<string, (kind: string) => Result> = {
   "name.spoken": (kind) => all(of("light", kind).map((x) => ({ ok: spoken[kind]!(x), why: `${key(x)}: ${x.e.controlType} "${x.e.name}" focusable ${x.e.isKeyboardFocusable}` })), `${kind}s named and typed as the spec says`),
@@ -83,17 +106,17 @@ const checks: Record<string, (kind: string) => Result> = {
     const big = of("text225", kind).filter((x) => small.has(key(x)));
     return all(big.map((x) => {
       const before = Number(small.get(key(x))!.r.textHeight), after = Number(x.r.textHeight);
-      const stacks = kind === "card" || kind === "item" ? x.r.stacked === "true" : true;
+      const stacks = STACKS.includes(kind) ? x.r.stacked === "true" : true;
       return { ok: Number(x.r.textScale) >= 2.2 && x.r.trimmed === "false" && after > 1.5 * before && stacks, why: `${key(x)}: text ${before}→${after} px, trimmed ${x.r.trimmed}, stacked ${x.r.stacked ?? "n/a"}` };
-    }), `${kind}s at text size 225%: words not cut off, grown${kind === "card" || kind === "item" ? ", side parts stacked" : ""}`);
+    }), `${kind}s at text size 225%: words not cut off, grown${STACKS.includes(kind) ? ", side parts stacked" : ""}`);
   },
   "contrast.text": (kind) => {
     const xs = (["light", "dark", "contrast"] as const).flatMap((s) => of(s, kind).map((x) => ({ ...x, s })));
     return all(xs.flatMap((x) => [
-      ...pairs(x.r).map(([what, fg, bg]) => ({ ok: ratio(fg, bg) >= 4.5, why: `${x.s} ${key(x)} ${what} ${ratio(fg, bg).toFixed(2)}:1` })),
+      ...pairs(x.r).map(([what, fg, bg, min]) => ({ ok: ratio(fg, bg) >= min, why: `${x.s} ${key(x)} ${what} ${ratio(fg, bg).toFixed(2)}:1 (needs ${min}:1)` })),
       ...(x.e.sampled && x.r.fill && !x.r.fill.startsWith("#00") ? [{ ok: near(x.e.sampled, x.r.fill), why: `${x.s} ${key(x)} drew ${x.e.sampled}, reports ${x.r.fill}` }] : []),
       ...(x.e.textLine ? [(({ ok, why }) => ({ ok, why: `${x.s} ${key(x)} words: ${why}` }))(wordsAsReported(x.e.textLine, x.r.fill!.startsWith("#00") ? x.r.behind! : x.r.fill!, x.r.label!))] : []),
-    ]), `${kind} text pairs at 4.5:1 or better in light, dark and a contrast theme, and sampled fills and words matching the reports`);
+    ]), `${kind} words at 4.5:1 and edges at 3:1 or better in light, dark and a contrast theme, and sampled fills and words matching the reports`);
   },
 };
 

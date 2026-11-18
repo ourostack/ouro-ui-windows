@@ -1,6 +1,6 @@
 // Ouro Shop's window, in code: the shopping list (a Card of Items with Badges, and one Button per declared action),
-// then the gallery of every Button and Badge tone and variant. What a person presses is what the agent doors list,
-// because every action button comes from the generated catalog.
+// then the gallery of every Button and Badge tone and variant, and of the fields and lists. What a person presses is
+// what the agent doors list, because every action button comes from the generated catalog.
 using System.Text.Json.Nodes;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -18,7 +18,7 @@ public sealed class MainWindow : Window
     private readonly TextBox name;
     private readonly TextBlock status;
 
-    /// <param name="page">"list" (the default) or "gallery": each fits a 1024 x 768 screen, as CI runners have.</param>
+    /// <param name="page">"list" (the default), "gallery" or "fields": each fits a 1024 x 768 screen, as CI runners have.</param>
     public MainWindow(string page = "list")
     {
         Title = "Ouro Shop";
@@ -92,7 +92,12 @@ public sealed class MainWindow : Window
         var gallery = new OuroCard { Title = "Gallery", Description = "Every Button and Badge tone and variant", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = Column(16, buttons, badges) };
         AutomationProperties.SetAutomationId(gallery, "card.gallery");
 
-        var root = page == "gallery" ? Column(16, gallery, status) : Column(16, heading, list, status);
+        var root = page switch
+        {
+            "gallery" => Column(16, gallery, status),
+            "fields" => Column(16, Fields(), status),
+            _ => Column(16, heading, list, status),
+        };
         root.Padding = new Thickness(32);
         root.MaxWidth = 900;
         root.HorizontalAlignment = HorizontalAlignment.Left;
@@ -132,6 +137,35 @@ public sealed class MainWindow : Window
             _ => $"{outcome.State} at the {door} door: {outcome.Summary}",
         };
         if (FrameworkElementAutomationPeer.FromElement(status) is { } peer) peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+    }
+
+    /// <summary>The gallery's second page: TextField, Checkbox, Separator and DescriptionList, in core's spec cases.</summary>
+    private static OuroCard Fields()
+    {
+        T Id<T>(T e, string id) where T : FrameworkElement
+        {
+            AutomationProperties.SetAutomationId(e, id);
+            return e;
+        }
+        var fields = Column(16,
+            Id(new OuroTextField { Label = "Email", Type = OuroTextFieldType.Email, IsRequired = true, Description = "We send your recipes here.", Placeholder = "you@example.com" }, "gallery.textfield.email"),
+            Id(new OuroTextField { Label = "Recipe title", Error = "Give the recipe a title." }, "gallery.textfield.error"),
+            Id(new OuroTextField { Label = "Note", IsMultiline = true, Text = "Use the ripe lemons first." }, "gallery.textfield.note"));
+        var choices = Column(4,
+            Id(new OuroCheckbox { Label = "I agree to the terms", IsRequired = true }, "gallery.checkbox.terms"),
+            Id(new OuroCheckbox { Label = "Whole basket", IsChecked = null }, "gallery.checkbox.mixed"),
+            Id(new OuroCheckbox { Label = "Vegetarian", IsChecked = true, Description = "No meat or fish." }, "gallery.checkbox.checked"));
+        var lines = Column(12,
+            Id(new OuroSeparator { Label = "or" }, "gallery.separator.or"),
+            Id(new OuroSeparator(), "gallery.separator.line"),
+            Id(new OuroSeparator { Label = "New", Tone = OuroTone.Primary }, "gallery.separator.new"));
+        var details = Id(new OuroDescriptionList { Items = [new("Prep time", "20 minutes"), new("Serves", "6")] }, "gallery.descriptionlist.recipe");
+        var grid = new Grid { ColumnSpacing = 32, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition() } };
+        var right = Column(16, choices, lines, details);
+        Grid.SetColumn(right, 1);
+        grid.Children.Add(fields);
+        grid.Children.Add(right);
+        return Id(new OuroCard { Title = "Fields and lists", Description = "TextField, Checkbox, Separator and DescriptionList", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = grid }, "card.fields");
     }
 
     private OuroItem Item(string title, string description, string glyph, UIElement badge, bool pressable)
