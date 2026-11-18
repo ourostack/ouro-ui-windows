@@ -160,7 +160,7 @@ public sealed class MainWindow : Window
             Id(new OuroSeparator(), "gallery.separator.line"),
             Id(new OuroSeparator { Label = "New", Tone = OuroTone.Primary }, "gallery.separator.new"));
         var details = Id(new OuroDescriptionList { Items = [new("Prep time", "20 minutes"), new("Serves", "6")] }, "gallery.descriptionlist.recipe");
-        var grid = new Grid { ColumnSpacing = 32, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition() } };
+        var grid = new Grid { ColumnSpacing = 32, MinWidth = 720, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition() } };
         var right = Column(16, choices, lines, details);
         Grid.SetColumn(right, 1);
         grid.Children.Add(fields);
