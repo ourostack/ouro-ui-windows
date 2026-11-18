@@ -451,7 +451,8 @@ public static class OuroComposed
     /// <summary>
     /// The props of an ActionButton for an action and the input an agent prepared; everything but the input comes from
     /// the catalog (core's <c>actionButtonProps</c>). <paramref name="label"/> is the app's own name for an id a confirm
-    /// sheet shows, such as a recipe's title; it wins over what the agent prepared.
+    /// sheet shows, such as a recipe's title; it is asked only for an id field (one whose catalog input has <c>shownAs</c>)
+    /// and wins over what the agent prepared. Every other row shows exactly what will be sent.
     /// </summary>
     public static JsonObject ActionButtonProps(OuroComposedCatalog catalog, string action, JsonObject prepared, Func<OuroLabelContext, string?>? label = null)
     {
@@ -463,16 +464,23 @@ public static class OuroComposed
         return props;
     }
 
-    // The rows of a confirm sheet: each prepared input with the person's label. An id shows its name (the app's resolver,
-    // else the sibling shownAs names, else the value itself), with the id as raw when the name replaced it; a name field
-    // that stands in for an id has no row of its own. An input bound to a field shows what the person wrote, at the press.
-    private static JsonArray ConfirmFields(string action, OuroCatalogAction a, JsonObject input, Func<OuroLabelContext, string?>? label)
+    // The input fields a confirm sheet has a row for, in the catalog's order: each prepared one, less a name that stands
+    // in for an id.
+    private static List<string> ConfirmKeys(OuroCatalogAction a, JsonObject input)
     {
         var names = a.Input.Where(f => input.ContainsKey(f.Key) && f.Value.ShownAs is { } s && a.Input.ContainsKey(s)).Select(f => f.Value.ShownAs!).ToHashSet();
+        return a.Input.Keys.Where(k => input.ContainsKey(k) && !names.Contains(k)).ToList();
+    }
+
+    // The rows of a confirm sheet: each prepared input with the person's label. Only an id field (one with shownAs) shows
+    // a name (the app's resolver, else the sibling shownAs names), with the id as raw beside it; every other row shows
+    // exactly what will be sent. An input bound to a field shows what the person wrote, at the press.
+    private static JsonArray ConfirmFields(string action, OuroCatalogAction a, JsonObject input, Func<OuroLabelContext, string?>? label)
+    {
         var rows = new JsonArray();
-        foreach (var (k, f) in a.Input)
+        foreach (var k in ConfirmKeys(a, input))
         {
-            if (!input.ContainsKey(k) || names.Contains(k)) continue;
+            var f = a.Input[k];
             if (IsBinding(input[k]))
             {
                 rows.Add(new JsonObject { ["label"] = f.Label, ["value"] = "", ["bind"] = BindingPath(input[k]) });
@@ -481,7 +489,7 @@ public static class OuroComposed
             var raw = AsText(input[k]);
             var sibling = f.ShownAs is { } shownAs ? input[shownAs] : null;
             var prepared = OuroComposedCatalog.IsString(sibling, out var name) && name.Trim().Length > 0 ? name.Trim() : null;
-            var value = label?.Invoke(new OuroLabelContext(action, k, raw, input)) ?? prepared ?? raw;
+            var value = (f.ShownAs is not null ? label?.Invoke(new OuroLabelContext(action, k, raw, input)) ?? prepared : null) ?? raw;
             rows.Add(value == raw ? new JsonObject { ["label"] = f.Label, ["value"] = value } : new JsonObject { ["label"] = f.Label, ["value"] = value, ["raw"] = raw });
         }
         return rows;
@@ -568,8 +576,13 @@ public static class OuroComposed
             return;
         }
         foreach (var (k, v) in input)
+        {
+            // A field the catalog doesn't carry would be sent without a row on the confirm sheet.
+            if (!a.Input.ContainsKey(k))
+                problems.Add(new($"{at}/props/input/{k}", $"{id} has no input {k}; its fields are {(a.Input.Count > 0 ? string.Join(", ", a.Input.Keys) : "none")}."));
             if (v is JsonObject o && o.ContainsKey("@path") && !(IsBinding(v) && BindingPath(v).StartsWith('/')))
                 problems.Add(new($"{at}/props/input/{k}", $"{k} is a value, or {{\"@path\": \"/...\"}} bound to the data model."));
+        }
         var expected = ActionButtonProps(cat, id, input);
         foreach (var key in new[] { "label", "consent", "press", "handoff" })
         {
@@ -580,12 +593,53 @@ public static class OuroComposed
         }
         if (a.Press == OuroPress.Confirm)
         {
-            if (props["confirm"] is not JsonObject c || !OuroComposedCatalog.IsString(c["title"], out var title) || title != a.Label || !OuroComposedCatalog.IsString(c["description"], out var description) || description != a.Description || c["fields"] is not JsonArray)
+            if (props["confirm"] is not JsonObject c || !OuroComposedCatalog.IsString(c["title"], out var title) || title != a.Label || !OuroComposedCatalog.IsString(c["description"], out var description) || description != a.Description || c["fields"] is not JsonArray rows)
                 problems.Add(new($"{at}/props/confirm", $"{id} confirms, with the catalog's title and description and a row per prepared input."));
+            else
+                ConfirmRowProblems(problems, id, a, input, rows, $"{at}/props/confirm/fields");
         }
         else if (props.ContainsKey("confirm"))
         {
             problems.Add(new($"{at}/props/confirm", $"{id} doesn't confirm; only a consequential action does."));
+        }
+    }
+
+    // A confirm sheet's rows against the rows the catalog gives for the prepared input (core's confirmRowProblems): the
+    // same fields, in order, with the catalog's labels, and each row showing what will be sent (its raw, or its value when
+    // it has none) or, for a bound input, the same binding. Only the words shown for an id may differ, since the app's own
+    // resolver names it; any other row shows exactly the value sent, with no raw to hide it in.
+    private static void ConfirmRowProblems(List<OuroTreeProblem> problems, string id, OuroCatalogAction a, JsonObject input, JsonArray rows, string at)
+    {
+        var expected = ConfirmFields(id, a, input, null);
+        var keys = ConfirmKeys(a, input);
+        void Bad() => problems.Add(new(at, $"{id}'s confirm sheet shows a row for each prepared input, with its label and the value that will be sent; the catalog's rows are {OuroJson.Write(expected)}."));
+        if (rows.Count != expected.Count)
+        {
+            Bad();
+            return;
+        }
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var want = (JsonObject)expected[i]!;
+            var wantValue = want["value"]!.GetValue<string>();
+            if (rows[i] is not JsonObject row || !OuroComposedCatalog.IsString(row["label"], out var label) || label != want["label"]!.GetValue<string>())
+            {
+                Bad();
+                continue;
+            }
+            if (want["bind"] is JsonNode bind)
+            {
+                if (!OuroComposedCatalog.IsString(row["bind"], out var b) || b != bind.GetValue<string>() || row.ContainsKey("raw")) Bad();
+            }
+            else if (row.ContainsKey("bind") || !OuroComposedCatalog.IsString(row["value"], out var value)) Bad();
+            else if (a.Input[keys[i]].ShownAs is not null)
+            {
+                // JavaScript's row.raw ?? row.value: a raw of null stands aside for the value.
+                var shown = row["raw"] is null ? row["value"] : row["raw"];
+                var sent = want["raw"]?.GetValue<string>() ?? wantValue;
+                if (!OuroComposedCatalog.IsString(shown, out var s) || s != sent) Bad();
+            }
+            else if (value != wantValue || row.ContainsKey("raw")) Bad();
         }
     }
 

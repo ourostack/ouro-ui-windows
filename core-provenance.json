@@ -1,9 +1,9 @@
 {
-  "coreTag": "v0.18.0",
+  "coreTag": "v0.18.1",
   "files": {
     "vendor/core/ouro-actions.mts": {
       "from": "dist/actions/ouro-actions.mts",
-      "sha256": "ad2250d789e656a906d89317a7ae81725225642d0407dfc06bf051d810ac4199"
+      "sha256": "c59ae35c54d3110fc3b2e68eceef897391fbf9887ee65fb2ec54bec98bf1752f"
     },
     "vendor/core/ouro-actions-windows.mts": {
       "from": "dist/actions/ouro-actions-windows.mts",
@@ -51,7 +51,7 @@
     },
     "vendor/core/ouro-composed.mts": {
       "from": "dist/composed/ouro-composed.mts",
-      "sha256": "179d2797fd0b6e974e0fca661696fe08ce9b1a549d78a013bd9b3bfcba38ff7d"
+      "sha256": "b36e045722fe60b653e2bfcd9b1eef078c4bd5e1283891d35806c19625b9ee7f"
     },
     "vendor/core/ouro-mcp-app.mts": {
       "from": "dist/composed/ouro-mcp-app.mts",
@@ -67,20 +67,20 @@
     },
     "vendor/core/a2ui/catalog.json": {
       "from": "dist/hx/a2ui/catalog.json",
-      "sha256": "3bd062f13485ae42bc0e871735d448f1c34242e65b198d81853c16f8b50ced9f"
+      "sha256": "030135da2854b5f9266896ff7483aa61ff67ce53cb44ad9f8ed8b12152909ee5"
     },
     "src/Ouro.UI.Windows/Vendor/OuroTokens.cs": {
       "from": "dist/windows/OuroTokens.cs",
-      "sha256": "8aca7380bac7e443713aa09a86facac88c604aa449b60f51a8c25b09410a687e"
+      "sha256": "2858d37a3ce5c815c1a390c80bb18c377ee8c7d64192b7de275bd96c543aef8c"
     },
     "src/Ouro.UI.Windows/Vendor/OuroTokens.xaml": {
       "from": "dist/windows/OuroTokens.xaml",
-      "sha256": "66a62662276356ca6eee4562ed043a8cc48e7e9e576335d03f484ce0022d5bbe"
+      "sha256": "08b07cc4aaab82d3807d54bbf5632d4199f894e4baebacc27c27deb3cedc63f3"
     },
     "vendor/core/a2ui/conformance/recipe.catalog.json": {
       "from": "standard/hx/a2ui/conformance/recipe.catalog.json",
       "source": "tag",
-      "sha256": "67e44a7f4c6dad70db1174b685b7a6c9d04f3be43d8dcc43d80ee4a1e2622b93"
+      "sha256": "fef333526255a51db942c09be42d3a37f2872585ce4205872214c8ca60755db9"
     },
     "vendor/core/a2ui/conformance/cases/action-buttons.json": {
       "from": "standard/hx/a2ui/conformance/cases/action-buttons.json",
