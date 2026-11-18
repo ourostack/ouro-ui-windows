@@ -1,0 +1,317 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "This week's list: oat milk, eggs and lemons, delivered Saturday."
+    }
+  ],
+  "structuredContent": {
+    "ouro": {
+      "version": "1",
+      "catalogId": "https://ui.ouroboros.bot/a2ui/v1/apps/shopping/catalog.json",
+      "tree": {
+        "id": "root",
+        "component": "Stack",
+        "props": {
+          "direction": "horizontal",
+          "gap": "large"
+        },
+        "children": [
+          {
+            "id": "week",
+            "component": "Card",
+            "props": {},
+            "children": [
+              {
+                "id": "photo",
+                "component": "Image",
+                "props": {
+                  "url": "https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-ui-windows.webp",
+                  "description": "Ouro basking on a cabin windowsill while a small robot opens one pane",
+                  "aspect": "wide"
+                },
+                "children": []
+              },
+              {
+                "id": "title",
+                "component": "Heading",
+                "props": {
+                  "text": "This week's list",
+                  "level": 1
+                },
+                "children": []
+              },
+              {
+                "id": "tags",
+                "component": "Stack",
+                "props": {
+                  "direction": "horizontal",
+                  "gap": "small"
+                },
+                "children": [
+                  {
+                    "id": "count",
+                    "component": "Badge",
+                    "props": {
+                      "text": "3 items",
+                      "tone": "neutral"
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "vegan",
+                    "component": "Badge",
+                    "props": {
+                      "text": "Vegan",
+                      "tone": "success"
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "id": "why",
+                "component": "Text",
+                "props": {
+                  "text": "Picked from the recipes you cooked this month.",
+                  "tone": "muted"
+                },
+                "children": []
+              },
+              {
+                "id": "details",
+                "component": "DescriptionList",
+                "props": {
+                  "items": [
+                    {
+                      "term": "Delivery",
+                      "detail": "Saturday"
+                    },
+                    {
+                      "term": "Store",
+                      "detail": "Corner Grocer"
+                    }
+                  ]
+                },
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "items",
+            "component": "Card",
+            "props": {},
+            "children": [
+              {
+                "id": "pick",
+                "component": "Heading",
+                "props": {
+                  "text": "To pick up",
+                  "level": 2
+                },
+                "children": []
+              },
+              {
+                "id": "things",
+                "component": "List",
+                "props": {
+                  "items": [
+                    "Oat milk",
+                    "Eggs",
+                    "Lemons"
+                  ],
+                  "ordered": false
+                },
+                "children": []
+              },
+              {
+                "id": "line",
+                "component": "Separator",
+                "props": {},
+                "children": []
+              },
+              {
+                "id": "steps",
+                "component": "List",
+                "props": {
+                  "items": [
+                    "Check the fridge",
+                    "Add what's missing",
+                    "Place the order"
+                  ],
+                  "ordered": true
+                },
+                "children": []
+              },
+              {
+                "id": "low",
+                "component": "Alert",
+                "props": {
+                  "title": "Lemons are low",
+                  "text": "Add some before Saturday.",
+                  "tone": "warning"
+                },
+                "children": []
+              }
+            ]
+          },
+          {
+            "id": "plan",
+            "component": "Card",
+            "props": {},
+            "children": [
+              {
+                "id": "add",
+                "component": "Heading",
+                "props": {
+                  "text": "Add something",
+                  "level": 2
+                },
+                "children": []
+              },
+              {
+                "id": "item",
+                "component": "TextField",
+                "props": {
+                  "label": "Item",
+                  "value": "/item",
+                  "hint": "As you'd say it, such as oat milk.",
+                  "type": "text",
+                  "multiline": false
+                },
+                "children": []
+              },
+              {
+                "id": "quantity",
+                "component": "TextField",
+                "props": {
+                  "label": "Quantity",
+                  "value": "/quantity",
+                  "type": "number",
+                  "multiline": false
+                },
+                "children": []
+              },
+              {
+                "id": "organic",
+                "component": "Checkbox",
+                "props": {
+                  "label": "Only organic",
+                  "value": "/organic"
+                },
+                "children": []
+              },
+              {
+                "id": "store",
+                "component": "Select",
+                "props": {
+                  "label": "Store",
+                  "value": "/store",
+                  "options": [
+                    "Corner Grocer",
+                    "Market Hall",
+                    "Any"
+                  ]
+                },
+                "children": []
+              },
+              {
+                "id": "share_with",
+                "component": "TextField",
+                "props": {
+                  "label": "Share with",
+                  "value": "/share/with",
+                  "hint": "An email address.",
+                  "type": "text",
+                  "multiline": false
+                },
+                "children": []
+              },
+              {
+                "id": "actions",
+                "component": "Stack",
+                "props": {
+                  "direction": "horizontal",
+                  "gap": "small"
+                },
+                "children": [
+                  {
+                    "id": "add_item",
+                    "component": "ActionButton",
+                    "props": {
+                      "emphasis": "primary",
+                      "action": "add_shopping_list_item",
+                      "label": "Add to list",
+                      "consent": "write",
+                      "press": "run",
+                      "input": {
+                        "name": {
+                          "@path": "/item"
+                        },
+                        "quantity": {
+                          "@path": "/quantity"
+                        }
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "share",
+                    "component": "ActionButton",
+                    "props": {
+                      "emphasis": "secondary",
+                      "action": "share_shopping_list",
+                      "label": "Share list",
+                      "consent": "consequential",
+                      "press": "confirm",
+                      "input": {
+                        "with": {
+                          "@path": "/share/with"
+                        }
+                      },
+                      "confirm": {
+                        "title": "Share list",
+                        "description": "Share your shopping list with someone in your household.",
+                        "fields": [
+                          {
+                            "label": "With",
+                            "value": "",
+                            "bind": "/share/with"
+                          }
+                        ]
+                      }
+                    },
+                    "children": []
+                  },
+                  {
+                    "id": "order",
+                    "component": "ActionButton",
+                    "props": {
+                      "emphasis": "secondary",
+                      "action": "place_grocery_order",
+                      "label": "Place order",
+                      "consent": "person-only",
+                      "press": "handoff",
+                      "input": {},
+                      "handoff": "with Place order on the shopping list"
+                    },
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "data": {
+        "item": "oat milk",
+        "quantity": 2,
+        "organic": false,
+        "store": "Corner Grocer",
+        "share": {
+          "with": "sam@example.com"
+        }
+      }
+    }
+  }
+}

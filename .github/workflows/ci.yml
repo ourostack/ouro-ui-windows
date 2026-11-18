@@ -35,7 +35,8 @@ jobs:
         run: node scripts/attribution.mjs "origin/$BASE_REF" "$PR_HEAD"
 
   generated:
-    # The Windows projections match the declarations, and the vendored core files match their release hashes.
+    # The Windows projections, the composed-UI catalog and card match the declarations, and the vendored core files
+    # match their release and tag, by hash.
     name: generated
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -44,16 +45,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Vendored core files match their release, by SHA-256
+      - name: Vendored core files match their release and tag, by SHA-256
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: node scripts/provenance.mjs check
       - name: The pixel checks catch what CI has caught before
         run: node --test tools/*.test.mts
       - name: The sample's Windows projections match its declarations
         run: node vendor/core/ouro-actions-windows.mts check samples/OuroShop/shopping.actions.mts samples/OuroShop/Generated
+      - name: The sample's composed-UI catalog and card match its declarations, and the card validates
+        run: |
+          node vendor/core/ouro-a2ui-catalog.mts check samples/OuroShop/shopping.actions.mts samples/OuroShop/Composed/catalog.json
+          node samples/OuroShop/shopping.composed.mts check
 
   actions:
     # Everything that runs off Windows: Ouro.Actions (the runtime contract every door goes through, on the sample's
-    # generated catalog) and the kit's colour rules over every theme core ships.
+    # generated catalog, and the composed tree against core's conformance cases) and the kit's colour rules over every
+    # theme core ships.
     name: actions
     runs-on: ubuntu-latest
     timeout-minutes: 10

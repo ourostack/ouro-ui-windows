@@ -1,9 +1,9 @@
 {
-  "coreTag": "v0.13.1",
+  "coreTag": "v0.18.0",
   "files": {
     "vendor/core/ouro-actions.mts": {
       "from": "dist/actions/ouro-actions.mts",
-      "sha256": "ec93fa27d81f7c4802396a904dfc6c52e0d3319bf5ef85f19b38487d54800717"
+      "sha256": "ad2250d789e656a906d89317a7ae81725225642d0407dfc06bf051d810ac4199"
     },
     "vendor/core/ouro-actions-windows.mts": {
       "from": "dist/actions/ouro-actions-windows.mts",
@@ -11,35 +11,141 @@
     },
     "vendor/core/components.claims.json": {
       "from": "dist/hx/components.claims.json",
-      "sha256": "d634ea48cae87fb445bc2e072d0a4def5eb289bf5767a6aef4aa6cdd79fb5aa3"
+      "sha256": "67648917e86d330556f6221d449f14bf339331ce168c6fff0df379ba59cfc160"
     },
     "vendor/core/components/component.schema.json": {
       "from": "dist/hx/components/component.schema.json",
-      "sha256": "805f33e08eb2be861f7bf02f42e05f8649599ce96b0ed4471faf8b7c40d19d27"
+      "sha256": "35d5ec895061284e70837c4efeb3935708b769bac0baf83bcfeb7fd1bb9a74ff"
     },
     "vendor/core/components/button.spec.json": {
       "from": "dist/hx/components/button.spec.json",
-      "sha256": "8e7e7d6357268e204f32194462f8f949763be0fd0cf84138458c31ed35565cd9"
+      "sha256": "a0a678babb8ea2c86e2e98fdc9e15304dba88d8dbdfda757a5c05d17598a7e21"
     },
     "vendor/core/components/badge.spec.json": {
       "from": "dist/hx/components/badge.spec.json",
-      "sha256": "150b1746628e3f89e8417eae30349d19f7d231791a004470d1ff42c7fd82580c"
+      "sha256": "e22b1cd393ffcce5aecb6cbd2dec46151b13b3d96aa95a47159e01230965d43c"
     },
     "vendor/core/components/card.spec.json": {
       "from": "dist/hx/components/card.spec.json",
-      "sha256": "195f2ebcb4363d3fce015f3496065289732d1e9a2d05522b3123a6f745c186e9"
+      "sha256": "1259487792b0eaaad41edb48d20fdc3048e7bcb5311525df1e997fc118b9806a"
     },
     "vendor/core/components/item.spec.json": {
       "from": "dist/hx/components/item.spec.json",
-      "sha256": "698c8ef847161729d0a284204777c733da64f083e864014167dcaed1d0a74f4b"
+      "sha256": "1d93608ad689ee65e7415070376aa1803838f2b24b0ff11f5d4b810e1be057ff"
+    },
+    "vendor/core/components/checkbox.spec.json": {
+      "from": "dist/hx/components/checkbox.spec.json",
+      "sha256": "28565ffadfa8cf05e8063c413c786e3d517df276a748c9c26b83fa653028c2e1"
+    },
+    "vendor/core/components/text-field.spec.json": {
+      "from": "dist/hx/components/text-field.spec.json",
+      "sha256": "afb911bd7e1cefcd2acadc19eed9378b972da12987b90a627c04113e4fbe991f"
+    },
+    "vendor/core/components/separator.spec.json": {
+      "from": "dist/hx/components/separator.spec.json",
+      "sha256": "84062fb0ea4cce3afa952df1730b3548f37271c34f9bcca9653aacceab9ef9c6"
+    },
+    "vendor/core/components/description-list.spec.json": {
+      "from": "dist/hx/components/description-list.spec.json",
+      "sha256": "11cac2a8e2f6295f0206a1d23b2cf9ef10e3a252152b1cb1ec6e89e7f5874d69"
+    },
+    "vendor/core/ouro-composed.mts": {
+      "from": "dist/composed/ouro-composed.mts",
+      "sha256": "179d2797fd0b6e974e0fca661696fe08ce9b1a549d78a013bd9b3bfcba38ff7d"
+    },
+    "vendor/core/ouro-mcp-app.mts": {
+      "from": "dist/composed/ouro-mcp-app.mts",
+      "sha256": "9788695c40419f077c17d65f054b3871b9408eeecc20826401dbe2fc0f8b0cb4"
+    },
+    "vendor/core/ouro-a2ui.mts": {
+      "from": "dist/a2ui/ouro-a2ui.mts",
+      "sha256": "403aafaa9bb96bcee98b59731a00ed96e841a4f5ae31493b6e90e3c0630d295f"
+    },
+    "vendor/core/ouro-a2ui-catalog.mts": {
+      "from": "dist/a2ui/ouro-a2ui-catalog.mts",
+      "sha256": "bc241cf9711eb0c019607d7a727a02a4c6c8599eb268b05e2953c52a1ddd36cd"
+    },
+    "vendor/core/a2ui/catalog.json": {
+      "from": "dist/hx/a2ui/catalog.json",
+      "sha256": "3bd062f13485ae42bc0e871735d448f1c34242e65b198d81853c16f8b50ced9f"
     },
     "src/Ouro.UI.Windows/Vendor/OuroTokens.cs": {
       "from": "dist/windows/OuroTokens.cs",
-      "sha256": "755587461f8f2e86cc62da61cf5b03553e5b13ff6a2d1f2aeabe5577ef6efb65"
+      "sha256": "8aca7380bac7e443713aa09a86facac88c604aa449b60f51a8c25b09410a687e"
     },
     "src/Ouro.UI.Windows/Vendor/OuroTokens.xaml": {
       "from": "dist/windows/OuroTokens.xaml",
-      "sha256": "3d71e4c728074d016932176d724025e36ec7dcb199c289938d7737944ddda8e7"
+      "sha256": "66a62662276356ca6eee4562ed043a8cc48e7e9e576335d03f484ce0022d5bbe"
+    },
+    "vendor/core/a2ui/conformance/recipe.catalog.json": {
+      "from": "standard/hx/a2ui/conformance/recipe.catalog.json",
+      "source": "tag",
+      "sha256": "67e44a7f4c6dad70db1174b685b7a6c9d04f3be43d8dcc43d80ee4a1e2622b93"
+    },
+    "vendor/core/a2ui/conformance/cases/action-buttons.json": {
+      "from": "standard/hx/a2ui/conformance/cases/action-buttons.json",
+      "source": "tag",
+      "sha256": "68da62e41d6cb73e04043d4521cca5dd91f0d3dcb447c7043ca1c31f20d53fc2"
+    },
+    "vendor/core/a2ui/conformance/cases/bindings.json": {
+      "from": "standard/hx/a2ui/conformance/cases/bindings.json",
+      "source": "tag",
+      "sha256": "caa7bf2452ece1f50b847f255292faa3ca7c23172f3c388234eb08839f0b0f95"
+    },
+    "vendor/core/a2ui/conformance/cases/confirm-names.json": {
+      "from": "standard/hx/a2ui/conformance/cases/confirm-names.json",
+      "source": "tag",
+      "sha256": "7238626bd45ae322cc54f9fd1fa2479237e7246e0fd95e979a9470ac8e4e3748"
+    },
+    "vendor/core/a2ui/conformance/cases/inputs.json": {
+      "from": "standard/hx/a2ui/conformance/cases/inputs.json",
+      "source": "tag",
+      "sha256": "b194af5640d8526675467c53cf4182cece7dafc0f7e0cea5b1161225e9cc0d90"
+    },
+    "vendor/core/a2ui/conformance/cases/invalid-agent-presses.json": {
+      "from": "standard/hx/a2ui/conformance/cases/invalid-agent-presses.json",
+      "source": "tag",
+      "sha256": "f50ca5d84fdbb60a383c1eed4f7fff9787e3bf8d40d080de1c2466fb483785fe"
+    },
+    "vendor/core/a2ui/conformance/cases/invalid-field-value.json": {
+      "from": "standard/hx/a2ui/conformance/cases/invalid-field-value.json",
+      "source": "tag",
+      "sha256": "e4ce157ac55b1a7ed8f280a5017e60508e6c95f86e742f541c24de820d28bb3f"
+    },
+    "vendor/core/a2ui/conformance/cases/invalid-free-button.json": {
+      "from": "standard/hx/a2ui/conformance/cases/invalid-free-button.json",
+      "source": "tag",
+      "sha256": "05ef795b436b35e685391a81cad01ce3de681e8bedf9b392907200657f473edb"
+    },
+    "vendor/core/a2ui/conformance/cases/invalid-person-only-input.json": {
+      "from": "standard/hx/a2ui/conformance/cases/invalid-person-only-input.json",
+      "source": "tag",
+      "sha256": "238e3ce6cf63f5dead54f5cb622feecad460e52e29fcf85f87f44f46f7e5af47"
+    },
+    "vendor/core/a2ui/conformance/cases/invalid-styling.json": {
+      "from": "standard/hx/a2ui/conformance/cases/invalid-styling.json",
+      "source": "tag",
+      "sha256": "0b5fa0760634e7994794a8c5073b6e2962b3552d430bd8c9dac8a9c2ea1fe593"
+    },
+    "vendor/core/a2ui/conformance/cases/invalid-tree.json": {
+      "from": "standard/hx/a2ui/conformance/cases/invalid-tree.json",
+      "source": "tag",
+      "sha256": "83b47f503beef9fb4e162925a147ef36cb48c7214a127a4317de0b243a30cdb5"
+    },
+    "vendor/core/a2ui/conformance/cases/recipe-card-agent.json": {
+      "from": "standard/hx/a2ui/conformance/cases/recipe-card-agent.json",
+      "source": "tag",
+      "sha256": "256b6b249b11102efdca574c707700afe63c30017e3362ed1dc837bcb82c1a55"
+    },
+    "vendor/core/a2ui/conformance/cases/templates.json": {
+      "from": "standard/hx/a2ui/conformance/cases/templates.json",
+      "source": "tag",
+      "sha256": "0b52a6ffffd57a79815719f444152a64889d90af5dea61142ce86fe335067b15"
+    },
+    "vendor/core/a2ui/conformance/cases/updates.json": {
+      "from": "standard/hx/a2ui/conformance/cases/updates.json",
+      "source": "tag",
+      "sha256": "d79ec09dd54469e9f7dee4169d943a6c5cc4b2393ada09d5f78c00c3dfa79a7c"
     }
   }
 }
