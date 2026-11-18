@@ -1,0 +1,43 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Lemons are back, and the list is for six."
+    }
+  ],
+  "structuredContent": {
+    "ouro": {
+      "version": "1",
+      "catalogId": "https://ui.ouroboros.bot/a2ui/v1/apps/shopping/catalog.json",
+      "update": {
+        "nodes": [
+          {
+            "id": "title",
+            "component": "Heading",
+            "props": {
+              "text": "This week's list, for six",
+              "level": 1
+            },
+            "children": []
+          },
+          {
+            "id": "low",
+            "component": "Alert",
+            "props": {
+              "title": "Lemons are back in stock",
+              "text": "Add some before Saturday.",
+              "tone": "success"
+            },
+            "children": []
+          }
+        ],
+        "data": [
+          {
+            "path": "/quantity",
+            "value": 6
+          }
+        ]
+      }
+    }
+  }
+}

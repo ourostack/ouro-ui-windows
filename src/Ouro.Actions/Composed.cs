@@ -175,11 +175,18 @@ public sealed record OuroPersonPress(string Action, JsonObject Input, OuroConsen
 
 /// <summary>
 /// A tool result's composed tree: MCP Apps' <c>structuredContent.ouro</c> (core's <c>mcpAppTreeResult</c>), with the
-/// data model its fields start from.
+/// data model its fields start from; or, in place of the tree, an <see cref="Update"/> to the tree a view already draws
+/// (core's <c>mcpAppTreeUpdateResult</c>).
 /// </summary>
 public sealed record OuroComposedResult(string Version, string CatalogId, JsonNode? Tree, JsonObject? Data)
 {
-    /// <summary>The tree a tool result carries, or null when it carries none.</summary>
+    /// <summary>
+    /// An update to the tree the view already draws, <c>{ nodes?, data? }</c>, in place of a tree; null for a whole tree.
+    /// Apply it with <see cref="OuroComposed.ApplyTreeUpdate"/>, or <c>OuroComposedSurface.Show</c>.
+    /// </summary>
+    public JsonNode? Update { get; init; }
+
+    /// <summary>The tree or update a tool result carries, or null when it carries neither.</summary>
     public static OuroComposedResult? From(JsonNode? toolResult)
     {
         if (toolResult is not JsonObject result) return null;
@@ -189,12 +196,21 @@ public sealed record OuroComposedResult(string Version, string CatalogId, JsonNo
             OuroComposedCatalog.IsString(ouro["version"], out var v) ? v : "",
             OuroComposedCatalog.IsString(ouro["catalogId"], out var c) ? c : "",
             ouro["tree"]?.DeepClone(),
-            ouro["data"]?.DeepClone() as JsonObject) { Unreadable = ouro["data"] is null or JsonObject ? null : new("/structuredContent/ouro/data", "data is an object: the data model the fields start from.") };
+            ouro["data"]?.DeepClone() as JsonObject)
+        {
+            // "update": null is no update object; an empty list stands for it, so Problems names the shape.
+            Update = ouro.ContainsKey("update") ? ouro["update"]?.DeepClone() ?? new JsonArray() : null,
+            Unreadable = ouro["data"] is null or JsonObject ? null : new("/structuredContent/ouro/data", "data is an object: the data model the fields start from."),
+        };
     }
 
     private OuroTreeProblem? Unreadable { get; init; }
 
-    /// <summary>Every reason it can't be drawn with this catalog: JSON that names a key twice, data that isn't an object, another tree version, another catalog, or the tree's own problems.</summary>
+    /// <summary>
+    /// Every reason it can't be drawn with this catalog: JSON that names a key twice, data that isn't an object, another
+    /// tree version, another catalog, a tree and an update both, or the tree's or the update's own problems. An update's
+    /// ids are checked only against the tree it changes (<see cref="OuroComposed.ApplyTreeUpdate"/>).
+    /// </summary>
     public IReadOnlyList<OuroTreeProblem> Problems(OuroComposedCatalog catalog)
     {
         const string at = "/structuredContent/ouro";
@@ -202,6 +218,12 @@ public sealed record OuroComposedResult(string Version, string CatalogId, JsonNo
         if (Unreadable is not null) return [Unreadable];
         if (Version != OuroComposed.Version) problems.Add(new($"{at}/version", $"is \"{Version}\"; this renderer draws version {OuroComposed.Version} of the composed tree."));
         if (CatalogId != catalog.CatalogId) problems.Add(new($"{at}/catalogId", $"is \"{CatalogId}\", and this renderer has {catalog.CatalogId}. Fix: compose against the app's own catalog."));
+        if (Update is not null)
+        {
+            if (Tree is not null) problems.Add(new(at, "carries a tree or an update to the tree the view draws, not both."));
+            problems.AddRange(OuroComposed.TreeUpdateProblems(catalog, Update).Select(p => p with { Path = $"{at}/update{p.Path}" }));
+            return problems;
+        }
         problems.AddRange(OuroComposed.ValidateTree(catalog, Tree, $"{at}/tree"));
         return problems;
     }
@@ -721,4 +743,176 @@ public static class OuroComposed
         var consent = ConsentOf(AsText(p["consent"])) ?? throw new InvalidOperationException($"{action}: its consent \"{AsText(p["consent"])}\" isn't one of read, write, consequential or person-only. Fix: validate the tree first.");
         return new OuroPersonPress(action, p["input"]?.DeepClone() as JsonObject ?? new JsonObject(), consent, AsText(p["label"]), press == "confirm");
     }
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Updating a tree a renderer already draws (core's applyTreeUpdate, decision 2026-11-18-composed-tree-updates.md)
+    // -----------------------------------------------------------------------------------------------------------------
+
+    private const string UpdateShape = "An update is { nodes?, data? }: nodes replace the tree's nodes by id, and data sets values by JSON pointer.";
+
+    /// <summary>
+    /// Every problem in an update that needs no tree (core's <c>treeUpdateProblems</c>): its shape, each node against the
+    /// catalog (at <c>/nodes/&lt;i&gt;</c>) and each data path, which is absolute and never names <c>__proto__</c>,
+    /// <c>constructor</c> or <c>prototype</c>. <see cref="ApplyTreeUpdate"/> checks it too, then the ids and the tree it gives.
+    /// </summary>
+    public static IReadOnlyList<OuroTreeProblem> TreeUpdateProblems(OuroComposedCatalog catalog, JsonNode? update)
+    {
+        if (update is not JsonObject u) return [new("", UpdateShape)];
+        if (Twice(u, "") is { } twice) return [twice];
+        if (NonJsonAt(u, "") is { } notJson) return [new(notJson, "An update is JSON: text, finite numbers, true, false, null, lists and objects.")];
+        var problems = new List<OuroTreeProblem>();
+        foreach (var (key, _) in u) if (key is not ("nodes" or "data")) problems.Add(new($"/{key}", $"An update has no {key}. {UpdateShape}"));
+        if (u.TryGetPropertyValue("nodes", out var nodes))
+        {
+            if (nodes is not JsonArray list) problems.Add(new("/nodes", "nodes is a list of nodes, each replacing the tree's node with its id."));
+            else for (var i = 0; i < list.Count; i++) problems.AddRange(ValidateTree(catalog, list[i], $"/nodes/{i}"));
+        }
+        if (u.TryGetPropertyValue("data", out var data))
+        {
+            if (data is not JsonArray entries) problems.Add(new("/data", "data is a list of { path, value }, each setting the data model at a JSON pointer."));
+            else
+                for (var i = 0; i < entries.Count; i++)
+                {
+                    if (entries[i] is not JsonObject d || !d.ContainsKey("value") || d.Any(e => e.Key is not ("path" or "value")))
+                        problems.Add(new($"/data/{i}", "A data entry is { path, value }: value is JSON, and null deletes."));
+                    else if (!OuroComposedCatalog.IsString(d["path"], out var path) || !OuroPointer.IsData(path))
+                        problems.Add(new($"/data/{i}/path", "path is a JSON pointer into the data model, such as /servings, and never names __proto__, constructor or prototype."));
+                }
+        }
+        return problems;
+    }
+
+    // Where a value first stops being JSON: parsed JSON never does, but a value built in code can hold NaN or infinity.
+    private static string? NonJsonAt(JsonNode? v, string at)
+    {
+        switch (v)
+        {
+            case JsonObject o:
+                foreach (var (k, x) in o) if (NonJsonAt(x, $"{at}/{k.Replace("~", "~0").Replace("/", "~1")}") is { } found) return found;
+                return null;
+            case JsonArray a:
+                for (var i = 0; i < a.Count; i++) if (NonJsonAt(a[i], $"{at}/{i}") is { } found) return found;
+                return null;
+            case JsonValue n when n.GetValueKind() == JsonValueKind.Number:
+                return double.IsFinite(ToDouble(n)) ? null : at;
+            default:
+                return null;
+        }
+    }
+
+    // Why setting the pointer in the data would not give JSON: a list is written only at an index from 0 to its length.
+    private static string? ListIndexProblem(JsonNode? data, string pointer)
+    {
+        var cur = data;
+        foreach (var k in (pointer.StartsWith('/') ? pointer[1..] : pointer).Split('/').Select(k => k.Replace("~1", "/").Replace("~0", "~")))
+        {
+            if (cur is JsonArray list)
+            {
+                if (k.Length == 0 || !k.All(char.IsAsciiDigit) || k.Length > 9 || int.Parse(k, CultureInfo.InvariantCulture) > list.Count)
+                    return $"{pointer} names {Stringify(JsonValue.Create(k))} in a list of {list.Count}; in a list, a segment is an index from 0 to {list.Count}.";
+                var i = int.Parse(k, CultureInfo.InvariantCulture);
+                cur = i < list.Count ? list[i] : null;
+            }
+            else if (cur is JsonObject o) cur = o.TryGetPropertyValue(k, out var next) ? next : null;
+            else return null;
+        }
+        return null;
+    }
+
+    private static int CountId(JsonNode node, string id) =>
+        (node["id"] is JsonValue v && v.GetValueKind() == JsonValueKind.String && v.GetValue<string>() == id ? 1 : 0) + (node["children"] as JsonArray ?? []).Sum(c => c is null ? 0 : CountId(c, id));
+
+    private static JsonNode ReplaceNode(JsonNode node, JsonNode by, string id)
+    {
+        if (node["id"] is JsonValue v && v.GetValueKind() == JsonValueKind.String && v.GetValue<string>() == id) return by.DeepClone();
+        var copy = node.DeepClone();
+        if (copy["children"] is JsonArray children)
+            for (var i = 0; i < children.Count; i++)
+                if (children[i] is { } c) children[i] = ReplaceNode(c, by, id);
+        return copy;
+    }
+
+    /// <summary>
+    /// A tree and its data model after an update (core's <c>applyTreeUpdate</c>), or every problem and no change: never a
+    /// tree partly updated. Each node replaces the one node of the tree with its id, children and all; an id the tree
+    /// lacks is a problem, and so is one a template's instances share. Each data entry sets a value at its JSON pointer,
+    /// null deleting; <c>/</c> is the whole data model, which stays an object, and a list is written only at an index from
+    /// 0 to its length. The result passes <see cref="ValidateTree"/>, so an update can't relabel a button or loosen its
+    /// consent any more than a whole tree can. It changes neither input, and shares no node with them.
+    /// </summary>
+    public static OuroTreeUpdateResult ApplyTreeUpdate(OuroComposedCatalog catalog, JsonNode? tree, JsonNode? data, JsonNode? update)
+    {
+        var shape = TreeUpdateProblems(catalog, update);
+        if (shape.Count > 0) return new(null, null, shape);
+        var given = ValidateTree(catalog, tree);
+        if (given.Count > 0) return new(null, null, given);
+        var problems = new List<OuroTreeProblem>();
+        var next = tree!.DeepClone();
+        if (update!["nodes"] is JsonArray nodes)
+            for (var i = 0; i < nodes.Count; i++)
+            {
+                var id = nodes[i]!["id"]!.GetValue<string>();
+                var found = CountId(next, id);
+                if (found == 0) problems.Add(new($"/nodes/{i}/id", $"{Stringify(JsonValue.Create(id))} is not in the tree; replace a node it has, or the node that should hold this one."));
+                else if (found > 1) problems.Add(new($"/nodes/{i}/id", $"{Stringify(JsonValue.Create(id))} names {found} nodes, a template's instances; replace the node that holds them, by its own id."));
+                else next = ReplaceNode(next, nodes[i]!, id);
+            }
+        var model = data?.DeepClone();
+        if (update["data"] is JsonArray entries)
+            for (var i = 0; i < entries.Count; i++)
+            {
+                var path = entries[i]!["path"]!.GetValue<string>();
+                var baseline = model ?? new JsonObject();
+                if (ListIndexProblem(baseline, path) is { } index)
+                {
+                    problems.Add(new($"/data/{i}/path", index));
+                    continue;
+                }
+                var written = OuroPointer.Set(baseline, path, entries[i]!["value"]);
+                if (written is not JsonObject)
+                {
+                    problems.Add(new($"/data/{i}/value", "The data model is an object; set / only to an object."));
+                    continue;
+                }
+                model = written;
+            }
+        if (problems.Count > 0) return new(null, null, problems);
+        var invalid = ValidateTree(catalog, next);
+        return invalid.Count > 0 ? new(null, null, invalid) : new(next, model, []);
+    }
+
+    /// <summary>
+    /// The fields' data model when the agent sends new data (web's <c>ComposedSurface</c>): the new data, with each answer
+    /// the person entered kept where the agent left its value as it was, and the list item it is in. Where the agent
+    /// changed either, the agent's value wins and the person's answer is dropped. <paramref name="edited"/> holds the
+    /// pointers the person wrote; the answers kept are returned with the data.
+    /// </summary>
+    public static (JsonObject Data, IReadOnlySet<string> Edited) KeepAnswers(JsonNode? before, JsonNode? after, JsonNode? current, IEnumerable<string> edited)
+    {
+        var was = before ?? new JsonObject();
+        var now = after?.DeepClone() as JsonObject ?? new JsonObject();
+        // Compared as JSON text, as web compares them: an object with its keys reordered counts as changed.
+        bool Same(string p) => Text(was, p) == Text(now, p);
+        var kept = edited.Where(p => Anchors(was, p).All(Same)).ToHashSet();
+        foreach (var p in kept) if (OuroPointer.Set(now, p, OuroPointer.Get(current, p)?.DeepClone()) is JsonObject o) now = o;
+        return (now, kept);
+    }
+
+    private static string? Text(JsonNode data, string pointer) => OuroPointer.TryGet(data, pointer, out var v) ? (v is null ? "null" : v.ToJsonString()) : null;
+
+    // The pointers an answer at a pointer depends on: the pointer itself and each list item on the way to it, since a list
+    // that loses an item moves the next one into its place. The data model is an object, so the first key is never one.
+    private static IEnumerable<string> Anchors(JsonNode data, string pointer)
+    {
+        var keys = pointer.Split('/').Skip(1).ToArray();
+        var prefixes = keys.Select((_, i) => "/" + string.Join("/", keys.Take(i + 1))).ToArray();
+        return prefixes.Where((_, i) => i == keys.Length - 1 || (i > 0 && OuroPointer.Get(data, prefixes[i - 1]) is JsonArray));
+    }
+}
+
+/// <summary>What <see cref="OuroComposed.ApplyTreeUpdate"/> gives: the new tree and data model, or only the problems.</summary>
+public sealed record OuroTreeUpdateResult(JsonNode? Tree, JsonNode? Data, IReadOnlyList<OuroTreeProblem> Problems)
+{
+    /// <summary>Whether the update applied: no problems, and a tree.</summary>
+    public bool Applied => Problems.Count == 0;
 }

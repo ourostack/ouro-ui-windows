@@ -47,9 +47,10 @@ const MAP = {
 const TREE = {
   "vendor/core/a2ui/conformance/recipe.catalog.json": "standard/hx/a2ui/conformance/recipe.catalog.json",
 };
-/** Folders of them, every .json file in each: the cases every renderer of the composed tree must draw. */
+/** Folders of them, every .json file in each: the trees every renderer of the composed tree must draw, and the updates it must apply. */
 const TREE_DIRS = {
   "vendor/core/a2ui/conformance/cases": "standard/hx/a2ui/conformance/cases",
+  "vendor/core/composed/updates": "standard/hx/composed/updates",
 };
 const REPO = "ourostack/ouro-ui-core";
 const gh = (args) => execFileSync("gh", args, { maxBuffer: 64 * 1024 * 1024 });
