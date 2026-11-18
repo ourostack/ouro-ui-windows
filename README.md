@@ -8,7 +8,7 @@
 
 Ouro UI's native kit for Windows: core's components as WinUI 3 controls, and the agent doors (Windows App Actions and an MCP server for the On-device Agent Registry), all generated from [ouro-ui-core](https://github.com/ourostack/ouro-ui-core)'s one `defineAction` declaration.
 
-**Status: v0.1.1.** Eight components (Button, Badge, Card, Item, Checkbox, TextField, Separator, DescriptionList), the agent side, and Ouro's composed tree drawn natively. The plan is in [the decision record](https://github.com/ourostack/ouro-ui-core/blob/main/docs/decisions/2026-11-14-native-kits.md)'s "Windows v0.1.0" section.
+**Status: v0.2.0.** Eight components (Button, Badge, Card, Item, Checkbox, TextField, Separator, DescriptionList), the agent side, and Ouro's composed tree drawn natively. The plan is in [the decision record](https://github.com/ourostack/ouro-ui-core/blob/main/docs/decisions/2026-11-14-native-kits.md)'s "Windows v0.1.0" section.
 
 ## What's here
 
