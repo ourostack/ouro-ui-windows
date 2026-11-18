@@ -180,4 +180,130 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- OuroTextField's box: a TextBox with no chrome of its own. Its edge, fill, corner and padding are set by
+         OuroTextField's code, and the TextBox itself is the 44 epx Edit UI Automation reads. -->
+    <Style x:Key="OuroTextFieldInput" TargetType="TextBox">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                        <ScrollViewer
+                            x:Name="ContentElement"
+                            Padding="{TemplateBinding Padding}"
+                            Foreground="{TemplateBinding Foreground}"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                            HorizontalScrollMode="Auto"
+                            HorizontalScrollBarVisibility="Hidden"
+                            VerticalScrollMode="Auto"
+                            VerticalScrollBarVisibility="Auto"
+                            IsTabStop="False"
+                            ZoomMode="Disabled"
+                            AutomationProperties.AccessibilityView="Raw" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="local:OuroTextField">
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:OuroTextField">
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="LabelText" TextWrapping="Wrap" FontWeight="SemiBold" AutomationProperties.AccessibilityView="Raw" />
+                        <TextBlock x:Name="DescriptionText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
+                        <Grid>
+                            <TextBox x:Name="Input" Style="{StaticResource OuroTextFieldInput}" />
+                            <TextBlock
+                                x:Name="PlaceholderText"
+                                IsHitTestVisible="False"
+                                TextTrimming="CharacterEllipsis"
+                                AutomationProperties.AccessibilityView="Raw" />
+                        </Grid>
+                        <TextBlock x:Name="ErrorText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
+                    </StackPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="local:OuroCheckbox">
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="FocusVisualMargin" Value="-3" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:OuroCheckbox">
+                    <Grid Background="Transparent" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="Box" VerticalAlignment="Center">
+                            <Grid>
+                                <Path
+                                    x:Name="Tick"
+                                    Data="M 3.5,8.5 L 6.75,11.75 L 12.5,5"
+                                    StrokeThickness="2"
+                                    StrokeStartLineCap="Round"
+                                    StrokeEndLineCap="Round"
+                                    StrokeLineJoin="Round" />
+                                <Rectangle
+                                    x:Name="Dash"
+                                    Width="9"
+                                    Height="2"
+                                    RadiusX="1"
+                                    RadiusY="1"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock x:Name="LabelText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
+                            <TextBlock x:Name="DescriptionText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
+                            <TextBlock x:Name="ErrorText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
+                        </StackPanel>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="local:OuroSeparator">
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:OuroSeparator">
+                    <Grid x:Name="Root">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Rectangle x:Name="LineStart" />
+                        <TextBlock x:Name="LabelText" Grid.Column="1" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
+                        <Rectangle x:Name="LineEnd" Grid.Column="2" VerticalAlignment="Center" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="local:OuroDescriptionList">
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:OuroDescriptionList">
+                    <StackPanel x:Name="Rows" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 </ResourceDictionary>

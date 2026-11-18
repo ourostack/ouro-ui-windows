@@ -60,9 +60,13 @@ function Get-OuroTree([string]$ProcessName) {
   $items = foreach ($e in $all) {
     $c = $e.Current
     $r = $c.BoundingRectangle
+    # A checkbox's state and a field's text, as the Toggle and Value patterns give them to assistive technology.
+    $p = $null
+    $toggle = if ($e.TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern, [ref]$p)) { "$($p.Current.ToggleState)" } else { $null }
+    $value = if ($c.ControlType -eq [System.Windows.Automation.ControlType]::Edit -and $e.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern, [ref]$p)) { $p.Current.Value } else { $null }
     [ordered]@{
       automationId = $c.AutomationId; name = $c.Name; controlType = $c.ControlType.ProgrammaticName; className = $c.ClassName
-      itemStatus = $c.ItemStatus; helpText = $c.HelpText; isKeyboardFocusable = $c.IsKeyboardFocusable
+      itemStatus = $c.ItemStatus; helpText = $c.HelpText; isKeyboardFocusable = $c.IsKeyboardFocusable; toggleState = $toggle; value = $value
       rect = if ($r.IsEmpty) { $null } else { [ordered]@{ x = $r.X; y = $r.Y; width = $r.Width; height = $r.Height } }
     }
   }

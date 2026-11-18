@@ -8,15 +8,15 @@
 
 Ouro UI's native kit for Windows: core's components as WinUI 3 controls, and the agent doors (Windows App Actions and an MCP server for the On-device Agent Registry), all generated from [ouro-ui-core](https://github.com/ourostack/ouro-ui-core)'s one `defineAction` declaration.
 
-**Status: v0.1.0.** Four components (Button, Badge, Card, Item) and the agent side. The plan is in [the decision record](https://github.com/ourostack/ouro-ui-core/blob/main/docs/decisions/2026-11-14-native-kits.md)'s "Windows v0.1.0" section.
+**Status: v0.1.1.** Eight components (Button, Badge, Card, Item, Checkbox, TextField, Separator, DescriptionList) and the agent side. The plan is in [the decision record](https://github.com/ourostack/ouro-ui-core/blob/main/docs/decisions/2026-11-14-native-kits.md)'s "Windows v0.1.0" section.
 
 ## What's here
 
 | Package | What it is |
 | --- | --- |
 | `Ouro.Actions` (`src/Ouro.Actions`, plain .NET) | The runtime every door goes through: input checked against the schema, idempotency keys, an audit of every call, a yes from the person before a consequential action an agent prepared, and core's typed refusal for a person-only action at every agent door. Also the App Action URI reader, the MCP server, and Ouro's composed tree (`OuroComposed`: core's `composed.mts` in C#, which validates an agent's tree against the app's catalog). |
-| `Ouro.UI.Windows` (`src/Ouro.UI.Windows`, WinUI 3) | `OuroButton`, `OuroBadge`, `OuroCard` and `OuroItem`, from core's specs (`vendor/core/components`) and tokens. Each follows light and dark mode, a Windows contrast theme, the text size and the animation setting. An `OuroButton` with an `Action` runs it through `Ouro.Actions`. |
-| Ouro Shop (`samples/OuroShop`) | A shopping list whose buttons people press and agents call, with a gallery of every tone and variant. The MSIX registers its App Actions and its MCP server. |
+| `Ouro.UI.Windows` (`src/Ouro.UI.Windows`, WinUI 3) | `OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator` and `OuroDescriptionList`, from core's specs (`vendor/core/components`) and tokens. Each follows light and dark mode, a Windows contrast theme, the text size and the animation setting. An `OuroButton` with an `Action` runs it through `Ouro.Actions`. |
+| Ouro Shop (`samples/OuroShop`) | A shopping list whose buttons people press and agents call, with a gallery of every tone and variant, and of the fields and lists. The MSIX registers its App Actions and its MCP server. |
 
 ## Use it
 
@@ -63,6 +63,9 @@ CI runs on the free `windows-latest` runner (`.github/workflows/ci.yml`):
 - Card and Item call core's `size` `Density` (Medium, Small), and their `Variant` is an `OuroFrame` (Outline, Plain), so the names stay clear of WinUI's own `Frame` control.
 - Under a contrast theme the controls draw the person's system colours, not the theme's (as Windows asks). Status tones then look alike, so their meaning must also be in words.
 - A busy Button is disabled while its action runs, so it leaves the tab order until the action finishes.
+- TextField: no password type, Clear button or large size yet. `IsMultiline` (several lines) and the `Number` type are Windows' own, for the composed tree's fields.
+- Checkbox: mixed is WinUI's `IsChecked = null`. Separator: the default tone, Secondary, draws the border colour; another tone colours the line and its label.
+- DescriptionList: details are words, not views.
 - Person-only actions: UI Automation can press their buttons. Requiring Windows Hello first is built and off; [docs/person-check.md](docs/person-check.md) is the open decision.
 
 ## How the kits fit together

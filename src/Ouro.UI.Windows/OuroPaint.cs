@@ -43,11 +43,27 @@ public readonly record struct OuroPaintResult(uint Fill, uint Label, uint Edge, 
     public uint Behind(uint background) => Fill == 0 ? background : Fill;
 }
 
+/// <summary>
+/// A theme's colours for what sits on a surface, as 0xAARRGGBB: what it sits on (the page, or a card), a field's own fill,
+/// and the roles fields, checkboxes, lines and lists draw with. Translucent roles (a border at 18%) are laid over the
+/// surface first.
+/// </summary>
+public readonly record struct OuroSurfaceSource(uint Behind, uint Field, uint Foreground, uint MutedForeground, uint Border, uint Input, uint Ring, uint Primary, uint PrimaryForeground, uint Destructive);
+
+/// <summary>
+/// What a field, a checkbox, a line or a list draws: its words, muted words, a placeholder on the field's fill, a hairline,
+/// a field's or a box's edge, the focus ring, an error, a checked box's fill and its tick.
+/// </summary>
+public readonly record struct OuroSurfacePaint(uint Behind, uint Field, uint Text, uint Muted, uint Placeholder, uint Line, uint Edge, uint Focus, uint Error, uint Checked, uint Tick);
+
 /// <summary>The colour rules for a tone and a variant.</summary>
 public static class OuroPaint
 {
     /// <summary>WCAG's minimum for body text.</summary>
     public const double MinContrast = 4.5;
+
+    /// <summary>WCAG's minimum for a control's edge and a graphic a person must see, such as a checkbox's box and tick.</summary>
+    public const double GraphicContrast = 3.0;
 
     /// <summary>How much of the tone a soft fill takes, over the surface.</summary>
     public const double SoftTint = 0.16;
@@ -85,6 +101,31 @@ public static class OuroPaint
         var under = fill == 0 ? s.Background : fill;
         return new OuroPaintResult(fill, label, edge, Mix(under, label, HoverStep), Mix(under, label, PressedStep));
     }
+
+    /// <summary>
+    /// The colours on a surface. Words take the theme's colours where they read at 4.5:1 and otherwise the foreground; an
+    /// edge, the focus ring and a checked box take theirs where they reach 3:1, so a field and a box can always be found.
+    /// </summary>
+    public static OuroSurfacePaint Surface(OuroSurfaceSource s)
+    {
+        var muted = Readable(s.MutedForeground, s.Behind, s.Foreground);
+        var check = Readable(s.Primary, s.Behind, s.Foreground, GraphicContrast);
+        return new OuroSurfacePaint(
+            Behind: s.Behind,
+            Field: s.Field,
+            Text: s.Foreground,
+            Muted: muted,
+            Placeholder: Readable(s.MutedForeground, s.Field, s.Foreground),
+            Line: Over(s.Border, s.Behind),
+            Edge: Readable(Over(s.Input, s.Behind), s.Behind, muted, GraphicContrast),
+            Focus: Readable(s.Ring, s.Behind, s.Foreground, GraphicContrast),
+            Error: Readable(s.Destructive, s.Behind, s.Foreground),
+            Checked: check,
+            Tick: Readable(s.PrimaryForeground, check, s.Behind, GraphicContrast));
+    }
+
+    /// <summary>A colour laid over an opaque one: its alpha blended away.</summary>
+    public static uint Over(uint top, uint under) => Mix(under, top, (top >> 24) / 255.0);
 
     /// <summary>The tone's colour when it reads at <paramref name="min"/>:1 on the background, else the foreground.</summary>
     public static uint Readable(uint tone, uint background, uint foreground, double min = MinContrast) =>

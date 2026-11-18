@@ -39,6 +39,38 @@ public class PaintTests
     }
 
     [Fact]
+    public void Fields_checkboxes_lines_and_lists_read_on_the_page_and_on_a_card_in_every_theme_core_ships()
+    {
+        var failures = new List<string>();
+        foreach (var (name, c) in Modes())
+            foreach (var behind in new[] { "Background", "Card" })
+            {
+                var p = OuroPaint.Surface(new OuroSurfaceSource(c[behind], c["Background"], c["Foreground"], c["MutedForeground"], c["Border"], c["Input"], c["Ring"], c["Primary"], c["PrimaryForeground"], c["Destructive"]));
+                foreach (var (what, fg, bg, min) in new[]
+                {
+                    ("text", p.Text, p.Behind, OuroPaint.MinContrast), ("text in a field", p.Text, p.Field, OuroPaint.MinContrast),
+                    ("muted", p.Muted, p.Behind, OuroPaint.MinContrast), ("placeholder", p.Placeholder, p.Field, OuroPaint.MinContrast),
+                    ("error", p.Error, p.Behind, OuroPaint.MinContrast), ("edge", p.Edge, p.Behind, OuroPaint.GraphicContrast),
+                    ("focus", p.Focus, p.Behind, OuroPaint.GraphicContrast), ("checked", p.Checked, p.Behind, OuroPaint.GraphicContrast),
+                    ("tick", p.Tick, p.Checked, OuroPaint.GraphicContrast),
+                })
+                    if (OuroPaint.Contrast(fg, bg) < min) failures.Add($"{name} on {behind}: {what} {OuroPaint.Contrast(fg, bg):0.00}:1");
+                if (p.Line >> 24 != 0xFF) failures.Add($"{name}: the line is still translucent");
+            }
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void A_translucent_colour_is_laid_over_the_surface_and_an_edge_that_would_vanish_takes_the_muted_words()
+    {
+        Assert.Equal(0xFF7F7F7Fu, OuroPaint.Over(0x80000000, 0xFFFFFFFF));
+        Assert.Equal(0xFF123456u, OuroPaint.Over(0xFF123456, 0xFFFFFFFF));
+        var p = OuroPaint.Surface(new OuroSurfaceSource(0xFFFFFFFF, 0xFFFFFFFF, 0xFF1D1D1F, 0xFF6A6A6F, 0xFFE3E3E8, 0xFFD2D2D7, 0xFF0071E3, 0xFF0071E3, 0xFFFFFFFF, 0xFFD70015));
+        Assert.Equal(0xFF6A6A6Fu, p.Edge);
+        Assert.Equal(0xFF0071E3u, p.Checked);
+    }
+
+    [Fact]
     public void A_label_falls_back_to_the_foreground_where_the_tone_would_not_read()
     {
         const uint white = 0xFFFFFFFF, ink = 0xFF1D1D1F, paleGrey = 0xFFF2F2F5;

@@ -156,6 +156,8 @@ jobs:
             & tools/dump.ps1 -Command $env:APP -Arguments "--self-report $extra" -ProcessName OuroShop.WinUI -Out "$env:EV\uia-$s.json" @a
             $g = @{}; if ($Shots) { $g.Screenshot = "$env:EV\gallery-$s.png" }
             & tools/dump.ps1 -Command $env:APP -Arguments "--self-report --page gallery $extra" -ProcessName OuroShop.WinUI -ReadyId card.gallery -Out "$env:EV\uia-gallery-$s.json" @g
+            $f = @{}; if ($Shots) { $f.Screenshot = "$env:EV\fields-$s.png" }
+            & tools/dump.ps1 -Command $env:APP -Arguments "--self-report --page fields $extra" -ProcessName OuroShop.WinUI -ReadyId gallery.descriptionlist.recipe -Out "$env:EV\uia-fields-$s.json" @f
           }
           & tools/a11y.ps1 -Animations on -TextScale 100 -Contrast off
           & $pages light "--theme light" -Shots
