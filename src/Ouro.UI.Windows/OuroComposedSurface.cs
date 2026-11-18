@@ -230,7 +230,7 @@ public sealed partial class OuroComposedSurface : UserControl
         _ => OuroTone.Secondary,
     };
 
-    private UIElement Draw(OuroComposedNode n)
+    private FrameworkElement Draw(OuroComposedNode n)
     {
         var p = n.Props;
         FrameworkElement drawn = n.Component switch
