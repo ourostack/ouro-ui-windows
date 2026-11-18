@@ -1,7 +1,8 @@
 // Judges Ouro Shop's composed page: does the surface draw the agent's card as the composed tree says, to UI Automation as
 // well as on screen, and does each button follow its consent class? It reads the page's UI Automation dump
 // (uia-composed-light.json, from tools/dump.ps1), the card itself (samples/OuroShop/Composed/card.json) and what
-// tools/composed.ps1 recorded as it typed, ticked, chose and pressed (composed-presses.json).
+// tools/composed.ps1 recorded as it typed, ticked, chose and pressed, and as the agent updated the card
+// (composed-presses.json).
 // Usage: node tools/composed.mts <evidence dir>. Exit 1 when any check fails or can't run.
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -106,7 +107,7 @@ const data = (s: any) => {
 };
 if (!presses) row("a person presses", "*", null, "no composed-presses.json");
 else {
-  const [start, answered, run, cancelled, confirmed, handoff] = ["start", "answered", "run", "cancelled", "confirmed", "handoff"].map(step);
+  const [start, answered, run, cancelled, confirmed, handoff, updated, refused, corrected] = ["start", "answered", "run", "cancelled", "confirmed", "handoff", "updated", "refused", "corrected"].map(step);
   row("fields start from the data model", "*", isDeepStrictEqual(data(start), card.data), start?.data ?? "no step");
   const want = { ...card.data, item: "eggs", quantity: 3, organic: true, store: "Market Hall" };
   row("fields write the person's answers into the data model, and nothing runs", "*", isDeepStrictEqual(data(answered), want) && answered?.auditLines === start?.auditLines, `${answered?.data}; audit ${start?.auditLines} → ${answered?.auditLines}`);
@@ -116,6 +117,11 @@ else {
   row("the confirm dialog's default isn't the yes", "share", d ? d.focused !== d.primary : null, d ? `focus on "${d.focused}"` : "no dialog");
   row("Cancel sends nothing", "share", Boolean(cancelled && cancelled.status === run?.status && cancelled.auditLines === run?.auditLines), `${cancelled?.status}; audit +${cancelled?.auditLines - run?.auditLines}`);
   row("the confirm sends what the person entered, confirmed", "share", confirmed?.status === 'Share list, confirmed, pressed with {"with":"pat@example.com"}: Done' && confirmed?.auditLines === cancelled?.auditLines + 1, `${confirmed?.status}; audit +${confirmed?.auditLines - cancelled?.auditLines}`);
+  const kept = { ...card.data, item: "bread", quantity: 6, organic: true, store: "Market Hall", share: { with: "pat@example.com" } };
+  const shown = (s: any) => `title "${s?.title}", alert "${s?.low}", item "${s?.item}", quantity "${s?.quantity}", problem "${s?.problem}"; ${s?.status}; ${s?.data}`;
+  row("an update changes the card, and keeps what the person typed except where the agent set the value", "title, low, /quantity", Boolean(updated && updated.status === "Update 1 applied." && updated.title === "This week's list, for six" && updated.low === "Lemons are back in stock" && updated.item === "bread" && updated.quantity === "6" && !updated.problem && isDeepStrictEqual(data(updated), kept) && updated.auditLines === handoff?.auditLines), shown(updated));
+  row("an update the card can't take shows the short alert, applies nothing and keeps the card hidden", "subtitle", Boolean(refused && refused.status.startsWith('Update 2 refused: /nodes/0/id "subtitle" is not in the tree') && refused.problem === "This card can't be shown" && !refused.title && isDeepStrictEqual(data(refused), kept)), shown(refused));
+  row("a corrected update applies to the last card, with what the person typed", "title, low", Boolean(corrected && corrected.status === "Update 3 applied." && !corrected.problem && corrected.title === "This week's list, for six" && corrected.item === "bread" && isDeepStrictEqual(data(corrected), kept)), shown(corrected));
   row("a person-only button hands off and never presses", "order", Boolean(handoff && handoff.status === "Handed off: Place order is done with Place order on the shopping list. Nothing was sent." && handoff.auditLines === confirmed?.auditLines), `${handoff?.status}; audit +${handoff?.auditLines - confirmed?.auditLines}`);
 }
 

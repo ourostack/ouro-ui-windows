@@ -5,14 +5,21 @@
 // presses only when the person confirms; a person-only one hands the person to the app's own screen and never presses.
 // Fields write the person's answers into the data model, and a button bound to one sends what they entered.
 //
+// An agent changes a card it already showed with an update (OuroComposed.ApplyTreeUpdate): nodes replaced by id, data set
+// by JSON pointer, all or nothing. The person's answers stay, except where the agent changed the value or its list item.
+// A tree or an update that doesn't pass the checks shows one short alert; a refused update keeps the last card, hidden,
+// with what the person entered, so a corrected update applies to it.
+//
 // The surface is the person's: it has no way for an agent to press, and it doesn't read A2UI messages. Agents act through
-// the action's own door (App Actions, the MCP server). Decision: core docs/decisions/2026-11-14-composed-ui-own-tree.md.
+// the action's own door (App Actions, the MCP server). Decisions: core docs/decisions/2026-11-14-composed-ui-own-tree.md
+// and 2026-11-18-composed-tree-updates.md.
 using System.Globalization;
 using System.Text.Json.Nodes;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Ouro.Actions;
 
 namespace Ouro.UI.Windows;
@@ -36,13 +43,22 @@ public sealed record OuroComposedHandoff(string Action, string How);
 /// </example>
 public sealed partial class OuroComposedSurface : UserControl
 {
+    /// <summary>The short alert a tree or an update that fails the checks shows, as web's views do.</summary>
+    public const string ProblemTitle = "This card can't be shown", ProblemText = "It didn't pass the checks for composed UI.";
+
     private readonly List<Action> paints = [];
+    private readonly StackPanel root = new() { Spacing = 16 };
+    private OuroComposedAlert? alert;
+    private FrameworkElement? body;
+    private JsonNode? sent;
+    private HashSet<string> edited = [];
     private bool confirming;
 
     public OuroComposedSurface()
     {
         IsTabStop = false;
         HorizontalAlignment = HorizontalAlignment.Stretch;
+        Content = root;
         OuroUI.Follow(this, Repaint);
     }
 
@@ -55,7 +71,7 @@ public sealed partial class OuroComposedSurface : UserControl
     /// <summary>The data model: what the tree's fields start from and write the person's answers to.</summary>
     public JsonObject Data { get; private set; } = new();
 
-    /// <summary>Why the last tree wasn't drawn; empty when it was.</summary>
+    /// <summary>Why the last tree or update wasn't drawn; empty when it was.</summary>
     public IReadOnlyList<OuroTreeProblem> Problems { get; private set; } = [];
 
     /// <summary>
@@ -68,41 +84,128 @@ public sealed partial class OuroComposedSurface : UserControl
     /// <summary>A person-only button: take the person to the action's own screen. It never presses.</summary>
     public Action<OuroComposedHandoff>? OnHandoff { get; set; }
 
-    /// <summary>A field wrote the person's answer into the data model.</summary>
+    /// <summary>A field wrote the person's answer into the data model, or an update changed it.</summary>
     public event EventHandler<JsonObject>? DataChanged;
 
-    /// <summary>Draws a tool result's tree when it is for this catalog and validates; otherwise draws nothing and returns why.</summary>
+    /// <summary>
+    /// Draws a tool result: a whole tree, or an update to the tree drawn now (<see cref="OuroComposedResult.Update"/>). A
+    /// tree that fails the checks shows the short alert in place of a card; an update that fails them shows it over the
+    /// last card, which stays hidden with what the person entered. Returns the problems, empty when it drew.
+    /// </summary>
     public IReadOnlyList<OuroTreeProblem> Show(OuroComposedCatalog catalog, OuroComposedResult result)
     {
         var problems = result.Problems(catalog);
-        return problems.Count > 0 ? Clear(problems) : Show(catalog, result.Tree, result.Data);
+        if (result.Update is not null) return problems.Count > 0 ? Hold(problems) : Update(result.Update);
+        return problems.Count > 0 ? Refuse(problems) : Show(catalog, result.Tree, result.Data);
     }
 
-    /// <summary>Draws a tree when it validates against the catalog; otherwise draws nothing and returns why.</summary>
+    /// <summary>Draws a tree when it validates against the catalog; otherwise shows the short alert and returns why.</summary>
     public IReadOnlyList<OuroTreeProblem> Show(OuroComposedCatalog catalog, JsonNode? tree, JsonObject? data = null)
     {
         var problems = OuroComposed.ValidateTree(catalog, tree);
-        if (problems.Count > 0) return Clear(problems);
+        if (problems.Count > 0) return Refuse(problems);
         Catalog = catalog;
-        Tree = OuroComposedNode.FromJson(tree);
+        sent = data?.DeepClone();
         Data = (JsonObject?)data?.DeepClone() ?? new JsonObject();
-        Problems = [];
-        paints.Clear();
-        Content = Draw(Tree);
-        AutomationProperties.SetName(this, FirstHeading(Tree) ?? "");
-        if (IsLoaded) Repaint();
+        edited = [];
+        Render(OuroComposedNode.FromJson(tree));
         return Problems;
     }
 
-    private IReadOnlyList<OuroTreeProblem> Clear(IReadOnlyList<OuroTreeProblem> problems)
+    /// <summary>
+    /// Applies an agent's update, <c>{ nodes?, data? }</c>, to the tree drawn now (<see cref="OuroComposed.ApplyTreeUpdate"/>):
+    /// all of it, or none of it and the short alert over the last card. What the person entered stays, except where the
+    /// update changed the value or the list item it sits in. Returns the problems, empty when it applied.
+    /// </summary>
+    public IReadOnlyList<OuroTreeProblem> Update(JsonNode? update)
+    {
+        if (Catalog is null || Tree is null)
+            return Refuse([new("/update", "An update changes the composed tree the view shows, and it shows none yet; send the whole tree first, in structuredContent.ouro.tree.")]);
+        var applied = OuroComposed.ApplyTreeUpdate(Catalog, Tree.ToJson(), sent, update);
+        if (!applied.Applied) return Hold(applied.Problems);
+        (Data, var kept) = OuroComposed.KeepAnswers(sent, applied.Data, Data, edited);
+        edited = [.. kept];
+        sent = applied.Data?.DeepClone();
+        Render(OuroComposedNode.FromJson(applied.Tree));
+        DataChanged?.Invoke(this, Data);
+        return Problems;
+    }
+
+    // A tree to draw: the alert goes, and what had keyboard focus in the last card has it again in this one.
+    private void Render(OuroComposedNode tree)
+    {
+        var focused = XamlRoot is { } xamlRoot && FocusManager.GetFocusedElement(xamlRoot) is FrameworkElement f ? AutomationProperties.GetAutomationId(f) : "";
+        Tree = tree;
+        Problems = [];
+        paints.Clear();
+        body = Draw(tree);
+        root.Children.Clear();
+        root.Children.Add(body);
+        alert = null;
+        AutomationProperties.SetName(this, FirstHeading(tree) ?? "");
+        if (focused.StartsWith("composed.", StringComparison.Ordinal) && Find(body, focused) is { } again)
+        {
+            // Once, for this redraw: the element loading again later (a page navigated back to) takes no focus.
+            RoutedEventHandler? once = null;
+            once = (_, _) =>
+            {
+                again.Loaded -= once;
+                _ = again is OuroTextField field ? field.FocusInput(FocusState.Programmatic) : again is Control control && control.Focus(FocusState.Programmatic);
+            };
+            again.Loaded += once;
+        }
+        if (IsLoaded) Repaint();
+    }
+
+    // Nothing to draw: the alert alone.
+    private IReadOnlyList<OuroTreeProblem> Refuse(IReadOnlyList<OuroTreeProblem> problems)
     {
         Catalog = null;
         Tree = null;
+        sent = null;
         Data = new JsonObject();
-        Problems = problems;
+        edited = [];
         paints.Clear();
-        Content = null;
+        body = null;
+        root.Children.Clear();
+        alert = null;
+        AutomationProperties.SetName(this, "");
+        return Alert(problems);
+    }
+
+    // An update that can't apply: the alert over the last card, which stays as the person left it, hidden.
+    private IReadOnlyList<OuroTreeProblem> Hold(IReadOnlyList<OuroTreeProblem> problems)
+    {
+        if (body is not null) body.Visibility = Visibility.Collapsed;
+        return Alert(problems);
+    }
+
+    private IReadOnlyList<OuroTreeProblem> Alert(IReadOnlyList<OuroTreeProblem> problems)
+    {
+        Problems = problems;
+        if (alert is null)
+        {
+            alert = new OuroComposedAlert(ProblemTitle, ProblemText, OuroTone.Destructive);
+            AutomationProperties.SetAutomationId(alert, "composed.problem");
+            alert.Loaded += (_, _) => alert?.Paint();
+            root.Children.Insert(0, alert);
+        }
+        if (IsLoaded) alert.Paint();
         return problems;
+    }
+
+    // The drawn element with this automation id, for focus: a Select's is its ComboBox, inside the panel Draw gave.
+    private static FrameworkElement? Find(DependencyObject e, string id)
+    {
+        if (e is FrameworkElement f && AutomationProperties.GetAutomationId(f) == id) return f;
+        IEnumerable<DependencyObject> children = e switch
+        {
+            Panel p => p.Children,
+            ContentControl { Content: DependencyObject c } => [c],
+            Border { Child: { } b } => [b],
+            _ => [],
+        };
+        return children.Select(c => Find(c, id)).FirstOrDefault(x => x is not null);
     }
 
     protected override AutomationPeer OnCreateAutomationPeer() => new OuroComposedSurfaceAutomationPeer(this);
@@ -110,6 +213,7 @@ public sealed partial class OuroComposedSurface : UserControl
     private void Repaint()
     {
         foreach (var paint in paints) paint();
+        alert?.Paint();
     }
 
     private static string? FirstHeading(OuroComposedNode n) =>
@@ -126,7 +230,7 @@ public sealed partial class OuroComposedSurface : UserControl
         _ => OuroTone.Secondary,
     };
 
-    private UIElement Draw(OuroComposedNode n)
+    private FrameworkElement Draw(OuroComposedNode n)
     {
         var p = n.Props;
         FrameworkElement drawn = n.Component switch
@@ -268,6 +372,7 @@ public sealed partial class OuroComposedSurface : UserControl
     {
         if (OuroPointer.Set(Data, path, value) is not JsonObject data) return;
         Data = data;
+        edited.Add(path);
         DataChanged?.Invoke(this, data);
     }
 

@@ -1,9 +1,9 @@
 {
-  "coreTag": "v0.18.2",
+  "coreTag": "v0.19.0",
   "files": {
     "vendor/core/ouro-actions.mts": {
       "from": "dist/actions/ouro-actions.mts",
-      "sha256": "31ab72c4f4f621ccdb830dfe6c560aedd7d82e4d8113962f7211555cf714c0a2"
+      "sha256": "7e6c5a59a7cc23a9566a1e270bbd0bde266a85955957252faaf4ebe53335902f"
     },
     "vendor/core/ouro-actions-windows.mts": {
       "from": "dist/actions/ouro-actions-windows.mts",
@@ -51,11 +51,11 @@
     },
     "vendor/core/ouro-composed.mts": {
       "from": "dist/composed/ouro-composed.mts",
-      "sha256": "32467858bb96c868172def5ed80f92a7d7f33deb6500f6c217646048501f0bcc"
+      "sha256": "50b1b5c290816f0e9698fa6514eab023df38e11c559921133254cad963aa606a"
     },
     "vendor/core/ouro-mcp-app.mts": {
       "from": "dist/composed/ouro-mcp-app.mts",
-      "sha256": "9788695c40419f077c17d65f054b3871b9408eeecc20826401dbe2fc0f8b0cb4"
+      "sha256": "9b61d5d000f09cfd7cfcb13d057fb1bb1f0bea9bcedda5eb54a80ba8a11cac33"
     },
     "vendor/core/ouro-a2ui.mts": {
       "from": "dist/a2ui/ouro-a2ui.mts",
@@ -67,20 +67,20 @@
     },
     "vendor/core/a2ui/catalog.json": {
       "from": "dist/hx/a2ui/catalog.json",
-      "sha256": "ec2ee487e76b5fa132f150f8759a7254bf825ab7e53d6e2bbcb3658af5c7e0d5"
+      "sha256": "ea2414f022f038a10a321847c70b59b12d17a95db50c5d688f1012855b6d3aab"
     },
     "src/Ouro.UI.Windows/Vendor/OuroTokens.cs": {
       "from": "dist/windows/OuroTokens.cs",
-      "sha256": "c1572ddb2ba6fafdf0144d993f6615a91cd9bae02689e7aa2aecbb04ae0d3f6d"
+      "sha256": "7b55cc8f283c848e9a4c630bc12baccf7d5857cc9b88eda89466abeb76151b23"
     },
     "src/Ouro.UI.Windows/Vendor/OuroTokens.xaml": {
       "from": "dist/windows/OuroTokens.xaml",
-      "sha256": "4efce51e0cae5ef9a6cfafcd9f3ff590994e3e439aeac621f4cafcaff78e13b6"
+      "sha256": "191590bf854173136fe65755631c88d6c0e56e6cd5ff75be5475d3132b37bece"
     },
     "vendor/core/a2ui/conformance/recipe.catalog.json": {
       "from": "standard/hx/a2ui/conformance/recipe.catalog.json",
       "source": "tag",
-      "sha256": "d885a88b9c14d873d72d113d1c1eb45eaec968dec126c12fdffd5ae3e333d6b1"
+      "sha256": "0530d2c0089c7da32ca303c26b0429d9646a7f1a6779e3046224882ab4244e1c"
     },
     "vendor/core/a2ui/conformance/cases/action-buttons.json": {
       "from": "standard/hx/a2ui/conformance/cases/action-buttons.json",
@@ -146,6 +146,31 @@
       "from": "standard/hx/a2ui/conformance/cases/updates.json",
       "source": "tag",
       "sha256": "d79ec09dd54469e9f7dee4169d943a6c5cc4b2393ada09d5f78c00c3dfa79a7c"
+    },
+    "vendor/core/composed/updates/invalid-update-missing-id.json": {
+      "from": "standard/hx/composed/updates/invalid-update-missing-id.json",
+      "source": "tag",
+      "sha256": "fef209651bda5cec3d09ec0ce9985d72b15e416a00e635213339d0f21d3338f0"
+    },
+    "vendor/core/composed/updates/invalid-update-relabel-button.json": {
+      "from": "standard/hx/composed/updates/invalid-update-relabel-button.json",
+      "source": "tag",
+      "sha256": "e1266fac25d464a34f35b090f391e1153325d3d792a2b969e72a6b14b79439f8"
+    },
+    "vendor/core/composed/updates/invalid-update-shared-id.json": {
+      "from": "standard/hx/composed/updates/invalid-update-shared-id.json",
+      "source": "tag",
+      "sha256": "e60775dddbd22ed0b0f18d8f673e0191d716ff2385a025469d6d61b5fa646bf6"
+    },
+    "vendor/core/composed/updates/invalid-update-unsafe-pointer.json": {
+      "from": "standard/hx/composed/updates/invalid-update-unsafe-pointer.json",
+      "source": "tag",
+      "sha256": "b5d52a79ce9b5112e86fbbd994c37284bbb55c0d8feb7d3184f1ac63a271b116"
+    },
+    "vendor/core/composed/updates/replace-and-set.json": {
+      "from": "standard/hx/composed/updates/replace-and-set.json",
+      "source": "tag",
+      "sha256": "0c758e712c39cb61c53f9b91195ce0a718ed06a074194025274c9b1a262208fd"
     }
   }
 }

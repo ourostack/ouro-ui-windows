@@ -1,6 +1,7 @@
 # Drives Ouro Shop's composed page as a person would, through UI Automation: types into the card's fields, ticks its box
 # and picks an option, then presses a button that runs, one that confirms (Cancel first, then the confirm) and one that
-# hands off. After each step it records the status line, the data model the page shows, the audit's length (one line per
+# hands off. Then the agent updates the card while the person has typed, sends an update the card can't take, and sends
+# the good one again. After each step it records the status line, the data model the page shows, the audit's length (one line per
 # call the runtime saw) and, for the confirm, the dialog. tools/composed.mts judges the record.
 param([Parameter(Mandatory)][string]$Command, [Parameter(Mandatory)][string]$ProcessName, [Parameter(Mandatory)][string]$Out, [string]$Screenshot)
 $ErrorActionPreference = "Stop"
@@ -40,6 +41,15 @@ function Add-Step([string]$Name, [hashtable]$Extra = @{}) {
 }
 function Set-Field([string]$Id, [string]$Text) { (Get-Composed $Id).GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue($Text) }
 function Press([string]$Id) { Invoke-OuroButton (Get-Composed $Id) }
+function Get-Name([string]$Id) { $w = Get-OuroWindow $ProcessName; $e = if ($w) { Find-ByAutomationId $w $Id } else { $null }; if ($e) { $e.Current.Name } else { $null } }
+function Get-Value([string]$Id) { $w = Get-OuroWindow $ProcessName; $e = if ($w) { Find-ByAutomationId $w $Id } else { $null }; if ($e) { $e.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value } else { $null } }
+function Get-Card { @{ title = (Get-Name "composed.title"); low = (Get-Name "composed.low"); item = (Get-Value "composed.item"); quantity = (Get-Value "composed.quantity"); problem = (Get-Name "composed.problem") } }
+function Send-Update([string]$Id) {
+  $before = Get-Status
+  Press $Id
+  [void](Wait-Status $before)
+  Start-Sleep -Milliseconds 800
+}
 function Read-Dialog {
   $primary = Wait-Element "PrimaryButton"
   Start-Sleep -Milliseconds 600
@@ -109,6 +119,20 @@ Press "composed.order"
 [void](Wait-Status $before)
 Start-Sleep -Milliseconds 500
 Add-Step "handoff"
+
+# The agent updates the card after the person typed: a new heading and alert, and its own quantity. The person's item
+# stays; their quantity gives way to the agent's.
+Set-Field "composed.item" "bread"
+Set-Field "composed.quantity" "5"
+Start-Sleep -Milliseconds 300
+Send-Update "agent.update"
+Add-Step "updated" (Get-Card)
+# An update for a node the card doesn't have: refused whole, with the short alert, and the card kept as the person left it.
+Send-Update "agent.missing"
+Add-Step "refused" (Get-Card)
+# The good update again: it applies to the last card, with the person's answers.
+Send-Update "agent.update"
+Add-Step "corrected" (Get-Card)
 
 [ordered]@{ auditAtStart = $auditAtStart; dialog = $dialog; steps = @($steps) } | ConvertTo-Json -Depth 6 | Set-Content -Encoding utf8 $Out
 Get-Process -Name $ProcessName -ErrorAction SilentlyContinue | Stop-Process -Force

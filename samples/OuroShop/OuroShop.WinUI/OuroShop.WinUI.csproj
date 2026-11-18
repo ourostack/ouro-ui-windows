@@ -26,8 +26,10 @@
     <ProjectReference Include="..\..\..\src\Ouro.UI.Windows\Ouro.UI.Windows.csproj" />
     <Compile Include="..\Generated\OuroActions.g.cs" Link="Generated\OuroActions.g.cs" />
     <Compile Include="..\Shared\ShoppingHandler.cs" Link="Shared\ShoppingHandler.cs" />
-    <!-- The composed page's catalog and the card the agent composed (shopping.composed.mts writes both). -->
+    <!-- The composed page's catalog, the card the agent composed and its two updates (shopping.composed.mts writes them). -->
     <EmbeddedResource Include="..\Composed\catalog.json" LogicalName="OuroShop.Composed.catalog.json" />
     <EmbeddedResource Include="..\Composed\card.json" LogicalName="OuroShop.Composed.card.json" />
+    <EmbeddedResource Include="..\Composed\update.json" LogicalName="OuroShop.Composed.update.json" />
+    <EmbeddedResource Include="..\Composed\update-missing.json" LogicalName="OuroShop.Composed.update-missing.json" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,27 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Serves six."
+    }
+  ],
+  "structuredContent": {
+    "ouro": {
+      "version": "1",
+      "catalogId": "https://ui.ouroboros.bot/a2ui/v1/apps/shopping/catalog.json",
+      "update": {
+        "nodes": [
+          {
+            "id": "subtitle",
+            "component": "Text",
+            "props": {
+              "text": "Serves six",
+              "tone": "muted"
+            },
+            "children": []
+          }
+        ]
+      }
+    }
+  }
+}

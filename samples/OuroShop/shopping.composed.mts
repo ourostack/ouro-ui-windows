@@ -1,17 +1,18 @@
 // A card Ouro Shop's agent composes for the person: Ouro's composed tree, carried in an MCP tool result as
 // structuredContent.ouro, against the catalog core generates from the sample's actions (Composed/catalog.json). Every
 // button is one of the declared actions, so its label, consent and confirm sheet come from the catalog
-// (actionButtonProps); the agent picks the action, the input and the emphasis, and nothing else.
-//   node samples/OuroShop/shopping.composed.mts generate   write Composed/card.json
-//   node samples/OuroShop/shopping.composed.mts check      fail when it drifted (CI's generated job)
+// (actionButtonProps); the agent picks the action, the input and the emphasis, and nothing else. Then two updates the
+// agent sends to that card (structuredContent.ouro.update): one that changes a heading, an alert and the quantity, and
+// one for a node the card doesn't have, which the view refuses.
+//   node samples/OuroShop/shopping.composed.mts generate   write Composed/card.json, update.json and update-missing.json
+//   node samples/OuroShop/shopping.composed.mts check      fail when they drifted (CI's generated job)
 import { readFile, writeFile } from "node:fs/promises";
 import { actionButtonProps, type ComposedNode, type Json, type Obj } from "../../vendor/core/ouro-composed.mts";
 import { loadCatalog } from "../../vendor/core/ouro-a2ui.mts";
-import { mcpAppTreeResult } from "../../vendor/core/ouro-mcp-app.mts";
+import { mcpAppTreeResult, mcpAppTreeUpdateResult } from "../../vendor/core/ouro-mcp-app.mts";
 
 const here = (p: string) => new URL(p, import.meta.url);
 const catalog = loadCatalog(JSON.parse(await readFile(here("Composed/catalog.json"), "utf8")));
-const target = here("Composed/card.json");
 
 const node = (id: string, component: string, props: Obj, children: ComposedNode[] = []): ComposedNode => ({ id, component, props, children });
 const row = (id: string, gap: string, children: ComposedNode[]) => node(id, "Stack", { direction: "horizontal", gap }, children);
@@ -51,19 +52,35 @@ const tree = row("root", "large", [
 
 const data: Obj = { item: "oat milk", quantity: 2, organic: false, store: "Corner Grocer", share: { with: "sam@example.com" } };
 const result = mcpAppTreeResult({ text: "This week's list: oat milk, eggs and lemons, delivered Saturday.", catalog, tree, data });
-const text = `${JSON.stringify(result as unknown as Json, null, 2)}\n`;
+const update = mcpAppTreeUpdateResult({
+  text: "Lemons are back, and the list is for six.",
+  catalog,
+  update: {
+    nodes: [node("title", "Heading", { text: "This week's list, for six", level: 1 }), node("low", "Alert", { title: "Lemons are back in stock", text: "Add some before Saturday.", tone: "success" })],
+    data: [{ path: "/quantity", value: 6 }],
+  },
+});
+// The sender checks only what needs no tree; the view finds no "subtitle" in the card and refuses the whole update.
+const missing = mcpAppTreeUpdateResult({ text: "Serves six.", catalog, update: { nodes: [node("subtitle", "Text", { text: "Serves six", tone: "muted" })] } });
+const files = new Map([
+  ["Composed/card.json", result],
+  ["Composed/update.json", update],
+  ["Composed/update-missing.json", missing],
+].map(([name, value]) => [name as string, `${JSON.stringify(value as unknown as Json, null, 2)}\n`]));
 
 const [cmd] = process.argv.slice(2);
 if (cmd === "generate") {
-  await writeFile(target, text);
-  process.stdout.write("shopping.composed: wrote Composed/card.json.\n");
+  for (const [name, text] of files) await writeFile(here(name), text);
+  process.stdout.write(`shopping.composed: wrote ${[...files.keys()].join(", ")}.\n`);
 } else if (cmd === "check") {
-  const have = await readFile(target, "utf8").catch(() => null);
-  if (have !== text) {
-    process.stderr.write(`shopping.composed: Composed/card.json ${have === null ? "is missing" : "drifted from its source"}. Fix: node samples/OuroShop/shopping.composed.mts generate; never edit it by hand.\n`);
-    process.exit(1);
+  for (const [name, text] of files) {
+    const have = await readFile(here(name), "utf8").catch(() => null);
+    if (have !== text) {
+      process.stderr.write(`shopping.composed: ${name} ${have === null ? "is missing" : "drifted from its source"}. Fix: node samples/OuroShop/shopping.composed.mts generate; never edit it by hand.\n`);
+      process.exit(1);
+    }
   }
-  process.stdout.write("shopping.composed: Composed/card.json matches its source and validates against the catalog.\n");
+  process.stdout.write("shopping.composed: the card and its updates match their source and pass the sender's checks.\n");
 } else {
   process.stderr.write("usage: node samples/OuroShop/shopping.composed.mts generate | check\n");
   process.exit(2);

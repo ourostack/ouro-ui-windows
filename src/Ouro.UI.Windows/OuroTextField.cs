@@ -198,6 +198,9 @@ public sealed partial class OuroTextField : Control
             ("trimmed", (label?.IsTextTrimmed ?? false) || (description?.IsTextTrimmed ?? false) || (error?.IsTextTrimmed ?? false)), ("textHeight", Math.Round(label?.ActualHeight ?? 0)));
     }
 
+    /// <summary>Puts keyboard focus in the field's box.</summary>
+    public bool FocusInput(FocusState state) => input?.Focus(state) ?? false;
+
     private static void Show(TextBlock? block, string text, uint colour)
     {
         if (block is null) return;

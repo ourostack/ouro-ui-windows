@@ -147,9 +147,11 @@ public sealed class MainWindow : Window
     /// <summary>
     /// A card Ouro Shop's agent composed (Composed/card.json, an MCP tool result), drawn against the app's catalog. Its
     /// buttons run through the app's runtime at the person's door, as the list's own buttons do; the person-only one says
-    /// where the person does it and sends nothing. The line under it shows the data model the fields write.
+    /// where the person does it and sends nothing. Under it, two buttons stand in for the agent sending an update to the
+    /// card (Composed/update.json) and one for a node the card lacks (Composed/update-missing.json); the line at the bottom
+    /// shows the data model the fields write.
     /// </summary>
-    private OuroComposedSurface Composed()
+    private StackPanel Composed()
     {
         static JsonNode Embedded(string name)
         {
@@ -168,9 +170,26 @@ public sealed class MainWindow : Window
         AutomationProperties.SetAutomationId(surface, "composed.surface");
         AutomationProperties.SetAutomationId(data, "composed.data");
         surface.DataChanged += (_, model) => data.Text = OuroJson.Write(model);
-        var problems = surface.Show(OuroComposedCatalog.Load(Embedded("catalog.json")), OuroComposedResult.From(Embedded("card.json"))!);
+        var catalog = OuroComposedCatalog.Load(Embedded("catalog.json"));
+        var problems = surface.Show(catalog, OuroComposedResult.From(Embedded("card.json"))!);
         data.Text = problems.Count > 0 ? $"The agent's card doesn't validate: {string.Join("; ", problems)}" : OuroJson.Write(surface.Data);
-        return surface;
+        var updates = 0;
+        OuroButton Agent(string label, string id, string file)
+        {
+            var b = new OuroButton { Label = label, Tone = OuroTone.Secondary, Variant = OuroVariant.Outline };
+            AutomationProperties.SetAutomationId(b, id);
+            b.Click += (_, _) =>
+            {
+                var refused = surface.Show(catalog, OuroComposedResult.From(Embedded(file))!);
+                updates++;
+                Say(refused.Count > 0 ? $"Update {updates} refused: {string.Join("; ", refused)}" : $"Update {updates} applied.");
+            };
+            return b;
+        }
+        var agent = Row(12);
+        agent.Children.Add(Agent("Agent: update the card", "agent.update", "update.json"));
+        agent.Children.Add(Agent("Agent: update a node the card lacks", "agent.missing", "update-missing.json"));
+        return Column(16, surface, agent);
     }
 
     /// <summary>The gallery's second page: TextField, Checkbox, Separator and DescriptionList, in core's spec cases.</summary>
