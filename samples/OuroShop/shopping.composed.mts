@@ -21,7 +21,7 @@ const field = (id: string, label: string, value: string, hint: string | undefine
 
 const tree = row("root", "large", [
   node("week", "Card", {}, [
-    node("photo", "Image", { url: "https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-ui-windows.webp", description: "Ouro basking on a cabin windowsill while a small robot opens one pane", aspect: "wide" }),
+    node("photo", "Image", { url: "https://raw.githubusercontent.com/ourostack/.github/main/brand/og/ouro-ui-windows.jpg", description: "Ouro basking on a cabin windowsill while a small robot opens one pane", aspect: "wide" }),
     node("title", "Heading", { text: "This week's list", level: 1 }),
     row("tags", "small", [node("count", "Badge", { text: "3 items", tone: "neutral" }), node("vegan", "Badge", { text: "Vegan", tone: "success" })]),
     node("why", "Text", { text: "Picked from the recipes you cooked this month.", tone: "muted" }),

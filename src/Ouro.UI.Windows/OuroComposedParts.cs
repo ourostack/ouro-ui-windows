@@ -13,7 +13,10 @@ using Windows.UI.ViewManagement;
 
 namespace Ouro.UI.Windows;
 
-/// <summary>A row that wraps: each child at its natural width, a row's spare width shared among its children.</summary>
+/// <summary>
+/// A row that wraps: each child at its natural width, and a row's spare width shared among the children that stretch
+/// (cards fill the row; badges and buttons keep their size).
+/// </summary>
 internal sealed partial class OuroWrapPanel : Panel
 {
     private readonly List<(UIElement Child, Rect Place)> places = [];
@@ -45,11 +48,12 @@ internal sealed partial class OuroWrapPanel : Panel
         foreach (var r in rows)
         {
             var natural = r.Sum(c => c.Width) + Spacing * (r.Count - 1);
-            var grow = width == double.MaxValue ? 0 : (width - natural) / r.Count;
+            var stretchy = r.Count(c => c.Child is FrameworkElement { HorizontalAlignment: HorizontalAlignment.Stretch });
+            var grow = width == double.MaxValue || stretchy == 0 ? 0 : (width - natural) / stretchy;
             double x = 0, tallest = 0;
             foreach (var (child, w) in r)
             {
-                var final = w + Math.Max(0, grow);
+                var final = w + (child is FrameworkElement { HorizontalAlignment: HorizontalAlignment.Stretch } ? Math.Max(0, grow) : 0);
                 child.Measure(new Size(final, double.PositiveInfinity));
                 places.Add((child, new Rect(x, y, final, child.DesiredSize.Height)));
                 tallest = Math.Max(tallest, child.DesiredSize.Height);

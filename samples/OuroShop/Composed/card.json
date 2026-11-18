@@ -26,7 +26,7 @@
                 "id": "photo",
                 "component": "Image",
                 "props": {
-                  "url": "https://raw.githubusercontent.com/ourostack/.github/main/brand/headers/ouro-ui-windows.webp",
+                  "url": "https://raw.githubusercontent.com/ourostack/.github/main/brand/og/ouro-ui-windows.jpg",
                   "description": "Ouro basking on a cabin windowsill while a small robot opens one pane",
                   "aspect": "wide"
                 },
