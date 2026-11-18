@@ -11,7 +11,7 @@
 // update downloads with `gh`; check needs only the network (and uses GH_TOKEN, when set, to list the cases).
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -55,6 +55,8 @@ const REPO = "ourostack/ouro-ui-core";
 const gh = (args) => execFileSync("gh", args, { maxBuffer: 64 * 1024 * 1024 });
 const raw = (tag, from) => `https://raw.githubusercontent.com/${REPO}/${tag}/${from}`;
 /** The .json files in a folder of core's tree at a tag, by name. */
+/** The .json files in a vendored folder here. */
+const onDisk = (here) => (existsSync(join(root, here)) ? readdirSync(join(root, here)).filter((n) => n.endsWith(".json")).sort() : []);
 const listed = async (tag, dir) => {
   const token = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
   const response = await fetch(`https://api.github.com/repos/${REPO}/contents/${dir}?ref=${tag}`, { headers: { accept: "application/vnd.github+json", ...(token ? { authorization: `Bearer ${token}` } : {}) } });
@@ -73,7 +75,11 @@ if (cmd === "update" && /^v\d+\.\d+\.\d+$/.test(tag ?? "")) {
     files[here] = { from, sha256: sha(readFileSync(join(root, here))) };
   }
   const tree = { ...TREE };
-  for (const [here, from] of Object.entries(TREE_DIRS)) for (const name of await listed(tag, from)) tree[`${here}/${name}`] = `${from}/${name}`;
+  for (const [here, from] of Object.entries(TREE_DIRS)) {
+    // A case core dropped or renamed goes too: the folder holds exactly the tag's cases.
+    for (const name of onDisk(here)) rmSync(join(root, here, name));
+    for (const name of await listed(tag, from)) tree[`${here}/${name}`] = `${from}/${name}`;
+  }
   for (const [here, from] of Object.entries(tree)) {
     mkdirSync(dirname(join(root, here)), { recursive: true });
     writeFileSync(join(root, here), gh(["api", "-H", "Accept: application/vnd.github.raw", `repos/${REPO}/contents/${from}?ref=${tag}`]));
@@ -84,15 +90,22 @@ if (cmd === "update" && /^v\d+\.\d+\.\d+$/.test(tag ?? "")) {
 } else if (cmd === "check") {
   const recorded = JSON.parse(readFileSync(file, "utf8"));
   const problems = [];
-  const expected = [...Object.keys(MAP), ...Object.keys(TREE)];
+  // Where each file must come from: a release's dist/, or the tag's tree. A record can't move a file to another path or source.
+  const expected = Object.fromEntries([...Object.entries(MAP).map(([h, from]) => [h, { from }]), ...Object.entries(TREE).map(([h, from]) => [h, { from, source: "tag" }])]);
   for (const [here, from] of Object.entries(TREE_DIRS)) {
     try {
-      for (const name of await listed(recorded.coreTag, from)) expected.push(`${here}/${name}`);
+      for (const name of await listed(recorded.coreTag, from)) expected[`${here}/${name}`] = { from: `${from}/${name}`, source: "tag" };
     } catch (e) {
       problems.push(`${here}: ${e.message}. Fix: set GH_TOKEN, or try again.`);
     }
+    for (const name of onDisk(here)) if (!recorded.files[`${here}/${name}`]) problems.push(`${here}/${name}: not from core. Fix: delete it; vendored folders hold only core's files.`);
   }
-  for (const here of expected) if (!recorded.files[here]) problems.push(`${here}: not recorded. Fix: node scripts/provenance.mjs update ${recorded.coreTag}`);
+  for (const [here, want] of Object.entries(expected)) {
+    const got = recorded.files[here];
+    if (!got) problems.push(`${here}: not recorded. Fix: node scripts/provenance.mjs update ${recorded.coreTag}`);
+    else if (got.from !== want.from || got.source !== want.source) problems.push(`${here}: recorded as ${got.source ?? "dist"} ${got.from}, and comes from ${want.source ?? "dist"} ${want.from}. Fix: node scripts/provenance.mjs update ${recorded.coreTag}`);
+  }
+  for (const here of Object.keys(recorded.files)) if (!expected[here] && !problems.some((p) => p.startsWith(`${dirname(here)}:`))) problems.push(`${here}: recorded, and nothing here comes from it. Fix: node scripts/provenance.mjs update ${recorded.coreTag}`);
   for (const [here, { from, sha256 }] of Object.entries(recorded.files)) {
     let bytes;
     try { bytes = readFileSync(join(root, here)); } catch { problems.push(`${here}: missing. Fix: node scripts/provenance.mjs update ${recorded.coreTag}`); continue; }

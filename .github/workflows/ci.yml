@@ -55,7 +55,7 @@ jobs:
         run: node vendor/core/ouro-actions-windows.mts check samples/OuroShop/shopping.actions.mts samples/OuroShop/Generated
       - name: The sample's composed-UI catalog and card match its declarations, and the card validates
         run: |
-          node vendor/core/ouro-a2ui-catalog.mts check samples/OuroShop/shopping.actions.mts samples/OuroShop/Generated/catalog.json
+          node vendor/core/ouro-a2ui-catalog.mts check samples/OuroShop/shopping.actions.mts samples/OuroShop/Composed/catalog.json
           node samples/OuroShop/shopping.composed.mts check
 
   actions:

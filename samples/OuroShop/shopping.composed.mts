@@ -1,8 +1,8 @@
 // A card Ouro Shop's agent composes for the person: Ouro's composed tree, carried in an MCP tool result as
-// structuredContent.ouro, against the catalog core generates from the sample's actions (Generated/catalog.json). Every
+// structuredContent.ouro, against the catalog core generates from the sample's actions (Composed/catalog.json). Every
 // button is one of the declared actions, so its label, consent and confirm sheet come from the catalog
 // (actionButtonProps); the agent picks the action, the input and the emphasis, and nothing else.
-//   node samples/OuroShop/shopping.composed.mts generate   write Generated/composed.json
+//   node samples/OuroShop/shopping.composed.mts generate   write Composed/card.json
 //   node samples/OuroShop/shopping.composed.mts check      fail when it drifted (CI's generated job)
 import { readFile, writeFile } from "node:fs/promises";
 import { actionButtonProps, type ComposedNode, type Json, type Obj } from "../../vendor/core/ouro-composed.mts";
@@ -10,8 +10,8 @@ import { loadCatalog } from "../../vendor/core/ouro-a2ui.mts";
 import { mcpAppTreeResult } from "../../vendor/core/ouro-mcp-app.mts";
 
 const here = (p: string) => new URL(p, import.meta.url);
-const catalog = loadCatalog(JSON.parse(await readFile(here("Generated/catalog.json"), "utf8")));
-const target = here("Generated/composed.json");
+const catalog = loadCatalog(JSON.parse(await readFile(here("Composed/catalog.json"), "utf8")));
+const target = here("Composed/card.json");
 
 const node = (id: string, component: string, props: Obj, children: ComposedNode[] = []): ComposedNode => ({ id, component, props, children });
 const row = (id: string, gap: string, children: ComposedNode[]) => node(id, "Stack", { direction: "horizontal", gap }, children);
@@ -56,14 +56,14 @@ const text = `${JSON.stringify(result as unknown as Json, null, 2)}\n`;
 const [cmd] = process.argv.slice(2);
 if (cmd === "generate") {
   await writeFile(target, text);
-  process.stdout.write("shopping.composed: wrote Generated/composed.json.\n");
+  process.stdout.write("shopping.composed: wrote Composed/card.json.\n");
 } else if (cmd === "check") {
   const have = await readFile(target, "utf8").catch(() => null);
   if (have !== text) {
-    process.stderr.write(`shopping.composed: Generated/composed.json ${have === null ? "is missing" : "drifted from its source"}. Fix: node samples/OuroShop/shopping.composed.mts generate; never edit it by hand.\n`);
+    process.stderr.write(`shopping.composed: Composed/card.json ${have === null ? "is missing" : "drifted from its source"}. Fix: node samples/OuroShop/shopping.composed.mts generate; never edit it by hand.\n`);
     process.exit(1);
   }
-  process.stdout.write("shopping.composed: Generated/composed.json matches its source and validates against the catalog.\n");
+  process.stdout.write("shopping.composed: Composed/card.json matches its source and validates against the catalog.\n");
 } else {
   process.stderr.write("usage: node samples/OuroShop/shopping.composed.mts generate | check\n");
   process.exit(2);

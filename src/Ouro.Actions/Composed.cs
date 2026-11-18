@@ -80,6 +80,7 @@ public sealed record OuroComposedCatalog(string CatalogId, IReadOnlyDictionary<s
     /// <exception cref="InvalidDataException">It isn't a catalog, names a component that isn't HX's, or describes an action wrongly.</exception>
     public static OuroComposedCatalog Load(JsonNode? json)
     {
+        if (OuroComposed.Twice(json, "") is { } twice) throw new InvalidDataException($"catalog: {twice}");
         if (json is not JsonObject c || !IsString(c["catalogId"], out var id) || c["components"] is not JsonObject declared)
             throw new InvalidDataException("not an A2UI catalog: it has no catalogId or components. Fix: pass a catalog ouro-a2ui-catalog.mts wrote.");
         var components = new Dictionary<string, OuroComponentSpec>();
@@ -181,19 +182,24 @@ public sealed record OuroComposedResult(string Version, string CatalogId, JsonNo
     /// <summary>The tree a tool result carries, or null when it carries none.</summary>
     public static OuroComposedResult? From(JsonNode? toolResult)
     {
-        if (toolResult?["structuredContent"]?["ouro"] is not JsonObject ouro) return null;
+        if (toolResult is not JsonObject result) return null;
+        if (OuroComposed.Twice(result, "") is { } twice) return new OuroComposedResult("", "", null, null) { Unreadable = twice };
+        if (result["structuredContent"] is not JsonObject content || content["ouro"] is not JsonObject ouro) return null;
         return new OuroComposedResult(
             OuroComposedCatalog.IsString(ouro["version"], out var v) ? v : "",
             OuroComposedCatalog.IsString(ouro["catalogId"], out var c) ? c : "",
             ouro["tree"]?.DeepClone(),
-            ouro["data"]?.DeepClone() as JsonObject);
+            ouro["data"]?.DeepClone() as JsonObject) { Unreadable = ouro["data"] is null or JsonObject ? null : new("/structuredContent/ouro/data", "data is an object: the data model the fields start from.") };
     }
 
-    /// <summary>Every reason it can't be drawn with this catalog: another tree version, another catalog, or the tree's own problems.</summary>
+    private OuroTreeProblem? Unreadable { get; init; }
+
+    /// <summary>Every reason it can't be drawn with this catalog: JSON that names a key twice, data that isn't an object, another tree version, another catalog, or the tree's own problems.</summary>
     public IReadOnlyList<OuroTreeProblem> Problems(OuroComposedCatalog catalog)
     {
         const string at = "/structuredContent/ouro";
         var problems = new List<OuroTreeProblem>();
+        if (Unreadable is not null) return [Unreadable];
         if (Version != OuroComposed.Version) problems.Add(new($"{at}/version", $"is \"{Version}\"; this renderer draws version {OuroComposed.Version} of the composed tree."));
         if (CatalogId != catalog.CatalogId) problems.Add(new($"{at}/catalogId", $"is \"{CatalogId}\", and this renderer has {catalog.CatalogId}. Fix: compose against the app's own catalog."));
         problems.AddRange(OuroComposed.ValidateTree(catalog, Tree, $"{at}/tree"));
@@ -233,7 +239,11 @@ public static class OuroPointer
     /// <summary>What the data holds at the pointer, or null when nothing (or JSON null) is there.</summary>
     public static JsonNode? Get(JsonNode? data, string pointer) => TryGet(data, pointer, out var v) ? v : null;
 
-    /// <summary>A copy of the data with the value written at the pointer, creating objects on the way; null deletes. The data is left as it was.</summary>
+    /// <summary>
+    /// A copy of the data with the value written at the pointer, creating objects on the way; null deletes. The data is left
+    /// as it was. An array takes a value at an index it has or the one after its last; a write further on goes nowhere,
+    /// so no path can make it grow without end.
+    /// </summary>
     public static JsonNode Set(JsonNode? data, string pointer, JsonNode? value)
     {
         if (pointer is "" or "/") return value?.DeepClone() ?? new JsonObject();
@@ -254,11 +264,8 @@ public static class OuroPointer
                 else if (cur is JsonArray a && index is { } at)
                 {
                     if (value is null) { if (at < a.Count) a.RemoveAt(at); }
-                    else
-                    {
-                        while (a.Count <= at) a.Add(null);
-                        a[at] = value.DeepClone();
-                    }
+                    else if (at < a.Count) a[at] = value.DeepClone();
+                    else if (at == a.Count) a.Add(value.DeepClone());
                 }
                 break;
             }
@@ -272,10 +279,10 @@ public static class OuroPointer
             {
                 next = new JsonObject();
                 if (cur is JsonObject o) o[k] = next;
-                else if (cur is JsonArray a && index is { } at)
+                else if (cur is JsonArray a && index is { } at && at <= a.Count)
                 {
-                    while (a.Count <= at) a.Add(null);
-                    a[at] = next;
+                    if (at == a.Count) a.Add(next);
+                    else a[at] = next;
                 }
             }
             cur = next;
@@ -415,14 +422,30 @@ public static class OuroComposed
 
     private static double ToDouble(JsonValue v) => v.TryGetValue<double>(out var d) ? d : double.Parse(v.ToJsonString(), NumberStyles.Float, CultureInfo.InvariantCulture);
 
+    // ECMAScript's Number::toString: the shortest digits that read back as the number, written plainly from 1e-6 up to
+    // 1e21 and with an exponent outside that, so a confirm sheet shows a long id exactly as the press sends it.
     private static string Number(double d)
     {
-        if (Math.Floor(d) == d && Math.Abs(d) < 1e21) return d.ToString("0", CultureInfo.InvariantCulture);
-        var s = d.ToString("R", CultureInfo.InvariantCulture);
-        var e = s.IndexOf('E');
-        if (e < 0) return s;
-        var exponent = int.Parse(s[(e + 1)..], CultureInfo.InvariantCulture);
-        return $"{s[..e]}e{(exponent < 0 ? "-" : "+")}{Math.Abs(exponent)}";
+        if (double.IsNaN(d)) return "NaN";
+        if (double.IsInfinity(d)) return d > 0 ? "Infinity" : "-Infinity";
+        if (d == 0) return "0";
+        var r = Math.Abs(d).ToString("R", CultureInfo.InvariantCulture);
+        var e = r.IndexOf('E');
+        var exponent = e < 0 ? 0 : int.Parse(r[(e + 1)..], CultureInfo.InvariantCulture);
+        var mantissa = e < 0 ? r : r[..e];
+        var dot = mantissa.IndexOf('.');
+        var whole = dot < 0 ? mantissa : mantissa[..dot];
+        var all = whole + (dot < 0 ? "" : mantissa[(dot + 1)..]);
+        var digits = all.TrimStart('0');
+        var n = whole.Length - (all.Length - digits.Length) + exponent;
+        digits = digits.TrimEnd('0');
+        var k = digits.Length;
+        var sign = d < 0 ? "-" : "";
+        if (k <= n && n <= 21) return sign + digits + new string('0', n - k);
+        if (0 < n && n <= 21) return $"{sign}{digits[..n]}.{digits[n..]}";
+        if (-6 < n && n <= 0) return $"{sign}0.{new string('0', -n)}{digits}";
+        var x = n - 1;
+        return $"{sign}{digits[0]}{(k > 1 ? "." + digits[1..] : "")}e{(x < 0 ? "-" : "+")}{Math.Abs(x)}";
     }
 
     /// <summary>
@@ -471,9 +494,29 @@ public static class OuroComposed
     /// </summary>
     public static IReadOnlyList<OuroTreeProblem> ValidateTree(OuroComposedCatalog catalog, JsonNode? tree, string path = "")
     {
+        if (Twice(tree, path) is { } twice) return [twice];
         var problems = new List<OuroTreeProblem>();
         Visit(catalog, tree, path, problems);
         return problems;
+    }
+
+    // System.Text.Json parses an object that names a key twice, then throws when it is first read. JSON.parse keeps the
+    // last; a tree that says one thing twice is refused here instead, before anything reads it.
+    internal static OuroTreeProblem? Twice(JsonNode? node, string at)
+    {
+        switch (node)
+        {
+            case JsonObject o:
+                try { _ = o.Count; }
+                catch (ArgumentException) { return new(at, "names a key twice. Fix: give each key once."); }
+                foreach (var (k, v) in o) if (Twice(v, $"{at}/{k.Replace("~", "~0").Replace("/", "~1")}") is { } p) return p;
+                return null;
+            case JsonArray a:
+                for (var i = 0; i < a.Count; i++) if (Twice(a[i], $"{at}/{i}") is { } p) return p;
+                return null;
+            default:
+                return null;
+        }
     }
 
     private static void Visit(OuroComposedCatalog cat, JsonNode? n, string at, List<OuroTreeProblem> problems)

@@ -19,8 +19,10 @@ public class ComposedTests
     private static readonly OuroComposedCatalog Hx = OuroComposedCatalog.Load(Read("vendor/core/a2ui/catalog.json"));
     private static readonly OuroComposedCatalog App = OuroComposedCatalog.Load(Read("vendor/core/a2ui/conformance/recipe.catalog.json"));
 
-    private static readonly (string Name, JsonObject Case)[] Cases = Directory.GetFiles(Path.Combine(Root(), "vendor/core/a2ui/conformance/cases"), "*.json")
-        .Order(StringComparer.Ordinal).Select(f => (Path.GetFileName(f), JsonNode.Parse(File.ReadAllText(f))!.AsObject())).ToArray();
+    /// <summary>The cases core-provenance.json records, so every one is core's at the tag, byte for byte.</summary>
+    private static readonly (string Name, JsonObject Case)[] Cases = Read("core-provenance.json")["files"]!.AsObject().Select(f => f.Key)
+        .Where(f => f.StartsWith("vendor/core/a2ui/conformance/cases/", StringComparison.Ordinal)).Order(StringComparer.Ordinal)
+        .Select(f => (Path.GetFileName(f), Read(f).AsObject())).ToArray();
 
     private static OuroComposedCatalog CatalogOf(JsonObject c) => c["catalog"]!.GetValue<string>() == "catalog.json" ? Hx : App;
 
@@ -229,14 +231,47 @@ public class ComposedTests
         Assert.Equal("""[10,{"e":"f"}]""", OuroPointer.Get(removed, "/a~1b/c~0d")!.ToJsonString());
         Assert.Equal("{}", OuroPointer.Set(data, "", null).ToJsonString());
         Assert.Equal("""{"x":true}""", OuroPointer.Set(null, "/x", true).ToJsonString());
-        Assert.Equal(["", "4", "2.5", "true", "text", """{"a":1}"""], new[] { null, JsonValue.Create(4), JsonValue.Create(2.5), JsonValue.Create(true), JsonValue.Create("text"), JsonNode.Parse("""{"a":1}""") }.Select(OuroComposed.AsText));
+        var array = JsonNode.Parse("""{"a":[1]}""");
+        Assert.Equal("""{"a":[1,2]}""", OuroPointer.Set(array, "/a/1", 2).ToJsonString());
+        Assert.Equal("""{"a":[1]}""", OuroPointer.Set(array, "/a/1000000000", 2).ToJsonString());
+        Assert.Equal("""{"a":[1]}""", OuroPointer.Set(array, "/a/1000000000/b", 2).ToJsonString());
+    }
+
+    [Theory]
+    [InlineData("null", "")]
+    [InlineData("4", "4")]
+    [InlineData("4.0", "4")]
+    [InlineData("-0", "0")]
+    [InlineData("2.5", "2.5")]
+    [InlineData("1234567890123456", "1234567890123456")]
+    [InlineData("4111111111111111", "4111111111111111")]
+    [InlineData("0.000001", "0.000001")]
+    [InlineData("1e-7", "1e-7")]
+    [InlineData("123e20", "1.23e+22")]
+    [InlineData("1e21", "1e+21")]
+    [InlineData("true", "true")]
+    [InlineData("\"text\"", "text")]
+    [InlineData("{\"a\":1}", "{\"a\":1}")]
+    public void A_value_reads_as_JavaScript_writes_it_so_a_confirm_sheet_shows_what_the_press_sends(string json, string text) =>
+        Assert.Equal(text, OuroComposed.AsText(JsonNode.Parse(json)));
+
+    [Fact]
+    public void JSON_that_names_a_key_twice_is_refused_and_never_throws()
+    {
+        var twice = JsonNode.Parse("""{"id":"root","component":"Text","props":{"text":"a","text":"b"},"children":[]}""");
+        Assert.Equal(["/props names a key twice. Fix: give each key once."], OuroComposed.ValidateTree(Hx, twice).Select(p => p.ToString()));
+        var result = OuroComposedResult.From(JsonNode.Parse("""{"structuredContent":{"ouro":{"version":"1","version":"1"}}}"""))!;
+        Assert.Single(result.Problems(Hx));
+        Assert.Null(OuroComposedResult.From(JsonNode.Parse("""{"structuredContent":"x"}""")));
+        Assert.Null(OuroComposedResult.From(JsonNode.Parse("[]")));
+        Assert.Throws<InvalidDataException>(() => OuroComposedCatalog.Load(JsonNode.Parse("""{"catalogId":"x","catalogId":"y","components":{}}""")));
     }
 
     [Fact]
     public void Ouro_Shops_card_is_a_tool_result_whose_tree_validates_against_its_catalog_and_uses_every_component()
     {
-        var catalog = OuroComposedCatalog.Load(Read("samples/OuroShop/Generated/catalog.json"));
-        var result = OuroComposedResult.From(Read("samples/OuroShop/Generated/composed.json"))!;
+        var catalog = OuroComposedCatalog.Load(Read("samples/OuroShop/Composed/catalog.json"));
+        var result = OuroComposedResult.From(Read("samples/OuroShop/Composed/card.json"))!;
         Assert.Empty(result.Problems(catalog));
         var tree = OuroComposedNode.FromJson(result.Tree);
         Assert.Equal(OuroComposed.Components.Keys.Append("ActionButton").Order(), All(tree).Select(n => n.Component).Distinct().Order());
