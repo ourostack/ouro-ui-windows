@@ -144,6 +144,59 @@ public class ComposedTests
     }
 
     [Fact]
+    public void A_confirm_sheet_cant_show_the_person_one_value_and_send_another()
+    {
+        var share = Child(Buttons, 2);
+        JsonArray Rows(JsonObject button) => button["props"]!["confirm"]!["fields"]!.AsArray();
+        string First(JsonObject tree) => OuroComposed.ValidateTree(App, Card(tree)) is { Count: > 0 } p ? p[0].Message : "";
+
+        var forged = (JsonObject)share.DeepClone();
+        Rows(forged)[^1]!["value"] = "friend@example.com";
+        Assert.StartsWith("share_recipe's confirm sheet shows a row for each prepared input", First(forged));
+
+        var dropped = (JsonObject)share.DeepClone();
+        Rows(dropped).RemoveAt(Rows(dropped).Count - 1);
+        Assert.StartsWith("share_recipe's confirm sheet shows a row", First(dropped));
+
+        var relabeled = (JsonObject)share.DeepClone();
+        Rows(relabeled)[0]!["label"] = "Dinner";
+        Assert.StartsWith("share_recipe's confirm sheet shows a row", First(relabeled));
+
+        var named = (JsonObject)share.DeepClone();
+        Rows(named)[0]!["raw"] = Rows(named)[0]!["value"]!.GetValue<string>();
+        Rows(named)[0]!["value"] = "My lemon orzo";
+        Assert.Empty(OuroComposed.ValidateTree(App, Card(named)));
+
+        var hidden = (JsonObject)share.DeepClone();
+        Rows(hidden)[1]!["raw"] = Rows(hidden)[1]!["value"]!.GetValue<string>();
+        Rows(hidden)[1]!["value"] = "friend@example.com";
+        Assert.StartsWith("share_recipe's confirm sheet shows a row", First(hidden));
+
+        var extra = (JsonObject)share.DeepClone();
+        extra["props"]!["input"]!["everyone"] = true;
+        var problem = OuroComposed.ValidateTree(App, Card(extra))[0];
+        Assert.Equal("/children/0/props/input/everyone", problem.Path);
+        Assert.StartsWith("share_recipe has no input everyone", problem.Message);
+
+        var unbound = OuroComposedNode.FromJson(Surface("inputs.json", "plan")).Children.Single(n => n.Id == "actions").Children.Single(n => n.Id == "share").ToJson();
+        Rows(unbound)[1]!.AsObject().Remove("bind");
+        Assert.StartsWith("share_recipe's confirm sheet shows a row", First(unbound));
+    }
+
+    [Fact]
+    public void The_apps_label_resolver_names_only_an_id_and_every_other_row_shows_what_is_sent()
+    {
+        var asked = new List<string>();
+        var props = OuroComposed.ActionButtonProps(App, "share_recipe", new JsonObject { ["recipe"] = "rcp_123", ["with"] = "sam@example.com" }, ctx =>
+        {
+            asked.Add(ctx.Field);
+            return "A name";
+        });
+        Assert.Equal(["recipe"], asked);
+        Assert.Equal("""[{"label":"Recipe","value":"A name","raw":"rcp_123"},{"label":"Send to","value":"sam@example.com"}]""", OuroJson.Write(props["confirm"]!["fields"]!));
+    }
+
+    [Fact]
     public void A_tree_names_only_the_catalogs_components_and_their_props_resolved()
     {
         Assert.Matches("not in this catalog", OuroComposed.ValidateTree(Hx, Node("Button", "{}"))[0].Message);

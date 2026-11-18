@@ -60,7 +60,7 @@ var problems = surface.Show(catalog, OuroComposedResult.From(toolResult)!);   //
 ```
 
 - Read and write buttons press at once.
-- A consequential button opens a dialog with each prepared value under its label, and the id beside a name. It presses only when the person confirms; Cancel is the default.
+- A consequential button opens a dialog with each prepared value under its label, and the id beside a name. Only an id field shows a name; every other row shows exactly what will be sent, and the surface refuses a tree whose sheet doesn't, or whose button carries an input the catalog doesn't declare. It presses only when the person confirms; Cancel is the default.
 - A person-only button calls `OnHandoff` and never presses.
 - Fields (TextField, Checkbox, Select) start from the tree's data model and write the person's answers back. A button input bound to a field (`{"@path": "/x"}`) sends what they entered.
 - Every component is drawn with Ouro HX's look and follows light, dark, a contrast theme, the text size and the animation setting. TextField, Checkbox, Separator, DescriptionList, Card, Badge and Button are the kit's own controls. Heading, Text, Image, List, Alert, Stack and Select are drawn in the surface from core's tokens. UI Automation reads headings with their level, images by their description and lists as lists.
