@@ -1,6 +1,7 @@
 // Ouro Shop's window, in code: the shopping list (a Card of Items with Badges, and one Button per declared action),
-// then the gallery of every Button and Badge tone and variant, and of the fields and lists. What a person presses is
-// what the agent doors list, because every action button comes from the generated catalog.
+// then the gallery of every Button and Badge tone and variant, and of the fields and lists, and a card the agent
+// composed. What a person presses is what the agent doors list, because every action button comes from the generated
+// catalog.
 using System.Text.Json.Nodes;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -17,8 +18,9 @@ public sealed class MainWindow : Window
 {
     private readonly TextBox name;
     private readonly TextBlock status;
+    private readonly TextBlock data = new() { TextWrapping = TextWrapping.Wrap };
 
-    /// <param name="page">"list" (the default), "gallery" or "fields": each fits a 1024 x 768 screen, as CI runners have.</param>
+    /// <param name="page">"list" (the default), "gallery", "fields" or "composed": each fits a 1024 x 768 screen, as CI runners have.</param>
     public MainWindow(string page = "list")
     {
         Title = "Ouro Shop";
@@ -96,11 +98,12 @@ public sealed class MainWindow : Window
         {
             "gallery" => Column(16, gallery, status),
             "fields" => Column(16, Fields(), status),
+            "composed" => Column(16, Composed(), status, data),
             _ => Column(16, heading, list, status),
         };
         root.Padding = new Thickness(32);
-        root.MaxWidth = 900;
-        root.HorizontalAlignment = HorizontalAlignment.Left;
+        root.MaxWidth = page == "composed" ? double.PositiveInfinity : 900;
+        root.HorizontalAlignment = page == "composed" ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
         Content = new Grid
         {
             Background = OuroUI.Brush(OuroUI.HighContrast ? OuroUI.System(global::Windows.UI.ViewManagement.UIElementType.Window) : OuroUI.Argb(OuroUI.Theme.Colors(Application.Current.RequestedTheme == ApplicationTheme.Dark).Background)),
@@ -128,15 +131,46 @@ public sealed class MainWindow : Window
         _ => new JsonObject(),
     };
 
-    private void Show(OuroActionInfo? action, OuroDoor door, OuroOutcome outcome)
+    private void Show(OuroActionInfo? action, OuroDoor door, OuroOutcome outcome) => Say(outcome.State switch
     {
-        status.Text = outcome.State switch
-        {
-            OuroOutcomeState.Refused => $"Refused at the {door} door: {outcome.Summary}",
-            OuroOutcomeState.Done => $"{action?.Label ?? "Done"}, through the {door} door: {OuroJson.Write(outcome.Body)}",
-            _ => $"{outcome.State} at the {door} door: {outcome.Summary}",
-        };
+        OuroOutcomeState.Refused => $"Refused at the {door} door: {outcome.Summary}",
+        OuroOutcomeState.Done => $"{action?.Label ?? "Done"}, through the {door} door: {OuroJson.Write(outcome.Body)}",
+        _ => $"{outcome.State} at the {door} door: {outcome.Summary}",
+    });
+
+    private void Say(string words)
+    {
+        status.Text = words;
         if (FrameworkElementAutomationPeer.FromElement(status) is { } peer) peer.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+    }
+
+    /// <summary>
+    /// A card Ouro Shop's agent composed (Composed/card.json, an MCP tool result), drawn against the app's catalog. Its
+    /// buttons run through the app's runtime at the person's door, as the list's own buttons do; the person-only one says
+    /// where the person does it and sends nothing. The line under it shows the data model the fields write.
+    /// </summary>
+    private OuroComposedSurface Composed()
+    {
+        static JsonNode Embedded(string name)
+        {
+            using var stream = typeof(MainWindow).Assembly.GetManifestResourceStream($"OuroShop.Composed.{name}")!;
+            return JsonNode.Parse(stream)!;
+        }
+        var surface = new OuroComposedSurface
+        {
+            OnPress = async (press, _) =>
+            {
+                var outcome = await App.Runtime.InvokeAsync(new OuroCall(press.Action, press.Input, OuroDoor.Person) { Caller = "person" });
+                Say($"{press.Label}{(press.Confirmed ? ", confirmed," : "")} pressed with {OuroJson.Write(press.Input)}: {outcome.State}");
+            },
+            OnHandoff = handoff => Say($"Handed off: {OuroActions.Catalog.Find(handoff.Action)?.Label ?? handoff.Action} is done {handoff.How}. Nothing was sent."),
+        };
+        AutomationProperties.SetAutomationId(surface, "composed.surface");
+        AutomationProperties.SetAutomationId(data, "composed.data");
+        surface.DataChanged += (_, model) => data.Text = OuroJson.Write(model);
+        var problems = surface.Show(OuroComposedCatalog.Load(Embedded("catalog.json")), OuroComposedResult.From(Embedded("card.json"))!);
+        data.Text = problems.Count > 0 ? $"The agent's card doesn't validate: {string.Join("; ", problems)}" : OuroJson.Write(surface.Data);
+        return surface;
     }
 
     /// <summary>The gallery's second page: TextField, Checkbox, Separator and DescriptionList, in core's spec cases.</summary>

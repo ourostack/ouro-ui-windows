@@ -113,6 +113,8 @@ public sealed partial class OuroCard : ContentControl
         }
         if (title is not null) title.Foreground = Foreground;
         var stacked = OuroUI.TextScale >= OuroUI.StackAtTextScale;
+        // A card with no title, description or action (a composed tree's Card) draws no header, so no empty line and gap.
+        if (header is not null) header.Visibility = string.IsNullOrEmpty(Title) && string.IsNullOrEmpty(Description) && Action is null ? Visibility.Collapsed : Visibility.Visible;
         if (action is not null && header is not null)
         {
             Grid.SetRow(action, stacked ? 1 : 0);

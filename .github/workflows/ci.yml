@@ -78,7 +78,8 @@ jobs:
   windows:
     # The kit on a free windows-latest runner (Windows Server, so no App Actions runtime, no Agent Registry and no
     # Mica: README). Build the kit and Ouro Shop, package and install the MSIX, then check that agents and people agree
-    # (X-ray), that every component passes core's claims under the Windows settings they name, and measure the feel.
+    # (X-ray), that every component passes core's claims under the Windows settings they name, that the composed tree
+    # is drawn and pressed as it says, and measure the feel.
     name: windows
     runs-on: windows-latest
     timeout-minutes: 45
@@ -158,6 +159,8 @@ jobs:
             & tools/dump.ps1 -Command $env:APP -Arguments "--self-report --page gallery $extra" -ProcessName OuroShop.WinUI -ReadyId card.gallery -Out "$env:EV\uia-gallery-$s.json" @g
             $f = @{}; if ($Shots) { $f.Screenshot = "$env:EV\fields-$s.png" }
             & tools/dump.ps1 -Command $env:APP -Arguments "--self-report --page fields $extra" -ProcessName OuroShop.WinUI -ReadyId gallery.descriptionlist.recipe -Out "$env:EV\uia-fields-$s.json" @f
+            $c = @{}; if ($Shots) { $c.Screenshot = "$env:EV\composed-$s.png" }
+            & tools/dump.ps1 -Command $env:APP -Arguments "--self-report --page composed $extra" -ProcessName OuroShop.WinUI -ReadyId composed.add_item -Out "$env:EV\uia-composed-$s.json" @c
           }
           & tools/a11y.ps1 -Animations on -TextScale 100 -Contrast off
           & $pages light "--theme light" -Shots
@@ -171,6 +174,14 @@ jobs:
           & tools/a11y.ps1 -Animations on -TextScale 100 -Contrast on
           & $pages contrast -Shots
           & tools/a11y.ps1 -Animations on -TextScale 100 -Contrast off
+      - name: The composed tree, drawn and pressed (fields, a run, a confirm, a handoff)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          & tools/composed.ps1 -Command $env:APP -ProcessName OuroShop.WinUI -Out "$env:EV\composed-presses.json" -Screenshot "$env:EV\composed-confirm.png"
+          node tools/composed.mts $env:EV
+          $code = $LASTEXITCODE
+          Get-Content "$env:EV\composed.md" | Add-Content $env:GITHUB_STEP_SUMMARY
+          exit $code
       - name: X-ray (agents and people agree)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |

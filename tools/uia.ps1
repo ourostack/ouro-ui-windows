@@ -7,6 +7,9 @@ public static class OuroDpi { [DllImport("user32.dll")] public static extern boo
 "@
 [void][OuroDpi]::SetProcessDPIAware()
 $script:Uia = [System.Windows.Automation.AutomationElement]
+# UI Automation's HeadingLevel (30173), which .NET's UIA client knows from 4.8; null where it doesn't.
+$script:HeadingLevel = [System.Windows.Automation.AutomationElementIdentifiers].GetField("HeadingLevelProperty")
+$script:HeadingLevel = if ($script:HeadingLevel) { $script:HeadingLevel.GetValue($null) } else { [System.Windows.Automation.AutomationProperty]::LookupById(30173) }
 
 function Get-OuroWindow([string]$ProcessName) {
   foreach ($p in @(Get-Process -Name $ProcessName -ErrorAction SilentlyContinue)) {
@@ -64,9 +67,12 @@ function Get-OuroTree([string]$ProcessName) {
     $p = $null
     $toggle = if ($e.TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern, [ref]$p)) { "$($p.Current.ToggleState)" } else { $null }
     $value = if ($c.ControlType -eq [System.Windows.Automation.ControlType]::Edit -and $e.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern, [ref]$p)) { $p.Current.Value } else { $null }
+    # 80050 is no heading; 80051 to 80059 are levels 1 to 9.
+    $heading = if ($script:HeadingLevel) { $e.GetCurrentPropertyValue($script:HeadingLevel) } else { $null }
+    $heading = if ($heading -is [int] -and $heading -gt 80050) { $heading - 80050 } elseif ($heading -is [int]) { 0 } else { $null }
     [ordered]@{
       automationId = $c.AutomationId; name = $c.Name; controlType = $c.ControlType.ProgrammaticName; className = $c.ClassName
-      itemStatus = $c.ItemStatus; helpText = $c.HelpText; isKeyboardFocusable = $c.IsKeyboardFocusable; toggleState = $toggle; value = $value
+      itemStatus = $c.ItemStatus; helpText = $c.HelpText; isKeyboardFocusable = $c.IsKeyboardFocusable; toggleState = $toggle; value = $value; headingLevel = $heading
       rect = if ($r.IsEmpty) { $null } else { [ordered]@{ x = $r.X; y = $r.Y; width = $r.Width; height = $r.Height } }
     }
   }
