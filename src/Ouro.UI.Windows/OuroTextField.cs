@@ -37,7 +37,6 @@ public sealed partial class OuroTextField : Control
 
     private TextBlock? label, description, error, placeholder;
     private TextBox? input;
-    private bool typing;
 
     public static readonly DependencyProperty LabelProperty = Register(nameof(Label), typeof(string), "");
     public static readonly DependencyProperty TextProperty = DependencyProperty.Register(nameof(Text), typeof(string), typeof(OuroTextField), new PropertyMetadata("", (d, _) => ((OuroTextField)d).TextSet()));
@@ -110,12 +109,7 @@ public sealed partial class OuroTextField : Control
         if (input is not null)
         {
             input.Text = Text;
-            input.TextChanged += (_, _) =>
-            {
-                typing = true;
-                Text = input.Text;
-                typing = false;
-            };
+            input.TextChanged += (_, _) => Text = input.Text;
             input.GotFocus += (_, _) => Refresh();
             input.LostFocus += (_, _) => Refresh();
             input.KeyDown += (_, e) =>
@@ -128,7 +122,9 @@ public sealed partial class OuroTextField : Control
 
     private void TextSet()
     {
-        if (!typing && input is not null && input.Text != Text) input.Text = Text;
+        // The box and Text stay one: a person's keystroke sets Text to what the box holds already, and an app that
+        // changes Text, even from its own TextChanged handler, puts its words in the box.
+        if (input is not null && input.Text != Text) input.Text = Text;
         TextChanged?.Invoke(this, Text);
         Refresh();
     }

@@ -92,7 +92,7 @@ public sealed partial class OuroCheckbox : CheckBox
         var on = IsChecked != false;
         var hasError = !string.IsNullOrEmpty(Error);
         var edge = on ? p.Checked : hasError ? p.Error : p.Edge;
-        MinHeight = MinRowHeight;
+        MinHeight = MinWidth = MinRowHeight;
         Opacity = IsEnabled ? 1 : 0.5;
         if (box is not null)
         {

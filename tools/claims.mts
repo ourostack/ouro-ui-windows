@@ -59,6 +59,8 @@ const none = (what: string): Result => ({ ok: null, detail: `no ${what} in the e
 const all = (xs: { ok: boolean; why: string }[], what: string): Result =>
   xs.length === 0 ? none(what) : { ok: xs.every((x) => x.ok), detail: `${xs.filter((x) => x.ok).length}/${xs.length} ${what}${xs.some((x) => !x.ok) ? `; failing: ${xs.filter((x) => !x.ok).map((x) => x.why).slice(0, 6).join("; ")}` : ""}` };
 
+/** Whether one element's box lies within another's, give or take a pixel. */
+const inside = (a: any, b: any) => Boolean(a && b) && a.x >= b.x - 1 && a.y >= b.y - 1 && a.x + a.width <= b.x + b.width + 1 && a.y + a.height <= b.y + b.height + 1;
 /** What UI Automation must see for each component (its spec's accessibility.windows). */
 const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[] }) => boolean> = {
   button: ({ e }) => e.controlType === "ControlType.Button" && Boolean(e.name) && e.isKeyboardFocusable,
@@ -70,7 +72,8 @@ const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[
   "text-field": ({ e, r }) => e.controlType === "ControlType.Edit" && e.isKeyboardFocusable && Boolean(e.name) && (r.described === "true") === Boolean(e.helpText) && (r.required !== "true" || e.name.endsWith(", required")),
   separator: ({ e, r }) => (r.labelled === "true" ? e.controlType === "ControlType.Text" && Boolean(e.name) : e.controlType === "ControlType.Separator") && !e.isKeyboardFocusable,
   "description-list": ({ e, r, page }) =>
-    e.controlType === "ControlType.List" && Number(r.items) > 0 && page.filter((x) => x.controlType === "ControlType.ListItem" && /, ./.test(x.name ?? "")).length >= Number(r.items),
+    e.controlType === "ControlType.List" && Number(r.items) > 0 && Boolean(e.rect) &&
+    page.filter((x) => x.controlType === "ControlType.ListItem" && /., ./.test(x.name ?? "") && inside(x.rect, e.rect)).length === Number(r.items),
 };
 /** The colour pairs each component draws, from its self-report: words at 4.5:1, and edges and marks a person must see at 3:1. */
 const pairs = (r: Record<string, string>): [string, string, string, number][] => {
