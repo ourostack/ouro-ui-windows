@@ -144,7 +144,16 @@ public sealed partial class OuroComposedSurface : UserControl
         alert = null;
         AutomationProperties.SetName(this, FirstHeading(tree) ?? "");
         if (focused.StartsWith("composed.", StringComparison.Ordinal) && Find(body, focused) is { } again)
-            again.Loaded += (_, _) => _ = again is OuroTextField field ? field.FocusInput(FocusState.Programmatic) : again is Control control && control.Focus(FocusState.Programmatic);
+        {
+            // Once, for this redraw: the element loading again later (a page navigated back to) takes no focus.
+            RoutedEventHandler? once = null;
+            once = (_, _) =>
+            {
+                again.Loaded -= once;
+                _ = again is OuroTextField field ? field.FocusInput(FocusState.Programmatic) : again is Control control && control.Focus(FocusState.Programmatic);
+            };
+            again.Loaded += once;
+        }
         if (IsLoaded) Repaint();
     }
 
@@ -159,6 +168,7 @@ public sealed partial class OuroComposedSurface : UserControl
         paints.Clear();
         body = null;
         root.Children.Clear();
+        alert = null;
         AutomationProperties.SetName(this, "");
         return Alert(problems);
     }
