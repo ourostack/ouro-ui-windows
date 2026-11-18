@@ -36,6 +36,8 @@ jobs:
           if ("v$version" -ne $tag) { throw "Tag $tag isn't Directory.Build.props' version $version. Fix: set the version in a pull request, then tag (RELEASING.md)." }
           if (-not (Test-Path "docs/releases/$tag.md")) { throw "No docs/releases/$tag.md. Fix: write the notes in the version pull request (RELEASING.md)." }
       - run: node scripts/provenance.mjs check
+        env:
+          GH_TOKEN: ${{ github.token }}
       - run: dotnet test tests/Ouro.Tests -c Release
       - name: Pack Ouro.Actions and Ouro.UI.Windows
         run: |

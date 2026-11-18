@@ -1,11 +1,14 @@
 // What comes from ouro-ui-core is vendored from a release, by SHA-256, and never edited (AGENTS.md).
-// core-provenance.json names the core tag and, for each file here, the release path it came from and its hash.
+// core-provenance.json names the core tag and, for each file here, the path it came from and its hash. Most come from
+// the release's dist/; the composed tree's conformance cases live only in core's source tree, so they come from the
+// tag itself (`"source": "tag"`).
 //
-//   node scripts/provenance.mjs check            every vendored file matches its recorded hash, and every recorded
-//                                                hash matches the release's dist-manifest.json (fetched from GitHub)
-//   node scripts/provenance.mjs update vX.Y.Z    take every file from that core release and record it
+//   node scripts/provenance.mjs check            every vendored file matches its recorded hash, every recorded hash
+//                                                matches the release's dist-manifest.json or the file at the tag, and
+//                                                every case at the tag is vendored (all fetched from GitHub)
+//   node scripts/provenance.mjs update vX.Y.Z    take every file from that core release and tag, and record it
 //
-// update downloads the release's dist zip with `gh`; check needs only the network.
+// update downloads with `gh`; check needs only the network (and uses GH_TOKEN, when set, to list the cases).
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
@@ -27,8 +30,36 @@ const MAP = {
   "vendor/core/components/badge.spec.json": "dist/hx/components/badge.spec.json",
   "vendor/core/components/card.spec.json": "dist/hx/components/card.spec.json",
   "vendor/core/components/item.spec.json": "dist/hx/components/item.spec.json",
+  "vendor/core/components/checkbox.spec.json": "dist/hx/components/checkbox.spec.json",
+  "vendor/core/components/text-field.spec.json": "dist/hx/components/text-field.spec.json",
+  "vendor/core/components/separator.spec.json": "dist/hx/components/separator.spec.json",
+  "vendor/core/components/description-list.spec.json": "dist/hx/components/description-list.spec.json",
+  "vendor/core/ouro-composed.mts": "dist/composed/ouro-composed.mts",
+  "vendor/core/ouro-mcp-app.mts": "dist/composed/ouro-mcp-app.mts",
+  "vendor/core/ouro-a2ui.mts": "dist/a2ui/ouro-a2ui.mts",
+  "vendor/core/ouro-a2ui-catalog.mts": "dist/a2ui/ouro-a2ui-catalog.mts",
+  "vendor/core/a2ui/catalog.json": "dist/hx/a2ui/catalog.json",
   "src/Ouro.UI.Windows/Vendor/OuroTokens.cs": "dist/windows/OuroTokens.cs",
   "src/Ouro.UI.Windows/Vendor/OuroTokens.xaml": "dist/windows/OuroTokens.xaml",
+};
+
+/** Files core keeps in its source tree and no release's dist/: taken from the tag. */
+const TREE = {
+  "vendor/core/a2ui/conformance/recipe.catalog.json": "standard/hx/a2ui/conformance/recipe.catalog.json",
+};
+/** Folders of them, every .json file in each: the cases every renderer of the composed tree must draw. */
+const TREE_DIRS = {
+  "vendor/core/a2ui/conformance/cases": "standard/hx/a2ui/conformance/cases",
+};
+const REPO = "ourostack/ouro-ui-core";
+const gh = (args) => execFileSync("gh", args, { maxBuffer: 64 * 1024 * 1024 });
+const raw = (tag, from) => `https://raw.githubusercontent.com/${REPO}/${tag}/${from}`;
+/** The .json files in a folder of core's tree at a tag, by name. */
+const listed = async (tag, dir) => {
+  const token = process.env.GH_TOKEN ?? process.env.GITHUB_TOKEN;
+  const response = await fetch(`https://api.github.com/repos/${REPO}/contents/${dir}?ref=${tag}`, { headers: { accept: "application/vnd.github+json", ...(token ? { authorization: `Bearer ${token}` } : {}) } });
+  if (!response.ok) throw new Error(`listing ${dir} at ${tag}: ${response.status}`);
+  return (await response.json()).filter((e) => e.type === "file" && e.name.endsWith(".json")).map((e) => e.name).sort();
 };
 
 if (cmd === "update" && /^v\d+\.\d+\.\d+$/.test(tag ?? "")) {
@@ -41,12 +72,27 @@ if (cmd === "update" && /^v\d+\.\d+\.\d+$/.test(tag ?? "")) {
     copyFileSync(join(dir, from), join(root, here));
     files[here] = { from, sha256: sha(readFileSync(join(root, here))) };
   }
+  const tree = { ...TREE };
+  for (const [here, from] of Object.entries(TREE_DIRS)) for (const name of await listed(tag, from)) tree[`${here}/${name}`] = `${from}/${name}`;
+  for (const [here, from] of Object.entries(tree)) {
+    mkdirSync(dirname(join(root, here)), { recursive: true });
+    writeFileSync(join(root, here), gh(["api", "-H", "Accept: application/vnd.github.raw", `repos/${REPO}/contents/${from}?ref=${tag}`]));
+    files[here] = { from, source: "tag", sha256: sha(readFileSync(join(root, here))) };
+  }
   writeFileSync(file, `${JSON.stringify({ coreTag: tag, files }, null, 2)}\n`);
   console.log(`provenance: vendored ${Object.keys(files).length} files from ouro-ui-core ${tag}. Run the generators (README) and commit.`);
 } else if (cmd === "check") {
   const recorded = JSON.parse(readFileSync(file, "utf8"));
   const problems = [];
-  for (const here of Object.keys(MAP)) if (!recorded.files[here]) problems.push(`${here}: not recorded. Fix: node scripts/provenance.mjs update ${recorded.coreTag}`);
+  const expected = [...Object.keys(MAP), ...Object.keys(TREE)];
+  for (const [here, from] of Object.entries(TREE_DIRS)) {
+    try {
+      for (const name of await listed(recorded.coreTag, from)) expected.push(`${here}/${name}`);
+    } catch (e) {
+      problems.push(`${here}: ${e.message}. Fix: set GH_TOKEN, or try again.`);
+    }
+  }
+  for (const here of expected) if (!recorded.files[here]) problems.push(`${here}: not recorded. Fix: node scripts/provenance.mjs update ${recorded.coreTag}`);
   for (const [here, { from, sha256 }] of Object.entries(recorded.files)) {
     let bytes;
     try { bytes = readFileSync(join(root, here)); } catch { problems.push(`${here}: missing. Fix: node scripts/provenance.mjs update ${recorded.coreTag}`); continue; }
@@ -57,7 +103,13 @@ if (cmd === "update" && /^v\d+\.\d+\.\d+$/.test(tag ?? "")) {
   if (!response.ok) problems.push(`${url}: ${response.status}. Fix: is ${recorded.coreTag} released?`);
   else {
     const manifest = await response.json();
-    for (const [here, { from, sha256 }] of Object.entries(recorded.files)) if (manifest.files[from] !== sha256) problems.push(`${here}: recorded hash isn't ${recorded.coreTag}'s ${from}. Fix: node scripts/provenance.mjs update ${recorded.coreTag}`);
+    for (const [here, { from, sha256, source }] of Object.entries(recorded.files)) if (source !== "tag" && manifest.files[from] !== sha256) problems.push(`${here}: recorded hash isn't ${recorded.coreTag}'s ${from}. Fix: node scripts/provenance.mjs update ${recorded.coreTag}`);
+  }
+  for (const [here, { from, sha256, source }] of Object.entries(recorded.files)) {
+    if (source !== "tag") continue;
+    const at = await fetch(raw(recorded.coreTag, from));
+    if (!at.ok) problems.push(`${raw(recorded.coreTag, from)}: ${at.status}. Fix: node scripts/provenance.mjs update ${recorded.coreTag}`);
+    else if (sha(Buffer.from(await at.arrayBuffer())) !== sha256) problems.push(`${here}: recorded hash isn't ${from} at ${recorded.coreTag}. Fix: node scripts/provenance.mjs update ${recorded.coreTag}`);
   }
   for (const p of problems) console.error(`provenance: ${p}`);
   if (problems.length) process.exit(1);
