@@ -67,9 +67,9 @@ function Get-OuroTree([string]$ProcessName) {
     $p = $null
     $toggle = if ($e.TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern, [ref]$p)) { "$($p.Current.ToggleState)" } else { $null }
     $value = if ($c.ControlType -eq [System.Windows.Automation.ControlType]::Edit -and $e.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern, [ref]$p)) { $p.Current.Value } else { $null }
-    # 80050 is no heading; 80051 to 80059 are levels 1 to 9.
+    # The managed client gives an AutomationHeadingLevel (None 0, Level1 1 to Level9 9); the raw property is 80050 + level.
     $heading = if ($script:HeadingLevel) { $e.GetCurrentPropertyValue($script:HeadingLevel) } else { $null }
-    $heading = if ($heading -is [int] -and $heading -gt 80050) { $heading - 80050 } elseif ($heading -is [int]) { 0 } else { $null }
+    $heading = if ($heading -is [enum]) { [int]$heading } elseif ($heading -is [int]) { if ($heading -ge 80050) { $heading - 80050 } else { $heading } } else { $null }
     [ordered]@{
       automationId = $c.AutomationId; name = $c.Name; controlType = $c.ControlType.ProgrammaticName; className = $c.ClassName
       itemStatus = $c.ItemStatus; helpText = $c.HelpText; isKeyboardFocusable = $c.IsKeyboardFocusable; toggleState = $toggle; value = $value; headingLevel = $heading

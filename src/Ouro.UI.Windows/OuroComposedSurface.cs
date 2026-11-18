@@ -176,7 +176,8 @@ public sealed partial class OuroComposedSurface : UserControl
 
     private TextBlock Heading(OuroComposedNode n)
     {
-        var level = n.Props["level"] is JsonValue v && v.TryGetValue<int>(out var l) ? l : 2;
+        // Read as the validator reads it: 1.0 is level 1.
+        var level = OuroComposed.AsText(n.Props["level"]) switch { "1" => 1, "3" => 3, _ => 2 };
         var text = new TextBlock { Text = n.Text("text"), TextWrapping = TextWrapping.Wrap, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, FontSize = level switch { 1 => 24, 3 => 16, _ => 20 } };
         AutomationProperties.SetHeadingLevel(text, level switch { 1 => AutomationHeadingLevel.Level1, 3 => AutomationHeadingLevel.Level3, _ => AutomationHeadingLevel.Level2 });
         Paint(text, () => text.Foreground = OuroUI.Brush(OuroUI.SurfacePaint(text).Text));
@@ -232,9 +233,10 @@ public sealed partial class OuroComposedSurface : UserControl
         return field;
     }
 
-    // A number field writes a number, and nothing (so the press sends null) when what the person typed isn't one.
+    // A number field writes a number, and nothing (so the press sends null) when what the person typed isn't a finite one:
+    // NaN and infinity have no JSON.
     private static JsonNode? Number(string text) =>
-        double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out var d) || double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out d)
+        (double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out var d) || double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out d)) && double.IsFinite(d)
             ? JsonValue.Create(d)
             : null;
 
@@ -292,8 +294,11 @@ public sealed partial class OuroComposedSurface : UserControl
                 OnHandoff?.Invoke(new OuroComposedHandoff(n.Text("action"), n.Text("handoff")));
                 return;
             case "confirm":
-                if (!await Confirm(OuroComposed.ResolveButton(n, Data))) return;
-                await Run(OuroComposed.PersonPress(n, true, Data), n, button);
+                // The press sends exactly what the sheet showed, and nothing if the app drew another tree meanwhile.
+                var shown = Tree;
+                var resolved = OuroComposed.ResolveButton(n, Data);
+                if (!await Confirm(resolved) || !ReferenceEquals(shown, Tree)) return;
+                await Run(OuroComposed.PersonPress(resolved, true), n, button);
                 return;
             default:
                 await Run(OuroComposed.PersonPress(n, false, Data), n, button);
