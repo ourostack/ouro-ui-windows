@@ -1,6 +1,6 @@
 // Ouro Shop's window, in code: the shopping list (a Card of Items with Badges, and one Button per declared action),
 // then the gallery of every Button and Badge tone and variant, and of the fields and lists, and a card the agent
-// composed. What a person presses is what the agent doors list, because every action button comes from the generated
+// composed, as Ouro's composed tree and as A2UI messages. What a person presses is what the agent doors list, because every action button comes from the generated
 // catalog.
 using System.Text.Json.Nodes;
 using Microsoft.UI.Xaml;
@@ -20,7 +20,7 @@ public sealed class MainWindow : Window
     private readonly TextBlock status;
     private readonly TextBlock data = new() { TextWrapping = TextWrapping.Wrap };
 
-    /// <param name="page">"list" (the default), "gallery", "fields" or "composed": each fits a 1024 x 768 screen, as CI runners have.</param>
+    /// <param name="page">"list" (the default), "gallery", "fields", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
     public MainWindow(string page = "list")
     {
         Title = "Ouro Shop";
@@ -99,11 +99,13 @@ public sealed class MainWindow : Window
             "gallery" => Column(16, gallery, status),
             "fields" => Column(16, Fields(), status),
             "composed" => Column(16, Composed(), status, data),
+            "a2ui" => Column(16, A2UI(), status, data),
             _ => Column(16, heading, list, status),
         };
         root.Padding = new Thickness(32);
-        root.MaxWidth = page == "composed" ? double.PositiveInfinity : 900;
-        root.HorizontalAlignment = page == "composed" ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
+        var card = page is "composed" or "a2ui";
+        root.MaxWidth = card ? double.PositiveInfinity : 900;
+        root.HorizontalAlignment = card ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
         Content = new Grid
         {
             Background = OuroUI.Brush(OuroUI.HighContrast ? OuroUI.System(global::Windows.UI.ViewManagement.UIElementType.Window) : OuroUI.Argb(OuroUI.Theme.Colors(Application.Current.RequestedTheme == ApplicationTheme.Dark).Background)),
@@ -153,11 +155,6 @@ public sealed class MainWindow : Window
     /// </summary>
     private StackPanel Composed()
     {
-        static JsonNode Embedded(string name)
-        {
-            using var stream = typeof(MainWindow).Assembly.GetManifestResourceStream($"OuroShop.Composed.{name}")!;
-            return JsonNode.Parse(stream)!;
-        }
         var surface = new OuroComposedSurface
         {
             OnPress = async (press, _) =>
@@ -190,6 +187,45 @@ public sealed class MainWindow : Window
         agent.Children.Add(Agent("Agent: update the card", "agent.update", "update.json"));
         agent.Children.Add(Agent("Agent: update a node the card lacks", "agent.missing", "update-missing.json"));
         return Column(16, surface, agent);
+    }
+
+    /// <summary>
+    /// The same card as A2UI messages (Composed/card.a2ui.json, an MCP tool result's <c>structuredContent.a2ui</c>), drawn
+    /// against the same catalog: core's A2UI adapter resolves them into the composed tree, so it looks and presses the same.
+    /// Each press arrives as A2UI's action message, which the app runs through its runtime at the person's door; the status
+    /// line says what the message carried.
+    /// </summary>
+    private StackPanel A2UI()
+    {
+        var surface = new OuroComposedSurface
+        {
+            OnA2UIAction = async (message, _) =>
+            {
+                var action = message["action"]!;
+                var name = action["name"]!.GetValue<string>();
+                var context = (JsonObject)action["context"]!.DeepClone();
+                var source = action["sourceComponentId"]!.GetValue<string>();
+                var consent = action["metadata"]!["extensions"]![OuroA2UI.ActionExtension]!;
+                var outcome = await App.Runtime.InvokeAsync(new OuroCall(name, context, OuroDoor.Person) { Caller = "person" });
+                Say($"Sent A2UI action {name} from {source} with {OuroJson.Write(context)}, by {consent["by"]!.GetValue<string>()}{(consent["confirmed"] is not null ? ", confirmed" : "")}: {outcome.State}");
+            },
+            OnHandoff = handoff => Say($"Handed off: {OuroActions.Catalog.Find(handoff.Action)?.Label ?? handoff.Action} is done {handoff.How}. Nothing was sent."),
+        };
+        AutomationProperties.SetAutomationId(surface, "composed.surface");
+        AutomationProperties.SetAutomationId(data, "composed.data");
+        surface.DataChanged += (_, model) => data.Text = OuroJson.Write(model);
+        var catalog = OuroComposedCatalog.Load(Embedded("catalog.json"));
+        IReadOnlyList<OuroA2UIProblem> problems = OuroA2UI.TryReadToolResult(Embedded("card.a2ui.json"), out var messages)
+            ? surface.ShowA2UI(catalog, messages)
+            : [new("VALIDATION_FAILED", "", "The tool result carries no structuredContent.a2ui.")];
+        data.Text = problems.Count > 0 ? $"The agent's A2UI card doesn't validate: {string.Join("; ", problems)}" : OuroJson.Write(surface.Data);
+        return Column(16, surface);
+    }
+
+    private static JsonNode Embedded(string name)
+    {
+        using var stream = typeof(MainWindow).Assembly.GetManifestResourceStream($"OuroShop.Composed.{name}")!;
+        return JsonNode.Parse(stream)!;
     }
 
     /// <summary>The gallery's second page: TextField, Checkbox, Separator and DescriptionList, in core's spec cases.</summary>

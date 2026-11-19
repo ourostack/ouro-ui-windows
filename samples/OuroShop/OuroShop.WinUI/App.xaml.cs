@@ -1,5 +1,5 @@
 // Ouro Shop's start: one action runtime for the app, a window, and an App Action launch when there is one.
-// Arguments (for CI and for trying it): --theme light|dark, --page list|gallery|fields|composed, --self-report (the controls report what they drew to UI
+// Arguments (for CI and for trying it): --theme light|dark, --page list|gallery|fields|composed|a2ui, --self-report (the controls report what they drew to UI
 // Automation), and an ouro-shop:// URI when run unpackaged (packaged, Windows passes the URI as protocol activation).
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;

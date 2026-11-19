@@ -3,16 +3,19 @@
 // button is one of the declared actions, so its label, consent and confirm sheet come from the catalog
 // (actionButtonProps); the agent picks the action, the input and the emphasis, and nothing else. Then two updates the
 // agent sends to that card (structuredContent.ouro.update): one that changes a heading, an alert and the quantity, and
-// one for a node the card doesn't have, which the view refuses.
-//   node samples/OuroShop/shopping.composed.mts generate   write Composed/card.json, update.json and update-missing.json
+// one for a node the card doesn't have, which the view refuses. And the same card as A2UI messages
+// (structuredContent.a2ui), which core's A2UI adapter must resolve to exactly the same tree and data.
+//   node samples/OuroShop/shopping.composed.mts generate   write Composed/card.json, update.json, update-missing.json and card.a2ui.json
 //   node samples/OuroShop/shopping.composed.mts check      fail when they drifted (CI's generated job)
 import { readFile, writeFile } from "node:fs/promises";
-import { actionButtonProps, type ComposedNode, type Json, type Obj } from "../../vendor/core/ouro-composed.mts";
-import { loadCatalog } from "../../vendor/core/ouro-a2ui.mts";
+import { isDeepStrictEqual } from "node:util";
+import { actionButtonProps, COMPONENTS, type ComposedNode, type Json, type Obj } from "../../vendor/core/ouro-composed.mts";
+import { A2UI_VERSION, loadCatalog, mcpAppToolResult, resolveMessages } from "../../vendor/core/ouro-a2ui.mts";
 import { mcpAppTreeResult, mcpAppTreeUpdateResult } from "../../vendor/core/ouro-mcp-app.mts";
 
 const here = (p: string) => new URL(p, import.meta.url);
-const catalog = loadCatalog(JSON.parse(await readFile(here("Composed/catalog.json"), "utf8")));
+const catalogJson = JSON.parse(await readFile(here("Composed/catalog.json"), "utf8"));
+const catalog = loadCatalog(catalogJson);
 
 const node = (id: string, component: string, props: Obj, children: ComposedNode[] = []): ComposedNode => ({ id, component, props, children });
 const row = (id: string, gap: string, children: ComposedNode[]) => node(id, "Stack", { direction: "horizontal", gap }, children);
@@ -62,10 +65,33 @@ const update = mcpAppTreeUpdateResult({
 });
 // The sender checks only what needs no tree; the view finds no "subtitle" in the card and refuses the whole update.
 const missing = mcpAppTreeUpdateResult({ text: "Serves six.", catalog, update: { nodes: [node("subtitle", "Text", { text: "Serves six", tone: "muted" })] } });
+// The same card as an agent writes it in A2UI: one flat list of components, each naming its children by id, a field's
+// value bound to the data model with {"@path"}, and a button naming only its action, its input and its emphasis.
+const component = (n: ComposedNode): Obj => {
+  if (n.component === "ActionButton") return { id: n.id, component: n.component, action: n.props.action!, input: n.props.input!, emphasis: n.props.emphasis! };
+  const props = COMPONENTS[n.component]!.props;
+  const out: Obj = { id: n.id, component: n.component };
+  for (const [key, value] of Object.entries(n.props)) out[key] = props[key]?.type.kind === "path" ? { "@path": value } : value;
+  if (props.children) out.children = n.children.map((c) => c.id);
+  return out;
+};
+const flat = (n: ComposedNode): ComposedNode[] => [n, ...n.children.flatMap(flat)];
+const messages: Json[] = [
+  { version: A2UI_VERSION, createSurface: { surfaceId: "list", catalogId: catalog.catalogId, dataModel: data } },
+  { version: A2UI_VERSION, updateComponents: { surfaceId: "list", components: flat(tree).map(component) } },
+];
+const a2ui = mcpAppToolResult({ text: "This week's list: oat milk, eggs and lemons, delivered Saturday.", catalog: catalogJson, messages });
+const resolved = resolveMessages(catalogJson, messages);
+if (!("surfaces" in resolved) || !isDeepStrictEqual(resolved.surfaces.list, tree)) {
+  process.stderr.write("shopping.composed: the A2UI card doesn't resolve to the composed card's tree. Fix: change component() so it does.\n");
+  process.exit(1);
+}
+
 const files = new Map([
   ["Composed/card.json", result],
   ["Composed/update.json", update],
   ["Composed/update-missing.json", missing],
+  ["Composed/card.a2ui.json", a2ui],
 ].map(([name, value]) => [name as string, `${JSON.stringify(value as unknown as Json, null, 2)}\n`]));
 
 const [cmd] = process.argv.slice(2);

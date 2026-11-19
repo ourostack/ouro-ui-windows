@@ -10,10 +10,15 @@
 // A tree or an update that doesn't pass the checks shows one short alert; a refused update keeps the last card, hidden,
 // with what the person entered, so a corrected update applies to it.
 //
-// The surface is the person's: it has no way for an agent to press, and it doesn't read A2UI messages. Agents act through
-// the action's own door (App Actions, the MCP server). Decisions: core docs/decisions/2026-11-14-composed-ui-own-tree.md
-// and 2026-11-18-composed-tree-updates.md.
+// A card can also come as A2UI messages (an MCP tool result's structuredContent.a2ui): ShowA2UI resolves them with core's
+// A2UI adapter (OuroA2UI) into the same tree, which passes the same checks and draws the same way. A stream that fails
+// them shows the same short alert, and its problems, in A2UI's error format, go back to the app for the agent.
+//
+// The surface is the person's: it has no way for an agent to press. Agents act through the action's own door (App
+// Actions, the MCP server). Decisions: core docs/decisions/2026-11-14-composed-ui-own-tree.md,
+// 2026-11-17-composed-tree-leads.md and 2026-11-18-composed-tree-updates.md.
 using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -53,6 +58,7 @@ public sealed partial class OuroComposedSurface : UserControl
     private JsonNode? sent;
     private HashSet<string> edited = [];
     private bool confirming;
+    private (string Surface, int Created)? origin;
 
     public OuroComposedSurface()
     {
@@ -84,6 +90,16 @@ public sealed partial class OuroComposedSurface : UserControl
     /// <summary>A person-only button: take the person to the action's own screen. It never presses.</summary>
     public Action<OuroComposedHandoff>? OnHandoff { get; set; }
 
+    /// <summary>
+    /// For a card that came as A2UI messages (<see cref="ShowA2UI"/>): receives each press as A2UI's <c>action</c> message
+    /// (<see cref="OuroA2UI.ActionMessage(string, string, OuroPersonPress, string)"/>), with the pressed button, in place
+    /// of <see cref="OnPress"/>. The button is busy until the task ends.
+    /// </summary>
+    public Func<JsonObject, OuroComposedNode, Task>? OnA2UIAction { get; set; }
+
+    /// <summary>The A2UI surface drawn now, when the card came as A2UI messages; null otherwise.</summary>
+    public string? A2UISurfaceId { get; private set; }
+
     /// <summary>A field wrote the person's answer into the data model, or an update changed it.</summary>
     public event EventHandler<JsonObject>? DataChanged;
 
@@ -104,6 +120,8 @@ public sealed partial class OuroComposedSurface : UserControl
     {
         var problems = OuroComposed.ValidateTree(catalog, tree);
         if (problems.Count > 0) return Refuse(problems);
+        A2UISurfaceId = null;
+        origin = null;
         Catalog = catalog;
         sent = data?.DeepClone();
         Data = (JsonObject?)data?.DeepClone() ?? new JsonObject();
@@ -129,6 +147,70 @@ public sealed partial class OuroComposedSurface : UserControl
         Render(OuroComposedNode.FromJson(applied.Tree));
         DataChanged?.Invoke(this, Data);
         return Problems;
+    }
+
+    /// <summary>
+    /// Draws a card that came as A2UI messages, such as a tool result's <c>structuredContent.a2ui.messages</c>
+    /// (<see cref="OuroA2UI.TryReadToolResult"/>): core's A2UI adapter resolves them into Ouro's composed tree and data
+    /// model (<see cref="OuroA2UI.ResolveMessages"/>), and the tree must pass the same checks as one sent itself. It shows
+    /// <paramref name="surfaceId"/>, or the first surface the messages leave. A stream that fails the checks, or that
+    /// leaves no such surface, shows the short alert in place of a card. Returns the problems, in A2UI's error format
+    /// for the agent, empty when it drew (or the surface has no root, so there is nothing to draw).
+    /// </summary>
+    /// <remarks>
+    /// Show the stream again as it grows: while the surface is the one the same <c>createSurface</c> made, what the person
+    /// entered stays, except where the agent changed the value or the list item it sits in, as with an update.
+    /// <paramref name="label"/> is the app's own name for an id a confirm sheet shows (<see cref="OuroComposed.ActionButtonProps"/>).
+    /// </remarks>
+    public IReadOnlyList<OuroA2UIProblem> ShowA2UI(OuroComposedCatalog catalog, JsonNode? messages, string? surfaceId = null, Func<OuroLabelContext, string?>? label = null)
+    {
+        var resolved = OuroA2UI.ResolveMessages(catalog, messages, label);
+        if (!resolved.Valid)
+        {
+            Refuse(resolved.Problems.Select(p => p.ToTreeProblem()).ToArray());
+            return resolved.Problems;
+        }
+        var surface = surfaceId is null ? resolved.Surfaces.FirstOrDefault() : resolved.Surfaces.FirstOrDefault(s => s.SurfaceId == surfaceId);
+        if (surface is null)
+        {
+            OuroA2UIProblem missing = surfaceId is null
+                ? new("VALIDATION_FAILED", "", "The messages leave no surface to show; create one with createSurface.")
+                : new("VALIDATION_FAILED", "", $"No surface {surfaceId} in the messages; they leave {(resolved.Surfaces.Count > 0 ? string.Join(", ", resolved.Surfaces.Select(s => s.SurfaceId)) : "none")}.", surfaceId);
+            Refuse([missing.ToTreeProblem()]);
+            return [missing];
+        }
+        if (surface.Tree is null)
+        {
+            // No component with id root yet: nothing to draw, and nothing wrong.
+            Clear();
+            A2UISurfaceId = surface.SurfaceId;
+            return [];
+        }
+        var data = surface.Data as JsonObject;
+        // Which createSurface made it: the same surface shown again keeps the person's answers; one made again starts over.
+        var created = ((JsonArray)messages!).Select((m, i) => (m, i)).Last(x => x.m is JsonObject o && o["createSurface"] is JsonObject c && c["surfaceId"] is JsonValue id && id.GetValueKind() == JsonValueKind.String && id.GetValue<string>() == surface.SurfaceId).i;
+        var problems = OuroComposed.ValidateTree(catalog, surface.Tree);
+        if (problems.Count > 0)
+        {
+            Refuse(problems);
+            return problems.Select(p => new OuroA2UIProblem("VALIDATION_FAILED", p.Path, p.Message, surface.SurfaceId, null, p.Refusal)).ToArray();
+        }
+        if (origin is { } was && was.Surface == surface.SurfaceId && was.Created == created && ReferenceEquals(Catalog, catalog) && Tree is not null)
+        {
+            // The same surface again: keep what the person entered, as an update does.
+            (Data, var kept) = OuroComposed.KeepAnswers(sent, data, Data, edited);
+            edited = [.. kept];
+            sent = data?.DeepClone();
+            Render(OuroComposedNode.FromJson(surface.Tree));
+            DataChanged?.Invoke(this, Data);
+        }
+        else
+        {
+            Show(catalog, surface.Tree, data);
+        }
+        A2UISurfaceId = surface.SurfaceId;
+        origin = (surface.SurfaceId, created);
+        return [];
     }
 
     // A tree to draw: the alert goes, and what had keyboard focus in the last card has it again in this one.
@@ -160,6 +242,15 @@ public sealed partial class OuroComposedSurface : UserControl
     // Nothing to draw: the alert alone.
     private IReadOnlyList<OuroTreeProblem> Refuse(IReadOnlyList<OuroTreeProblem> problems)
     {
+        Clear();
+        return Alert(problems);
+    }
+
+    // Nothing drawn, and no alert.
+    private void Clear()
+    {
+        A2UISurfaceId = null;
+        origin = null;
         Catalog = null;
         Tree = null;
         sent = null;
@@ -169,8 +260,8 @@ public sealed partial class OuroComposedSurface : UserControl
         body = null;
         root.Children.Clear();
         alert = null;
+        Problems = [];
         AutomationProperties.SetName(this, "");
-        return Alert(problems);
     }
 
     // An update that can't apply: the alert over the last card, which stays as the person left it, hidden.
@@ -413,11 +504,14 @@ public sealed partial class OuroComposedSurface : UserControl
 
     private async Task Run(OuroPersonPress press, OuroComposedNode n, OuroButton button)
     {
-        if (OnPress is not { } run || button.IsBusy) return;
+        Func<Task>? run = A2UISurfaceId is { } surfaceId && OnA2UIAction is { } send
+            ? () => send(OuroA2UI.ActionMessage(surfaceId, n.Id, press, OuroA2UI.Timestamp(DateTimeOffset.UtcNow)), n)
+            : OnPress is { } pressed ? () => pressed(press, n) : null;
+        if (run is null || button.IsBusy) return;
         button.IsBusy = true;
         try
         {
-            await run(press, n);
+            await run();
         }
         finally
         {
