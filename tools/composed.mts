@@ -2,7 +2,9 @@
 // well as on screen, and does each button follow its consent class? It reads the page's UI Automation dump
 // (uia-composed-light.json, from tools/dump.ps1), the card itself (samples/OuroShop/Composed/card.json) and what
 // tools/composed.ps1 recorded as it typed, ticked, chose and pressed, and as the agent updated the card
-// (composed-presses.json).
+// (composed-presses.json). Then the same card arriving as A2UI messages (--page a2ui): UI Automation must read it exactly
+// as the composed card (uia-a2ui-light.json), and each press must send A2UI's action message (a2ui-presses.json, from
+// tools/a2ui.ps1).
 // Usage: node tools/composed.mts <evidence dir>. Exit 1 when any check fails or can't run.
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -125,9 +127,32 @@ else {
   row("a person-only button hands off and never presses", "order", Boolean(handoff && handoff.status === "Handed off: Place order is done with Place order on the shopping list. Nothing was sent." && handoff.auditLines === confirmed?.auditLines), `${handoff?.status}; audit +${handoff?.auditLines - confirmed?.auditLines}`);
 }
 
+const a2uiDump = await json(join(dir, "uia-a2ui-light.json"));
+const a2uiPresses = await json(join(dir, "a2ui-presses.json"));
+if (!a2uiDump || !dump) row("UI Automation reads the A2UI card exactly as the composed card", "*", null, `no ${a2uiDump ? "uia-composed-light.json" : "uia-a2ui-light.json"}`);
+else {
+  const reads = (d: any, id: string) => {
+    const e = (d.elements ?? []).find((x: any) => x.automationId === id);
+    return e ? { type: e.controlType, name: e.name, help: e.helpText ?? "", value: e.value ?? null, toggle: e.toggleState ?? null, level: e.headingLevel ?? null, focusable: e.isKeyboardFocusable ?? null } : null;
+  };
+  const ids = ["composed.surface", ...all(tree).map((n) => `composed.${n.id}`)];
+  const found = ids.filter((id) => reads(a2uiDump, id) !== null);
+  const differ = ids.filter((id) => !isDeepStrictEqual(reads(dump, id), reads(a2uiDump, id)));
+  row("UI Automation reads the A2UI card exactly as the composed card", "*", differ.length === 0 && found.length >= all(tree).length / 2, differ.length ? `differs at ${differ.join(", ")}` : `${found.length} elements read the same`);
+}
+const a2uiStep = (name: string) => (a2uiPresses?.steps ?? []).find((s: any) => s.step === name);
+if (!a2uiPresses) row("a person presses the A2UI card", "*", null, "no a2ui-presses.json");
+else {
+  const [start, run, confirmed, handoff] = ["start", "run", "confirmed", "handoff"].map(a2uiStep);
+  row("the A2UI card's fields start from its data model", "*", isDeepStrictEqual(data(start), card.data), start?.data ?? "no step");
+  row("an A2UI write button sends A2UI's action message with the person's answer, and it runs", "add_item", run?.status === 'Sent A2UI action add_shopping_list_item from add_item with {"name":"eggs","quantity":2}, by person: Done' && run?.auditLines === start?.auditLines + 1, `${run?.status}; audit +${run?.auditLines - start?.auditLines}`);
+  row("an A2UI consequential button asks first, then sends its action message, confirmed", "share", confirmed?.status === 'Sent A2UI action share_shopping_list from share with {"with":"sam@example.com"}, by person, confirmed: Done' && confirmed?.auditLines === run?.auditLines + 1, `${confirmed?.status}; audit +${confirmed?.auditLines - run?.auditLines}`);
+  row("an A2UI person-only button hands off and sends no message", "order", handoff?.status === "Handed off: Place order is done with Place order on the shopping list. Nothing was sent." && handoff?.auditLines === confirmed?.auditLines, `${handoff?.status}; audit +${handoff?.auditLines - confirmed?.auditLines}`);
+}
+
 const failed = rows.filter((r) => r.result !== "pass");
 const table = ["| Check | Node | Result | Detail |", "| --- | --- | --- | --- |", ...rows.map((r) => `| ${r.check.replace(/\|/g, "\\|")} | \`${r.node}\` | ${r.result} | ${String(r.detail).replace(/\|/g, "\\|").slice(0, 240)} |`)].join("\n");
 await writeFile(join(dir, "composed.json"), `${JSON.stringify({ ok: failed.length === 0, rows }, null, 2)}\n`);
-await writeFile(join(dir, "composed.md"), `## The composed tree on Windows: ${failed.length ? "NO" : "drawn and pressed as the tree says"}\n\n${table}\n`);
+await writeFile(join(dir, "composed.md"), `## The composed tree on Windows, sent itself and as A2UI: ${failed.length ? "NO" : "drawn and pressed as the tree says"}\n\n${table}\n`);
 process.stdout.write(`${table}\n`);
 process.exit(failed.length ? 1 : 0);

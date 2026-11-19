@@ -10,13 +10,50 @@ Ouro UI's native kit for Windows: core's components as WinUI 3 controls, and the
 
 **Status: v0.3.0.** Eight components (Button, Badge, Card, Item, Checkbox, TextField, Separator, DescriptionList), the agent side, and Ouro's composed tree drawn natively. The plan is in [the decision record](https://github.com/ourostack/ouro-ui-core/blob/main/docs/decisions/2026-11-14-native-kits.md)'s "Windows v0.1.0" section.
 
+## Agent cards
+
+An agent can put a card on a person's screen: a recipe, a shopping list, a form with buttons. Windows draws two formats with one control, `OuroComposedSurface`, and both are limited to your catalog: every button is one of your declared actions, with its label, consent class and confirm sheet taken from the catalog, never from the agent.
+
+| Format | Where it is in an MCP tool result | Draw it |
+| --- | --- | --- |
+| Ouro's composed tree, the source of truth | `structuredContent.ouro` (core's `mcpAppTreeResult`), or `structuredContent.ouro.update` for a change to the card shown (`mcpAppTreeUpdateResult`) | `surface.Show(catalog, OuroComposedResult.From(toolResult)!)` |
+| [A2UI](https://a2ui.org/) v1.0 messages (`createSurface`, `updateComponents`, `updateDataModel`, `deleteSurface`) | `structuredContent.a2ui.messages` (core's A2UI `mcpAppToolResult`) | `OuroA2UI.TryReadToolResult(toolResult, out var messages)`, then `surface.ShowA2UI(catalog, messages)` |
+
+One catalog serves both: generate it from your actions with core's `ouro-a2ui-catalog.mts catalog`. A2UI is an adapter onto Ouro's tree, as on web and Apple ([core's decision](https://github.com/ourostack/ouro-ui-core/blob/main/docs/decisions/2026-11-14-composed-ui-own-tree.md)): `OuroA2UI` (in `Ouro.Actions`) is core's `a2ui.mts` in C#. It validates the messages, resolves them into the composed tree and its data model, and the tree must then pass the same checks as one the agent sends itself.
+
+```csharp
+var catalog = OuroComposedCatalog.Load(JsonNode.Parse(File.ReadAllText("catalog.json")));
+var surface = new OuroComposedSurface
+{
+    OnPress = (press, _) => runtime.InvokeAsync(new OuroCall(press.Action, press.Input, OuroDoor.Person) { Caller = "person" }),
+    // A card that came as A2UI sends each press as A2UI's action message instead.
+    OnA2UIAction = (message, _) => runtime.InvokeAsync(new OuroCall(message["action"]!["name"]!.GetValue<string>(), (JsonObject)message["action"]!["context"]!.DeepClone(), OuroDoor.Person) { Caller = "person" }),
+    OnHandoff = handoff => OpenScreenFor(handoff.Action),
+};
+if (OuroA2UI.TryReadToolResult(toolResult, out var messages))
+    agent.Tell(surface.ShowA2UI(catalog, messages));   // empty, or A2UI's validation errors, for the agent to correct
+else
+    agent.Tell(surface.Show(catalog, OuroComposedResult.From(toolResult)!));
+```
+
+A tree or a message stream that fails the checks shows one short alert, "This card can't be shown", in place of the card, and returns the problems. A2UI's come in A2UI's own error format (`VALIDATION_FAILED` and the rest, with a JSON pointer into the stream), word for word as core writes them. CI runs core's 13 A2UI conformance cases and Ouro Shop's card in both formats (How it's checked, below).
+
+What's still missing:
+
+- **One A2UI surface per control.** `ShowA2UI` draws the first surface the messages leave, or the one you name; a stream that makes several needs one `OuroComposedSurface` each.
+- **The whole stream each time.** Pass every message so far, again as more arrive. While the surface is the one the same `createSurface` made, what the person entered stays.
+- **No A2UI functions, themes or other catalogs.** As in core: `callRendererFunction` and `agentFunctionResponse` are refused (agents act through their own doors), a `theme` is refused (your HX theme styles the card), and `catalogId` must be your app's catalog, so A2UI's basic catalog isn't drawn.
+- **Only `@accessibility.label` is read aloud.** `description` and `hidden` are checked but not drawn, as in core's resolver.
+- **Two limits core doesn't have yet.** A surface's tree may go at most 24 components deep and resolve to at most 5,000 nodes (`OuroA2UI.MaxDepth`, `MaxNodes`). A stream names children by id, so nothing else stops a long chain from exhausting the stack, or shared children and templates from multiplying past what a screen can hold; past either, the stream is refused like any other.
+- **Two edges differ from JavaScript.** A component id's letters are checked by Unicode category, so a rare letter .NET and a browser's engine classify differently could pass on one and fail on the other. A data write past the end of a list writes nothing here; in JavaScript it leaves a gap.
+
 ## What's here
 
 | Package | What it is |
 | --- | --- |
-| `Ouro.Actions` (`src/Ouro.Actions`, plain .NET) | The runtime every door goes through: input checked against the schema, idempotency keys, an audit of every call, a yes from the person before a consequential action an agent prepared, and core's typed refusal for a person-only action at every agent door. Also the App Action URI reader, the MCP server, and Ouro's composed tree (`OuroComposed`: core's `composed.mts` in C#, which validates an agent's tree against the app's catalog). |
-| `Ouro.UI.Windows` (`src/Ouro.UI.Windows`, WinUI 3) | `OuroComposedSurface`, which draws an agent's composed tree; and `OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator` and `OuroDescriptionList`, from core's specs (`vendor/core/components`) and tokens. Each follows light and dark mode, a Windows contrast theme, the text size and the animation setting. An `OuroButton` with an `Action` runs it through `Ouro.Actions`. |
-| Ouro Shop (`samples/OuroShop`) | A shopping list whose buttons people press and agents call, with a gallery of every tone and variant, and of the fields and lists, and a card its agent composed (`--page composed`). The MSIX registers its App Actions and its MCP server. |
+| `Ouro.Actions` (`src/Ouro.Actions`, plain .NET) | The runtime every door goes through: input checked against the schema, idempotency keys, an audit of every call, a yes from the person before a consequential action an agent prepared, and core's typed refusal for a person-only action at every agent door. Also the App Action URI reader, the MCP server, Ouro's composed tree (`OuroComposed`: core's `composed.mts` in C#, which validates an agent's tree against the app's catalog) and the A2UI adapter (`OuroA2UI`: core's `a2ui.mts` in C#). |
+| `Ouro.UI.Windows` (`src/Ouro.UI.Windows`, WinUI 3) | `OuroComposedSurface`, which draws an agent's card, as a composed tree or as A2UI messages; and `OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator` and `OuroDescriptionList`, from core's specs (`vendor/core/components`) and tokens. Each follows light and dark mode, a Windows contrast theme, the text size and the animation setting. An `OuroButton` with an `Action` runs it through `Ouro.Actions`. |
+| Ouro Shop (`samples/OuroShop`) | A shopping list whose buttons people press and agents call, with a gallery of every tone and variant, and of the fields and lists, and a card its agent composed (`--page composed`), and the same card arriving as A2UI messages (`--page a2ui`). The MSIX registers its App Actions and its MCP server. |
 
 ## Use it
 
@@ -75,7 +112,7 @@ To change a card it already showed, the agent sends only what changed: an update
 
 Its limits:
 
-- **A2UI messages aren't read on Windows.** Send the tree itself (`structuredContent.ouro`). Core's A2UI adapter turns A2UI messages into that same tree, but this kit doesn't include it.
+- **A2UI** has its own limits, in Agent cards above.
 - **The surface is the person's.** It has no way for an agent to press a button; agents run actions through their own doors (App Actions, the MCP server). Like any Windows button, UI Automation can still press one, as with person-only buttons below.
 - **Pictures load only from `https` URLs**, so an agent's card never shows a file from the person's machine.
 - **No pointer names `__proto__`, `constructor` or `prototype`.** C#'s JSON objects have no prototype, but the surface refuses such a field or bound input, and `OuroPointer.Set` writes nothing through one, so Windows refuses the same trees every other kit does.
@@ -88,8 +125,8 @@ The MCP server is three lines (`samples/OuroShop/OuroShop.Mcp/Program.cs`). An A
 
 CI runs on the free `windows-latest` runner (`.github/workflows/ci.yml`):
 
-- `actions` (Ubuntu): the runtime and both doors; the composed tree against core's conformance cases, which every valid tree must pass and every forged one (a relabelled button, a loosened consent, a dropped confirm sheet, input on a person-only action, an unknown component) must fail, and core's tree update cases, each giving its tree and data or its problems; and the colour rules over every theme core ships: every tone and variant reads at 4.5:1 or better in all 6 themes, light and dark.
-- `windows`: builds, packages and installs the MSIX, then reads the window through UI Automation in light, dark, a contrast theme, with animations off and with text at 225%. It checks every claim core makes for each component (`tools/claims.mts`), draws Ouro Shop's composed card and presses it as a person would (`tools/composed.ps1` and `tools/composed.mts`: what UI Automation reads for every component, fields writing the data model, a run, a confirm and its Cancel, a handoff that sends nothing, and the agent's updates: one that keeps what the person typed, one refused with the short alert, and the good one again), samples pixels against what each control reports it drew, runs the X-ray (`tools/xray.mts`) that agents and people see the same actions, answers the MCP server's confirmation dialog, and measures launch time, memory and press latency. The run's `windows-evidence` artifact holds the screenshots and tables.
+- `actions` (Ubuntu): the runtime and both doors; the A2UI adapter against core's 13 A2UI conformance cases, each giving exactly its expected trees or problems; the composed tree against core's conformance cases, which every valid tree must pass and every forged one (a relabelled button, a loosened consent, a dropped confirm sheet, input on a person-only action, an unknown component) must fail, and core's tree update cases, each giving its tree and data or its problems; and the colour rules over every theme core ships: every tone and variant reads at 4.5:1 or better in all 6 themes, light and dark.
+- `windows`: builds, packages and installs the MSIX, then reads the window through UI Automation in light, dark, a contrast theme, with animations off and with text at 225%. It checks every claim core makes for each component (`tools/claims.mts`), draws Ouro Shop's composed card and presses it as a person would (`tools/composed.ps1` and `tools/composed.mts`: what UI Automation reads for every component, fields writing the data model, a run, a confirm and its Cancel, a handoff that sends nothing, and the agent's updates: one that keeps what the person typed, one refused with the short alert, and the good one again), then draws the same card from A2UI messages and checks that UI Automation reads it exactly as the composed card and that its presses send A2UI's action message (`tools/a2ui.ps1`), samples pixels against what each control reports it drew, runs the X-ray (`tools/xray.mts`) that agents and people see the same actions, answers the MCP server's confirmation dialog, and measures launch time, memory and press latency. The run's `windows-evidence` artifact holds the screenshots and tables.
 
 **What the free runner can't show.** It is Windows Server: no App Actions runtime, no On-device Agent Registry and no Mica. CI proves the package registers both doors and that they behave; it can't prove Windows lists them to agents. A Windows 11 client check (build 26220.7262 or later) would add the system App Actions catalog, `odr.exe mcp list`, an agent calling through the registry, and Mica in the screenshots.
 

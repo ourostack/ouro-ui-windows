@@ -31,5 +31,6 @@
     <EmbeddedResource Include="..\Composed\card.json" LogicalName="OuroShop.Composed.card.json" />
     <EmbeddedResource Include="..\Composed\update.json" LogicalName="OuroShop.Composed.update.json" />
     <EmbeddedResource Include="..\Composed\update-missing.json" LogicalName="OuroShop.Composed.update-missing.json" />
+    <EmbeddedResource Include="..\Composed\card.a2ui.json" LogicalName="OuroShop.Composed.card.a2ui.json" />
   </ItemGroup>
 </Project>

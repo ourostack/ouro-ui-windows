@@ -53,14 +53,14 @@ jobs:
         run: node --test tools/*.test.mts
       - name: The sample's Windows projections match its declarations
         run: node vendor/core/ouro-actions-windows.mts check samples/OuroShop/shopping.actions.mts samples/OuroShop/Generated
-      - name: The sample's composed-UI catalog and card match its declarations, and the card validates
+      - name: The sample's composed-UI catalog and card (as a tree and as A2UI) match its declarations, and the card validates
         run: |
           node vendor/core/ouro-a2ui-catalog.mts check samples/OuroShop/shopping.actions.mts samples/OuroShop/Composed/catalog.json
           node samples/OuroShop/shopping.composed.mts check
 
   actions:
     # Everything that runs off Windows: Ouro.Actions (the runtime contract every door goes through, on the sample's
-    # generated catalog, and the composed tree against core's conformance cases) and the kit's colour rules over every
+    # generated catalog, the composed tree and the A2UI adapter against core's conformance cases) and the kit's colour rules over every
     # theme core ships.
     name: actions
     runs-on: ubuntu-latest
@@ -174,10 +174,12 @@ jobs:
           & tools/a11y.ps1 -Animations on -TextScale 100 -Contrast on
           & $pages contrast -Shots
           & tools/a11y.ps1 -Animations on -TextScale 100 -Contrast off
-      - name: The composed tree, drawn and pressed (fields, a run, a confirm, a handoff)
+      - name: The composed tree, drawn and pressed (fields, a run, a confirm, a handoff), sent itself and as A2UI
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
           & tools/composed.ps1 -Command $env:APP -ProcessName OuroShop.WinUI -Out "$env:EV\composed-presses.json" -Screenshot "$env:EV\composed-confirm.png"
+          & tools/dump.ps1 -Command $env:APP -Arguments "--self-report --page a2ui --theme light" -ProcessName OuroShop.WinUI -ReadyId composed.add_item -Out "$env:EV\uia-a2ui-light.json" -Screenshot "$env:EV\a2ui-light.png"
+          & tools/a2ui.ps1 -Command $env:APP -ProcessName OuroShop.WinUI -Out "$env:EV\a2ui-presses.json"
           node tools/composed.mts $env:EV
           $code = $LASTEXITCODE
           Get-Content "$env:EV\composed.md" | Add-Content $env:GITHUB_STEP_SUMMARY
