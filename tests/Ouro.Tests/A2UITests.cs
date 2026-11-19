@@ -214,6 +214,37 @@ public class A2UITests
     }
 
     [Fact]
+    public void A_stream_too_deep_or_too_wide_is_refused_not_a_crash()
+    {
+        JsonArray Stream(int count, Func<int, JsonNode[]> children)
+        {
+            var components = new JsonArray();
+            for (var i = 0; i < count; i++) components.Add(new JsonObject { ["id"] = i == 0 ? "root" : $"c{i}", ["component"] = "Card", ["children"] = new JsonArray(children(i)) });
+            var stream = Create("[]");
+            stream[0]!["createSurface"]!["components"] = components;
+            return stream;
+        }
+        var deep = Stream(20000, i => i == 19999 ? [] : [JsonValue.Create($"c{i + 1}")]);
+        Assert.Contains(OuroA2UI.ValidateMessages(App, deep), p => p.Message == "The tree is more than 24 components deep at c24; nest less.");
+        Assert.False(OuroA2UI.ResolveMessages(App, deep).Valid);
+        var wide = Stream(20, i => i == 19 ? [] : [JsonValue.Create($"c{i + 1}"), JsonValue.Create($"c{i + 1}")]);
+        Assert.Empty(OuroA2UI.ValidateMessages(App, wide));
+        Assert.Equal("Surface s resolves to more than 5000 components; show fewer, or fewer list items.", OuroA2UI.ResolveMessages(App, wide).Problems.Single().Message);
+    }
+
+    [Fact]
+    public void Keys_and_numbers_read_as_JavaScript_holds_them()
+    {
+        var resolved = OuroA2UI.ResolveMessages(App, JsonNode.Parse($$"""
+            [{ "version": "1.0", "createSurface": { "surfaceId": "b", "catalogId": "{{App.CatalogId}}", "components": [{ "id": "root", "component": "Heading", "text": "B", "level": 2.0 }] } },
+             { "version": "1.0", "createSurface": { "surfaceId": "1", "catalogId": "{{App.CatalogId}}", "dataModel": { "o": { "b": 1.50, "1": 2 } }, "components": [{ "id": "root", "component": "Text", "text": { "@path": "/o" } }] } }]
+            """));
+        Assert.Equal(["1", "b"], resolved.Surfaces.Select(s => s.SurfaceId));
+        Assert.Equal("""{"surfaces":{"1":{"id":"root","component":"Text","props":{"text":"{\"1\":2,\"b\":1.5}","tone":"default"},"children":[]},"b":{"id":"root","component":"Heading","props":{"text":"B","level":2},"children":[]}}}""", OuroJson.Write(resolved.ToJson()));
+        Assert.Contains("is not an identifier", Problems("""[{ "id": "\u309b", "component": "Text", "text": "Hi" }]""")[0].Message);
+    }
+
+    [Fact]
     public void Ouro_Shops_A2UI_card_is_its_composed_card()
     {
         var shop = OuroComposedCatalog.Load(Read("samples/OuroShop/Composed/catalog.json"));

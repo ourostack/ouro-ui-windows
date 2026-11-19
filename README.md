@@ -44,6 +44,7 @@ What's still missing:
 - **The whole stream each time.** Pass every message so far, again as more arrive. While the surface is the one the same `createSurface` made, what the person entered stays.
 - **No A2UI functions, themes or other catalogs.** As in core: `callRendererFunction` and `agentFunctionResponse` are refused (agents act through their own doors), a `theme` is refused (your HX theme styles the card), and `catalogId` must be your app's catalog, so A2UI's basic catalog isn't drawn.
 - **Only `@accessibility.label` is read aloud.** `description` and `hidden` are checked but not drawn, as in core's resolver.
+- **Two limits core doesn't have yet.** A surface's tree may go at most 24 components deep and resolve to at most 5,000 nodes (`OuroA2UI.MaxDepth`, `MaxNodes`). A stream names children by id, so nothing else stops a long chain from exhausting the stack, or shared children and templates from multiplying past what a screen can hold; past either, the stream is refused like any other.
 - **Two edges differ from JavaScript.** A component id's letters are checked by Unicode category, so a rare letter .NET and a browser's engine classify differently could pass on one and fail on the other. A data write past the end of a list writes nothing here; in JavaScript it leaves a gap.
 
 ## What's here

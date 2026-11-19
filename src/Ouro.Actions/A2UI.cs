@@ -78,6 +78,19 @@ public static class OuroA2UI
 
     private const string Failed = "VALIDATION_FAILED", FunctionCall = "INVALID_FUNCTION_CALL", Integrity = "INTEGRITY_ERROR";
 
+    /// <summary>
+    /// How many components deep a surface's tree may go. A stream names children by id, so no JSON nesting limit bounds
+    /// its depth; past this the stream is refused, so no stream can exhaust the stack. A tree an agent sends itself is
+    /// bounded by its JSON's depth, about as deep.
+    /// </summary>
+    public const int MaxDepth = 24;
+
+    /// <summary>
+    /// How many nodes one surface may resolve to. Shared children and templates over lists multiply; past this the stream
+    /// is refused, so no stream can exhaust memory or hang the screen that draws it.
+    /// </summary>
+    public const int MaxNodes = 5000;
+
     private static readonly string[] MessageKeys = ["createSurface", "updateComponents", "updateDataModel", "deleteSurface", "callRendererFunction", "agentFunctionResponse"];
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -240,21 +253,52 @@ public static class OuroA2UI
                     if (!byId.ContainsKey(child)) problems.Add(new(Failed, at, $"No component has id {child}.", surfaceId));
                     if (child == "root") problems.Add(new(Failed, at, "root can't be a child.", surfaceId));
                 }
-            var seen = new HashSet<string>();
-            void Visit(string id, List<string> stack)
-            {
-                if (stack.Contains(id))
-                {
-                    problems.Add(new(Failed, byId[id].Path, $"The tree loops: {string.Join(" > ", stack.Append(id))}.", surfaceId));
-                    return;
-                }
-                if (seen.Contains(id) || !byId.ContainsKey(id)) return;
-                foreach (var (child, _) in ChildRefs(byId[id].Comp, "")) Visit(child, [.. stack, id]);
-                seen.Add(id);
-            }
-            if (byId.ContainsKey("root")) Visit("root", []);
+            if (byId.ContainsKey("root")) Loops(problems, surfaceId, byId);
         }
         return problems;
+    }
+
+    // Core's depth-first walk for loops, from root, with its own stack instead of the call stack, and the depth limit.
+    private static void Loops(List<OuroA2UIProblem> problems, string surfaceId, OrderedDictionary<string, (JsonObject Comp, string Path)> byId)
+    {
+        var seen = new HashSet<string>();
+        var stack = new List<string>();
+        var onStack = new HashSet<string>();
+        var frames = new Stack<(string Id, List<(string Child, string At)> Children, int Next)>();
+        var deep = false;
+        bool Enter(string id)
+        {
+            if (onStack.Contains(id))
+            {
+                problems.Add(new(Failed, byId[id].Path, $"The tree loops: {string.Join(" > ", stack.Append(id))}.", surfaceId));
+                return false;
+            }
+            if (seen.Contains(id) || !byId.ContainsKey(id)) return false;
+            if (stack.Count >= MaxDepth)
+            {
+                if (!deep) problems.Add(new(Failed, byId[id].Path, $"The tree is more than {MaxDepth} components deep at {id}; nest less.", surfaceId));
+                deep = true;
+                return false;
+            }
+            stack.Add(id);
+            onStack.Add(id);
+            frames.Push((id, ChildRefs(byId[id].Comp, ""), 0));
+            return true;
+        }
+        Enter("root");
+        while (frames.Count > 0)
+        {
+            var (id, children, next) = frames.Pop();
+            if (next < children.Count)
+            {
+                frames.Push((id, children, next + 1));
+                Enter(children[next].Child);
+                continue;
+            }
+            seen.Add(id);
+            stack.RemoveAt(stack.Count - 1);
+            onStack.Remove(id);
+        }
     }
 
     private static List<(string Child, string At)> ChildRefs(JsonObject comp, string path)
@@ -311,7 +355,7 @@ public static class OuroA2UI
             return;
         }
         var values = input as JsonObject ?? new JsonObject();
-        foreach (var (name, v) in values)
+        foreach (var (name, v) in JsEntries(values))
         {
             var at = $"{path}/{name}";
             if (!action.Input.TryGetValue(name, out var f))
@@ -357,7 +401,7 @@ public static class OuroA2UI
             : OuroComposedCatalog.IsString(o["componentId"], out _) && OuroComposedCatalog.IsString(o["path"], out var p) ? p
             : null;
         if (pointer is not null && !OuroPointer.IsSafe(pointer)) w.Add(path, $"{Quote(pointer)} points into the data model, never through __proto__, constructor or prototype.");
-        foreach (var (k, x) in o) UnsafePointers(w, x, $"{path}/{k}");
+        foreach (var (k, x) in JsEntries(o)) UnsafePointers(w, x, $"{path}/{k}");
     }
 
     private static void CheckComponent(Walk w, JsonNode? node, string path)
@@ -380,13 +424,13 @@ public static class OuroA2UI
         }
         if (comp.TryGetPropertyValue("@catalogId", out var catalogId) && !(OuroComposedCatalog.IsString(catalogId, out var cid) && cid == w.Cat.CatalogId))
             w.Add($"{path}/@catalogId", $"This renderer has only the catalog {w.Cat.CatalogId}.");
-        foreach (var (key, _) in comp)
+        foreach (var (key, _) in JsEntries(comp))
         {
             if (key is "id" or "component" or "@catalogId" or "@metadata" or "@accessibility") continue;
             if (!spec.Props.ContainsKey(key)) w.Add($"{path}/{key}", $"{component} has no {key}{(spec.Props.Count > 0 ? $"; its props are {string.Join(", ", spec.Props.Keys)}" : "")}.");
         }
         if (comp["@accessibility"] is JsonObject accessibility)
-            foreach (var (k, v) in accessibility)
+            foreach (var (k, v) in JsEntries(accessibility))
             {
                 if (k is "label" or "description") CheckDynamic(w, v, Dynamic.String, $"{path}/@accessibility/{k}");
                 else if (k == "hidden") CheckDynamic(w, v, Dynamic.Boolean, $"{path}/@accessibility/{k}");
@@ -463,20 +507,27 @@ public static class OuroA2UI
             CheckInput(w, a, action, comp.TryGetPropertyValue("input", out var input), input, $"{path}/input");
     }
 
-    // An A2UI component id: Unicode's identifier rule (XID_Start or _, then XID_Continue), read by general category plus
-    // Unicode's Other_ID_Start and Other_ID_Continue code points, as core's /^[\p{XID_Start}_][\p{XID_Continue}]*$/u.
+    // An A2UI component id: Unicode's identifier rule, as core's /^[\p{XID_Start}_][\p{XID_Continue}]*$/u. ID_Start and
+    // ID_Continue by general category and Unicode's Other_ID_Start and Other_ID_Continue code points, less those XID drops
+    // because NFKC turns them into something that isn't one (UAX #31). .NET's Unicode tables are its own, so a letter new
+    // to a later version may read differently than in a JavaScript engine.
     private static bool IsIdentifier(string s)
     {
         if (s.Length == 0) return false;
         var first = true;
         foreach (var r in s.EnumerateRunes())
         {
+            var v = r.Value;
             var c = Rune.GetUnicodeCategory(r);
-            var start = c is UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter or UnicodeCategory.TitlecaseLetter or UnicodeCategory.ModifierLetter or UnicodeCategory.OtherLetter or UnicodeCategory.LetterNumber
-                || r.Value is 0x1885 or 0x1886 or 0x2118 or 0x212E or 0x309B or 0x309C;
-            var go = start || c is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.DecimalDigitNumber or UnicodeCategory.ConnectorPunctuation
-                || r.Value is 0x00B7 or 0x0387 or (>= 0x1369 and <= 0x1371) or 0x19DA or 0x200C or 0x200D;
-            if (r.Value == 0x2E2F || (first ? !(start || r.Value == '_') : !go)) return false;
+            var letter = c is UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter or UnicodeCategory.TitlecaseLetter or UnicodeCategory.ModifierLetter or UnicodeCategory.OtherLetter or UnicodeCategory.LetterNumber
+                || v is 0x1885 or 0x1886 or 0x2118 or 0x212E or 0x309B or 0x309C;
+            var go = letter || c is UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.DecimalDigitNumber or UnicodeCategory.ConnectorPunctuation
+                || v is 0x00B7 or 0x0387 or (>= 0x1369 and <= 0x1371) or 0x19DA or 0x200C or 0x200D;
+            // Neither XID_Start nor XID_Continue: Pattern_Syntax, and the NFKC exceptions.
+            var never = v is 0x2E2F or 0x037A or 0x309B or 0x309C or (>= 0xFC5E and <= 0xFC63) or 0xFDFA or 0xFDFB or 0xFE70 or 0xFE72 or 0xFE74 or 0xFE76 or 0xFE78 or 0xFE7A or 0xFE7C or 0xFE7E;
+            // XID_Continue, but not XID_Start.
+            var notFirst = v is 0x0E33 or 0x0EB3 or 0xFF9E or 0xFF9F;
+            if (never || (first ? !(letter || v == '_') || notFirst : !go)) return false;
             first = false;
         }
         return true;
@@ -543,19 +594,33 @@ public static class OuroA2UI
     {
         var problems = ValidateMessages(catalog, messages);
         if (problems.Count > 0) return new([], problems);
-        var surfaces = ApplyMessages((JsonArray)messages!)
-            .Select(s => new OuroA2UISurface(s.Key, ResolveSurface(catalog, s.Value, label), s.Value.Data?.DeepClone()))
-            .ToArray();
+        var surfaces = new List<OuroA2UISurface>();
+        // In the order JavaScript lists a record's keys, as core's resolveMessages gives them: index-like ids first.
+        foreach (var (id, s) in JsOrder(ApplyMessages((JsonArray)messages!)))
+        {
+            try
+            {
+                surfaces.Add(new(id, ResolveSurface(catalog, s, label), s.Data?.DeepClone()));
+            }
+            catch (TooManyNodes)
+            {
+                return new([], [new(Failed, "", $"Surface {id} resolves to more than {MaxNodes} components; show fewer, or fewer list items.", id)]);
+            }
+        }
         return new(surfaces, []);
     }
+
+    private sealed class TooManyNodes : Exception { }
 
     private static JsonObject? ResolveSurface(OuroComposedCatalog cat, Surface surface, Func<OuroLabelContext, string?>? label)
     {
         if (!surface.Components.TryGetValue("root", out var root)) return null;
         var data = surface.Data;
+        var nodes = 0;
 
         JsonObject Node(JsonObject comp, string scope)
         {
+            if (++nodes > MaxNodes) throw new TooManyNodes();
             var name = comp["component"]!.GetValue<string>();
             var spec = cat.Components[name];
             var props = new JsonObject();
@@ -579,7 +644,7 @@ public static class OuroA2UI
                         props[key] = OuroComposedCatalog.IsString(raw, out var word) ? word : (string)p.Default!;
                         break;
                     case OuroPropKind.Level:
-                        props[key] = raw is JsonValue n && n.GetValueKind() == JsonValueKind.Number ? n.DeepClone() : JsonValue.Create((int)p.Default!);
+                        props[key] = raw is JsonValue n && n.GetValueKind() == JsonValueKind.Number ? JsCopy(n) : JsonValue.Create((int)p.Default!);
                         break;
                     case OuroPropKind.Terms:
                     {
@@ -625,8 +690,8 @@ public static class OuroA2UI
                 var id = comp["action"]!.GetValue<string>();
                 var input = new JsonObject();
                 if (cat.Actions[id].PersonOnly is null && comp["input"] is JsonObject prepared)
-                    foreach (var (k, v) in prepared)
-                        input[k] = OuroComposed.IsBinding(v) ? new JsonObject { ["@path"] = Absolute(Scoped(scope, PathOf(v))) } : v?.DeepClone();
+                    foreach (var (k, v) in JsEntries(prepared))
+                        input[k] = OuroComposed.IsBinding(v) ? new JsonObject { ["@path"] = Absolute(Scoped(scope, PathOf(v))) } : JsCopy(v);
                 props["action"] = id;
                 props["input"] = input;
             }
@@ -673,7 +738,7 @@ public static class OuroA2UI
         JsonNode? Read(string p)
         {
             var v = OuroPointer.Get(data, p);
-            return OuroComposed.IsBinding(v) ? Text(v) : v?.DeepClone();
+            return OuroComposed.IsBinding(v) ? Text(v) : JsCopy(v);
         }
         Fix(tree);
         return tree;
@@ -727,7 +792,7 @@ public static class OuroA2UI
     internal static string Json(JsonNode? v) => v switch
     {
         null => "null",
-        JsonObject o => "{" + string.Join(",", o.Select(p => Quote(p.Key) + ":" + Json(p.Value))) + "}",
+        JsonObject o => "{" + string.Join(",", JsEntries(o).Select(p => Quote(p.Key) + ":" + Json(p.Value))) + "}",
         JsonArray a => "[" + string.Join(",", a.Select(Json)) + "]",
         JsonValue x => x.GetValueKind() switch
         {
@@ -739,6 +804,30 @@ public static class OuroA2UI
             _ => "null",
         },
         _ => "null",
+    };
+
+    // A JavaScript object lists its keys that are array indexes first, in ascending order, then the rest as they were
+    // added; JSON.parse, Object.keys and JSON.stringify all follow it.
+    private static bool IsIndex(string key) =>
+        key == "0" || (key.Length is > 0 and <= 10 && key[0] is >= '1' and <= '9' && key.All(char.IsAsciiDigit) && ulong.Parse(key, CultureInfo.InvariantCulture) < uint.MaxValue);
+
+    private static IEnumerable<KeyValuePair<string, T>> JsOrder<T>(IEnumerable<KeyValuePair<string, T>> pairs)
+    {
+        var list = pairs.ToList();
+        return list.Where(p => IsIndex(p.Key)).OrderBy(p => ulong.Parse(p.Key, CultureInfo.InvariantCulture)).Concat(list.Where(p => !IsIndex(p.Key)));
+    }
+
+    private static IEnumerable<KeyValuePair<string, JsonNode?>> JsEntries(JsonObject o) => JsOrder(o);
+
+    // A value as JavaScript holds it once parsed: keys in its order and each number as JSON.stringify writes it, so a tree
+    // reads byte for byte as core's.
+    private static JsonNode? JsCopy(JsonNode? v) => v switch
+    {
+        null => null,
+        JsonObject o => new JsonObject(JsEntries(o).Select(p => KeyValuePair.Create(p.Key, JsCopy(p.Value)))),
+        JsonArray a => new JsonArray(a.Select(JsCopy).ToArray()),
+        JsonValue n when n.GetValueKind() == JsonValueKind.Number => JsonNode.Parse(Json(n)),
+        _ => v.DeepClone(),
     };
 
     private static string Quote(string s)
