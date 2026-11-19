@@ -91,6 +91,14 @@ public static class OuroA2UI
     /// </summary>
     public const int MaxNodes = 5000;
 
+    /// <summary>
+    /// How much one surface may copy out of its data model and its messages: each value its tree shows or sends costs its
+    /// text's length plus one, and a list or object one more than what it holds. A value bound to the data model is copied
+    /// into every node that shows it, so a template over a long list multiplies it; past this the stream is refused, so no
+    /// stream can exhaust memory.
+    /// </summary>
+    public const int MaxSize = 1_000_000;
+
     private static readonly string[] MessageKeys = ["createSurface", "updateComponents", "updateDataModel", "deleteSurface", "callRendererFunction", "agentFunctionResponse"];
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -602,25 +610,63 @@ public static class OuroA2UI
             {
                 surfaces.Add(new(id, ResolveSurface(catalog, s, label), s.Data?.DeepClone()));
             }
-            catch (TooManyNodes)
+            catch (TooBig big)
             {
-                return new([], [new(Failed, "", $"Surface {id} resolves to more than {MaxNodes} components; show fewer, or fewer list items.", id)]);
+                return new([], [new(Failed, "", $"Surface {id} {big.Message}", id)]);
             }
         }
         return new(surfaces, []);
     }
 
-    private sealed class TooManyNodes : Exception { }
+    private sealed class TooBig(string message) : Exception(message) { }
+
+    // What a surface has copied so far, against MaxSize. A value is walked only as far as the budget allows, so the walk
+    // itself stays bounded.
+    private sealed class Size
+    {
+        private long left = MaxSize;
+
+        public JsonNode? Take(JsonNode? v)
+        {
+            var todo = new List<JsonNode?> { v };
+            while (todo.Count > 0)
+            {
+                var x = todo[^1];
+                todo.RemoveAt(todo.Count - 1);
+                left -= 1;
+                switch (x)
+                {
+                    case JsonObject o:
+                        foreach (var (k, y) in o)
+                        {
+                            left -= k.Length + 1;
+                            todo.Add(y);
+                        }
+                        break;
+                    case JsonArray a:
+                        left -= a.Count;
+                        todo.AddRange(a);
+                        break;
+                    case JsonValue t when t.GetValueKind() == JsonValueKind.String:
+                        left -= t.GetValue<string>().Length;
+                        break;
+                }
+                if (left < 0) throw new TooBig($"resolves to more than {MaxSize} characters of data; show less of it, or fewer list items.");
+            }
+            return v;
+        }
+    }
 
     private static JsonObject? ResolveSurface(OuroComposedCatalog cat, Surface surface, Func<OuroLabelContext, string?>? label)
     {
         if (!surface.Components.TryGetValue("root", out var root)) return null;
         var data = surface.Data;
         var nodes = 0;
+        var size = new Size();
 
         JsonObject Node(JsonObject comp, string scope)
         {
-            if (++nodes > MaxNodes) throw new TooManyNodes();
+            if (++nodes > MaxNodes) throw new TooBig($"resolves to more than {MaxNodes} components; show fewer, or fewer list items.");
             var name = comp["component"]!.GetValue<string>();
             var spec = cat.Components[name];
             var props = new JsonObject();
@@ -631,10 +677,10 @@ public static class OuroA2UI
                 switch (p.Kind)
                 {
                     case OuroPropKind.String:
-                        if (given || p.Required) props[key] = Text(given ? Value(data, scope, raw) : null);
+                        if (given || p.Required) props[key] = Text(given ? size.Take(Value(data, scope, raw)) : null);
                         break;
                     case OuroPropKind.Strings:
-                        props[key] = Value(data, scope, raw) is JsonArray items ? new JsonArray(items.Select(x => (JsonNode)Text(x)).ToArray()) : new JsonArray();
+                        props[key] = size.Take(Value(data, scope, raw)) is JsonArray items ? new JsonArray(items.Select(x => (JsonNode)Text(x)).ToArray()) : new JsonArray();
                         break;
                     case OuroPropKind.Boolean:
                         var on = given ? Value(data, scope, raw) is JsonValue b && b.GetValueKind() == JsonValueKind.True : p.Default is true;
@@ -650,14 +696,14 @@ public static class OuroA2UI
                     {
                         var bound = OuroComposed.IsBinding(raw);
                         var basePath = bound ? Scoped(scope, PathOf(raw)) : scope;
-                        props[key] = Value(data, scope, raw) is JsonArray terms
+                        props[key] = size.Take(Value(data, scope, raw)) is JsonArray terms
                             ? new JsonArray(terms.Select((it, i) =>
                             {
                                 var at = bound ? $"{basePath}/{i}" : scope;
                                 return (JsonNode)new JsonObject
                                 {
-                                    ["term"] = Text(Value(data, at, it is JsonObject o ? o["term"] : null)),
-                                    ["detail"] = Text(Value(data, at, it is JsonObject d ? d["detail"] : null)),
+                                    ["term"] = Text(size.Take(Value(data, at, it is JsonObject o ? o["term"] : null))),
+                                    ["detail"] = Text(size.Take(Value(data, at, it is JsonObject d ? d["detail"] : null))),
                                 };
                             }).ToArray())
                             : new JsonArray();
@@ -691,21 +737,21 @@ public static class OuroA2UI
                 var input = new JsonObject();
                 if (cat.Actions[id].PersonOnly is null && comp["input"] is JsonObject prepared)
                     foreach (var (k, v) in JsEntries(prepared))
-                        input[k] = OuroComposed.IsBinding(v) ? new JsonObject { ["@path"] = Absolute(Scoped(scope, PathOf(v))) } : JsCopy(v);
+                        input[k] = OuroComposed.IsBinding(v) ? new JsonObject { ["@path"] = Absolute(Scoped(scope, PathOf(v))) } : JsCopy(size.Take(v));
                 props["action"] = id;
                 props["input"] = input;
             }
             if (comp["@accessibility"] is JsonObject accessibility && accessibility.TryGetPropertyValue("label", out var spoken))
-                props["@label"] = Text(Value(data, scope, spoken));
+                props["@label"] = Text(size.Take(Value(data, scope, spoken)));
             return new JsonObject { ["id"] = OuroComposed.AsText(comp["id"]), ["component"] = name, ["props"] = props, ["children"] = children };
         }
 
-        return Live(cat, Node(root, ""), data, label);
+        return Live(cat, Node(root, ""), data, label, size);
     }
 
     // The tree with each button input bound to a path no field writes read from the data now, as before fields existed;
     // one bound to a field the person fills in stays bound, so a press sends their answer (OuroComposed.ResolveButton).
-    private static JsonObject Live(OuroComposedCatalog cat, JsonObject tree, JsonNode? data, Func<OuroLabelContext, string?>? label)
+    private static JsonObject Live(OuroComposedCatalog cat, JsonObject tree, JsonNode? data, Func<OuroLabelContext, string?>? label, Size size)
     {
         var written = new HashSet<string>();
         void Collect(JsonObject n)
@@ -737,7 +783,7 @@ public static class OuroA2UI
         // A value read from the data is a value: one shaped like a binding is sent as its text, never followed.
         JsonNode? Read(string p)
         {
-            var v = OuroPointer.Get(data, p);
+            var v = size.Take(OuroPointer.Get(data, p));
             return OuroComposed.IsBinding(v) ? Text(v) : JsCopy(v);
         }
         Fix(tree);
