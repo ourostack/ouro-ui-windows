@@ -217,7 +217,7 @@ public sealed class MainWindow : Window
         var catalog = OuroComposedCatalog.Load(Embedded("catalog.json"));
         IReadOnlyList<OuroA2UIProblem> problems = OuroA2UI.TryReadToolResult(Embedded("card.a2ui.json"), out var messages)
             ? surface.ShowA2UI(catalog, messages)
-            : [new("VALIDATION_FAILED", "", "The tool result carries no structuredContent.a2ui.")];
+            : new OuroA2UIProblem[] { new("VALIDATION_FAILED", "", "The tool result carries no structuredContent.a2ui.") };
         data.Text = problems.Count > 0 ? $"The agent's A2UI card doesn't validate: {string.Join("; ", problems)}" : OuroJson.Write(surface.Data);
         return Column(16, surface);
     }
@@ -248,7 +248,7 @@ public sealed class MainWindow : Window
             Id(new OuroSeparator { Label = "or" }, "gallery.separator.or"),
             Id(new OuroSeparator(), "gallery.separator.line"),
             Id(new OuroSeparator { Label = "New", Tone = OuroTone.Primary }, "gallery.separator.new"));
-        var details = Id(new OuroDescriptionList { Items = [new("Prep time", "20 minutes"), new("Serves", "6")] }, "gallery.descriptionlist.recipe");
+        var details = Id(new OuroDescriptionList { Items = new OuroDescriptionItem[] { new("Prep time", "20 minutes"), new("Serves", "6") } }, "gallery.descriptionlist.recipe");
         var grid = new Grid { ColumnSpacing = 32, MinWidth = 720, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition() } };
         var right = Column(16, choices, lines, details);
         Grid.SetColumn(right, 1);

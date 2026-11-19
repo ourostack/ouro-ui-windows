@@ -138,7 +138,7 @@ public sealed partial class OuroComposedSurface : UserControl
     public IReadOnlyList<OuroTreeProblem> Update(JsonNode? update)
     {
         if (Catalog is null || Tree is null)
-            return Refuse([new("/update", "An update changes the composed tree the view shows, and it shows none yet; send the whole tree first, in structuredContent.ouro.tree.")]);
+            return Refuse(new OuroTreeProblem[] { new("/update", "An update changes the composed tree the view shows, and it shows none yet; send the whole tree first, in structuredContent.ouro.tree.") });
         var applied = OuroComposed.ApplyTreeUpdate(Catalog, Tree.ToJson(), sent, update);
         if (!applied.Applied) return Hold(applied.Problems);
         (Data, var kept) = OuroComposed.KeepAnswers(sent, applied.Data, Data, edited);
@@ -176,8 +176,8 @@ public sealed partial class OuroComposedSurface : UserControl
             OuroA2UIProblem missing = surfaceId is null
                 ? new("VALIDATION_FAILED", "", "The messages leave no surface to show; create one with createSurface.")
                 : new("VALIDATION_FAILED", "", $"No surface {surfaceId} in the messages; they leave {(resolved.Surfaces.Count > 0 ? string.Join(", ", resolved.Surfaces.Select(s => s.SurfaceId)) : "none")}.", surfaceId);
-            Refuse([missing.ToTreeProblem()]);
-            return [missing];
+            Refuse(new[] { missing.ToTreeProblem() });
+            return new[] { missing };
         }
         if (surface.Tree is null)
         {
@@ -292,9 +292,9 @@ public sealed partial class OuroComposedSurface : UserControl
         IEnumerable<DependencyObject> children = e switch
         {
             Panel p => p.Children,
-            ContentControl { Content: DependencyObject c } => [c],
-            Border { Child: { } b } => [b],
-            _ => [],
+            ContentControl { Content: DependencyObject c } => new[] { c },
+            Border { Child: { } b } => new DependencyObject[] { b },
+            _ => Array.Empty<DependencyObject>(),
         };
         return children.Select(c => Find(c, id)).FirstOrDefault(x => x is not null);
     }
