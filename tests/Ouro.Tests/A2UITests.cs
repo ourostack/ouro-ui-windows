@@ -230,6 +230,13 @@ public class A2UITests
         var wide = Stream(20, i => i == 19 ? [] : [JsonValue.Create($"c{i + 1}"), JsonValue.Create($"c{i + 1}")]);
         Assert.Empty(OuroA2UI.ValidateMessages(App, wide));
         Assert.Equal("Surface s resolves to more than 5000 components; show fewer, or fewer list items.", OuroA2UI.ResolveMessages(App, wide).Problems.Single().Message);
+        var big = Create("""[{ "id": "root", "component": "Stack", "children": { "componentId": "row", "path": "/rows" } }, { "id": "row", "component": "List", "items": { "@path": "/big" } }]""");
+        big[0]!["createSurface"]!["dataModel"] = new JsonObject
+        {
+            ["rows"] = new JsonArray(Enumerable.Range(0, 2000).Select(i => (JsonNode)i).ToArray()),
+            ["big"] = new JsonArray(Enumerable.Range(0, 1000).Select(_ => (JsonNode)"item").ToArray()),
+        };
+        Assert.Equal("Surface s resolves to more than 1000000 characters of data; show less of it, or fewer list items.", OuroA2UI.ResolveMessages(App, big).Problems.Single().Message);
     }
 
     [Fact]
