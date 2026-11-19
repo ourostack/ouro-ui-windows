@@ -9,6 +9,9 @@ on:
 permissions:
   contents: write
   packages: write
+  # Build provenance: GitHub signs which workflow run built each file the release attaches.
+  id-token: write
+  attestations: write
 
 jobs:
   release:
@@ -53,6 +56,15 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           & tools/pack.ps1 -AppDir out\app -McpDir out\mcp -Generated samples\OuroShop\Generated -Manifest samples\OuroShop\package\AppxManifest.xml -Out out\msix -File "OuroShop-${{ github.ref_name }}.msix"
           Get-AppxPackage -Name Ouro.Shop | Remove-AppxPackage
+      - name: Attest the release's files
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            out/packages/*.nupkg
+            out/msix/OuroShop-${{ github.ref_name }}.msix
+            out/msix/OuroShop-${{ github.ref_name }}.cer
+            vendor/core/components/*.spec.json
+            src/Ouro.UI.Windows/Vendor/OuroTokens.xaml
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}

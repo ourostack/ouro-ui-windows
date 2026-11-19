@@ -66,6 +66,8 @@ dotnet add package Ouro.UI.Windows --source ourostack
 
 The `.nupkg` files are also attached to each [release](https://github.com/ourostack/ouro-ui-windows/releases), for a local feed with no sign-in. nuget.org comes later (RELEASING.md).
 
+From v0.4.1 on, [the release workflow](.github/workflows/release.yml) gives each file it attaches a GitHub build attestation, so you can check that a package was built from its tag: `gh attestation verify Ouro.UI.Windows.0.4.1.nupkg --repo ourostack/ouro-ui-windows`.
+
 Declare actions once in TypeScript with core's `defineAction` and generate the Windows files:
 
 ```sh
