@@ -141,6 +141,12 @@ jobs:
           "", "On-device Agent Registry:" | Add-Content $text
           Get-Content "$env:EV\odr-mcp-list.txt" | Add-Content $text
           & tools/render-text.ps1 -In $text -Out "$env:EV\app-action-registration.png" -Title "Ouro Shop: what Windows registered (rendered from CI output)"
+      - name: Windows registered both agent doors, with the actions the declarations generate
+        run: |
+          node tools/registration-check.mts "$env:EV\package.json" "$env:EV\registered-app-actions.json" samples/OuroShop/Generated/app-actions.json "$env:EV\registered-mcpb-manifest.json" samples/OuroShop/Generated/mcpb.manifest.json "$env:EV\registration-check.json"
+          $r = Get-Content "$env:EV\registration-check.json" | ConvertFrom-Json
+          $odr = Get-Content "$env:EV\odr-mcp-list.txt" -Raw
+          "Windows registered the doors [$($r.doors -join ', ')] for $($r.actions.Count) App Actions and $($r.tools.Count) MCP tools. Whether Windows lists them to agents: $(if ($odr -match 'not on this machine') { 'not checked, the runner has no On-device Agent Registry' } else { 'odr.exe answered, see odr-mcp-list.txt' })" | Add-Content $env:GITHUB_STEP_SUMMARY
       - name: MCP server, from the package, asks the person before a consequential call
         run: |
           $answer = Start-Process powershell -PassThru -NoNewWindow -RedirectStandardOutput "$env:EV\answer-dialog.log" -ArgumentList "-NoProfile", "-File", "tools\answer-dialog.ps1", "-Title", "`"Ouro Shop: Share list`"", "-Press", "No", "-Out", "$env:EV\confirm-mcp.json", "-Screenshot", "$env:EV\confirm-mcp.png"
