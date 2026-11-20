@@ -49,8 +49,11 @@ const report = (e: any): Record<string, string> => {
 };
 /** The kit's controls of one kind under a setting, each with its self-report and the rest of its page, keyed by automation id or name. */
 const of = (setting: Setting, kind: string) =>
-  dumps[setting].flatMap((d) => (d.elements as any[]).map((e) => ({ e, r: report(e), dpi: (d.systemDpi ?? 96) / 96, page: d.elements as any[] })).filter((x) => x.r.kind === kind));
+  dumps[setting].flatMap((d) => (d.elements as any[]).map((e) => ({ e, r: report(e), dpi: (d.systemDpi ?? 96) / 96, page: d.elements as any[] })).filter((x) => x.r.kind === kind && (scope === undefined || belongs(x, scope))));
 const key = (x: { e: any }) => x.e.automationId || x.e.name;
+/** While set, `of` returns only the elements of one spec case: the gallery id it carries, or an item inside it. */
+let scope: string | undefined;
+const belongs = (x: { e: any; r: Record<string, string> }, id: string) => key(x) === id || key(x).startsWith(`${id}.`) || x.r.list === id;
 
 const lum = (hex: string) => {
   const c = [3, 5, 7].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
@@ -164,8 +167,21 @@ const rows = specs.flatMap((spec: any) =>
     return { component: spec.name, claim: id, tier: claim?.tier ?? "?", result: r.ok === null ? "not run" : r.ok ? "pass" : "fail", detail: r.detail };
   }),
 );
+/** One line per spec case, in the shape of the xUnit lines the cross-kit grid already reads: a case passes when every check that applies to it holds and at least one ran. */
+const CASED = ["tabs", "tab-bar", "sidebar"];
+const caseLines = specs.filter((spec: any) => CASED.includes(spec.name)).flatMap((spec: any) =>
+  (spec.cases as { id: string }[]).map((c) => {
+    scope = `gallery.${spec.name}.${c.id}`;
+    const results = (spec.claims as string[]).map((id) => checks[id]?.(spec.name) ?? { ok: false, detail: "no check" });
+    scope = undefined;
+    const ok = results.every((r) => r.ok !== false) && results.some((r) => r.ok === true);
+    return { ok, line: `${ok ? "Passed" : "Failed"} Ouro.Claims.Each_spec_case_holds(name: "${spec.name}/${c.id}")`, why: results.filter((r) => r.ok === false).map((r) => r.detail).join("; ") };
+  }),
+);
+await writeFile(join(dir, "cases.json"), `${JSON.stringify(caseLines, null, 2)}\n`);
 const table = ["| Component | Claim | Tier | Windows | Evidence |", "| --- | --- | --- | --- | --- |", ...rows.map((r) => `| ${r.component} | \`${r.claim}\` | ${r.tier} | ${r.result} | ${r.detail.replace(/\|/g, "\\|")} |`)].join("\n");
 await writeFile(join(dir, "claims.json"), `${JSON.stringify(rows, null, 2)}\n`);
 await writeFile(join(dir, "claims.md"), `## Core's claims on Windows\n\n${table}\n`);
 process.stdout.write(`${table}\n`);
-process.exit(rows.some((r) => r.result !== "pass") ? 1 : 0);
+process.stdout.write(`${caseLines.map((c) => (c.ok ? c.line : `${c.line}\n  ${c.why}`)).join("\n")}\n`);
+process.exit(rows.some((r) => r.result !== "pass") || caseLines.some((c) => !c.ok) ? 1 : 0);

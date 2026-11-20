@@ -52,4 +52,12 @@ public static class OuroNav
     /// <summary>What a screen reader says for a sidebar item: its label and then its badge ("Inbox 12"), or the label alone on the rail.</summary>
     public static string SpokenName(string label, string badge, bool collapsed) =>
         collapsed || string.IsNullOrEmpty(badge) ? label : $"{label} {badge}";
+
+    /// <summary>Which rebuilt tab should hold keyboard focus: the one with the value that held it, if it is still there and enabled, else the selected one. -1 when nothing held focus.</summary>
+    public static int FocusTarget(string? focused, IReadOnlyList<string> values, IReadOnlyList<bool> enabled, int selected)
+    {
+        if (focused is null) return -1;
+        var same = values.ToList().IndexOf(focused);
+        return same >= 0 && enabled[same] ? same : selected;
+    }
 }
