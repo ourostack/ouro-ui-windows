@@ -249,12 +249,15 @@ public sealed class MainWindow : Window
             Id(new OuroSeparator(), "gallery.separator.line"),
             Id(new OuroSeparator { Label = "New", Tone = OuroTone.Primary }, "gallery.separator.new"));
         var details = Id(new OuroDescriptionList { Items = new OuroDescriptionItem[] { new("Prep time", "20 minutes"), new("Serves", "6") } }, "gallery.descriptionlist.recipe");
+        var tabs = Column(16,
+            Id(new OuroTabs { Label = "Recipe sections", Value = "ingredients", Items = new OuroTabItem[] { new("ingredients", "Ingredients"), new("method", "Method") }, Content = new TextBlock { Text = "The ingredient list", Margin = new Thickness(0, 12, 0, 0) } }, "gallery.tabs.recipe-sections"),
+            Id(new OuroTabs { Label = "Settings", Value = "profile", Vertical = true, Items = new OuroTabItem[] { new("profile", "Profile"), new("billing", "Billing", Disabled: true) }, Content = new TextBlock { Text = "Your profile", Margin = new Thickness(16, 0, 0, 0) } }, "gallery.tabs.vertical-with-disabled"));
         var grid = new Grid { ColumnSpacing = 32, MinWidth = 720, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition() } };
-        var right = Column(16, choices, lines, details);
+        var right = Column(16, choices, lines, details, tabs);
         Grid.SetColumn(right, 1);
         grid.Children.Add(fields);
         grid.Children.Add(right);
-        return Id(new OuroCard { Title = "Fields and lists", Description = "TextField, Checkbox, Separator and DescriptionList", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = grid }, "card.fields");
+        return Id(new OuroCard { Title = "Fields and lists", Description = "TextField, Checkbox, Separator, DescriptionList and Tabs", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = grid }, "card.fields");
     }
 
     private OuroItem Item(string title, string description, string glyph, UIElement badge, bool pressable)

@@ -306,4 +306,30 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <Style TargetType="local:OuroNavButton">
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="FocusVisualMargin" Value="-3" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:OuroNavButton">
+                    <Grid x:Name="Root" Background="{TemplateBinding Background}">
+                        <ContentPresenter Padding="{TemplateBinding Padding}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        <Rectangle x:Name="Bar" Visibility="Collapsed" AutomationProperties.AccessibilityView="Raw" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="local:OuroTabs">
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:OuroTabs">
+                    <StackPanel x:Name="Root" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 </ResourceDictionary>
