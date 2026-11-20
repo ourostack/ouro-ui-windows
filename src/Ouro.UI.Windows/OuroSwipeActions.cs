@@ -18,8 +18,8 @@ namespace Ouro.UI.Windows;
 /// <summary>A list row whose actions a swipe reveals; the same actions are always one press away in a menu.</summary>
 public sealed partial class OuroSwipeActions : Control
 {
-    /// <summary>Core's metrics, in effective pixels: the menu button's target, and how far a swipe commits as a share of the row's width.</summary>
-    public const double MenuTarget = 44, CommitFraction = 0.6, ActionWidth = 80;
+    /// <summary>Core's metric, in effective pixels: the menu button's target.</summary>
+    public const double MenuTarget = 44;
 
     private readonly SwipeControl swipe = new() { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Center, MinHeight = MenuTarget };
     private readonly Button button = new() { Width = MenuTarget, Height = MenuTarget, Padding = new Thickness(0), BorderThickness = new Thickness(0), VerticalAlignment = VerticalAlignment.Center };
@@ -28,6 +28,7 @@ public sealed partial class OuroSwipeActions : Control
     private string label = "", actionsLabel = "", leading = "", trailing = "";
     private OuroTone tone = OuroTone.Secondary;
     private UIElement? content;
+    private bool touched;
 
     public OuroSwipeActions()
     {
@@ -39,8 +40,13 @@ public sealed partial class OuroSwipeActions : Control
         button.Flyout = Menu();
         swipe.ContextFlyout = Menu();
         button.RegisterPropertyChangedCallback(Microsoft.UI.Xaml.Controls.Primitives.ButtonBase.IsPressedProperty, (_, _) => Press());
-        button.GotFocus += (_, _) => button.Opacity = 1;
-        AddHandler(PointerPressedEvent, new PointerEventHandler((_, e) => button.Opacity = e.Pointer.PointerDeviceType == PointerDeviceType.Touch ? 0 : 1), true);
+        button.GotFocus += (_, _) => Show(true);
+        button.LostFocus += (_, _) => Show(!touched);
+        AddHandler(PointerPressedEvent, new PointerEventHandler((_, e) =>
+        {
+            touched = e.Pointer.PointerDeviceType == PointerDeviceType.Touch;
+            Show(!touched);
+        }), true);
         OuroUI.Follow(this, Refresh);
         SizeChanged += (_, _) => Refresh();
         swipe.SizeChanged += (_, _) => Refresh();
@@ -49,7 +55,7 @@ public sealed partial class OuroSwipeActions : Control
     /// <summary>Raised when the actions menu opens, from the button or by a long press or right click on the row.</summary>
     public event EventHandler? MenuOpened;
 
-    /// <summary>Raised when an action is chosen, by a swipe, a press on a revealed action or from the menu, with its label. The app does what it names.</summary>
+    /// <summary>Raised when an action is chosen, by a press on an action a swipe revealed, a swipe past the end of a side with one action, or from the menu, with its label. The app does what it names.</summary>
     public event EventHandler<string>? ActionInvoked;
 
     /// <summary>What the row is, such as a message's subject. It names the row and the actions button.</summary>
@@ -171,6 +177,13 @@ public sealed partial class OuroSwipeActions : Control
             if (next < 0) return;
             (FocusManager.FindFirstFocusableElement(parent.Children[next]) as Control)?.Focus(FocusState.Keyboard);
         });
+    }
+
+    // Under touch the button is drawn clear and takes no taps, so it never covers the row; it stays in the UI Automation tree and keeps its tab stop.
+    private void Show(bool shown)
+    {
+        button.Opacity = shown ? 1 : 0;
+        button.IsHitTestVisible = shown;
     }
 
     private void Press()
