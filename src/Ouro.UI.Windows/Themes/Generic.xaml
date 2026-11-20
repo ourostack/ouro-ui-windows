@@ -313,8 +313,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="local:OuroNavButton">
-                    <Grid x:Name="Root" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    <Grid x:Name="Root" Background="{TemplateBinding Background}">
+                        <ContentPresenter Padding="{TemplateBinding Padding}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
                         <Rectangle x:Name="Bar" Visibility="Collapsed" AutomationProperties.AccessibilityView="Raw" />
                     </Grid>
                 </ControlTemplate>
