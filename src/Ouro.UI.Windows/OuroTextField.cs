@@ -270,8 +270,8 @@ public sealed partial class OuroTextField : Control
         if (AutomationProperties.GetAutomationId(this) is { Length: > 0 } id)
         {
             AutomationProperties.SetAutomationId(box, id);
-            AutomationProperties.SetAutomationId(clear, $"{id}.clear");
-            AutomationProperties.SetAutomationId(reveal, $"{id}.reveal");
+            if (clear is not null) AutomationProperties.SetAutomationId(clear, $"{id}.clear");
+            if (reveal is not null) AutomationProperties.SetAutomationId(reveal, $"{id}.reveal");
         }
         OuroUI.Report(box, "", "text-field", ("label", OuroPaint.Hex(p.Text)), ("text", OuroPaint.Hex(p.Text)), ("description", OuroPaint.Hex(p.Muted)),
             ("placeholder", OuroPaint.Hex(p.Placeholder)), ("error", OuroPaint.Hex(p.Error)), ("edge", OuroPaint.Hex(edge)), ("behind", OuroPaint.Hex(p.Behind)),
