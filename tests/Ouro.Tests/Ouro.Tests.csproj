@@ -20,5 +20,6 @@
     <!-- Which tab a key moves to, also plain arithmetic. -->
     <Compile Include="..\..\src\Ouro.UI.Windows\OuroNav.cs" Link="Kit\OuroNav.cs" />
     <Compile Include="..\..\src\Ouro.UI.Windows\OuroPanelRules.cs" Link="Kit\OuroPanelRules.cs" />
+    <Compile Include="..\..\src\Ouro.UI.Windows\OuroFormRules.cs" Link="Kit\OuroFormRules.cs" />
   </ItemGroup>
 </Project>
