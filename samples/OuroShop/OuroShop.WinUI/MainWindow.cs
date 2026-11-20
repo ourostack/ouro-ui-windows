@@ -20,7 +20,7 @@ public sealed class MainWindow : Window
     private readonly TextBlock status;
     private readonly TextBlock data = new() { TextWrapping = TextWrapping.Wrap };
 
-    /// <param name="page">"list" (the default), "gallery", "fields", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
+    /// <param name="page">"list" (the default), "gallery", "fields", "nav", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
     public MainWindow(string page = "list")
     {
         Title = "Ouro Shop";
@@ -98,6 +98,7 @@ public sealed class MainWindow : Window
         {
             "gallery" => Column(16, gallery, status),
             "fields" => Column(16, Fields(), status),
+            "nav" => Column(16, Navigation(), status),
             "composed" => Column(16, Composed(), status, data),
             "a2ui" => Column(16, A2UI(), status, data),
             _ => Column(16, heading, list, status),
@@ -261,6 +262,40 @@ public sealed class MainWindow : Window
         grid.Children.Add(Column(16, fields, tabBars));
         grid.Children.Add(right);
         return Id(new OuroCard { Title = "Fields and lists", Description = "TextField, Checkbox, Separator, DescriptionList, Tabs and TabBar", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = grid }, "card.fields");
+    }
+
+    /// <summary>The gallery's third page: Sidebar, open and as a rail, in core's spec cases.</summary>
+    private static OuroCard Navigation()
+    {
+        T Id<T>(T e, string id) where T : FrameworkElement
+        {
+            AutomationProperties.SetAutomationId(e, id);
+            return e;
+        }
+        var open = Id(new OuroSidebar
+        {
+            Label = "Main",
+            Current = "Recipes",
+            Header = new TextBlock { Text = "Spoonjoy", FontSize = 18, Margin = new Thickness(16, 0, 0, 0) },
+            Sections = new OuroSidebarSection[]
+            {
+                new("", new OuroSidebarItem[] { new("Recipes", "\uE8F1"), new("Inbox", "\uE715", "12") }),
+                new("Library", new OuroSidebarItem[] { new("Cookbooks", "\uE82D") }),
+            },
+        }, "gallery.sidebar.sections-and-badge");
+        var rail = Id(new OuroSidebar
+        {
+            Label = "Main",
+            Current = "Recipes",
+            Collapsed = true,
+            Header = new TextBlock { Text = "Spoonjoy", FontSize = 18 },
+            Sections = new OuroSidebarSection[] { new("", new OuroSidebarItem[] { new("Recipes", "\uE8F1"), new("Cookbooks", "\uE82D") }) },
+        }, "gallery.sidebar.collapsed-rail");
+        var row = Row(32);
+        row.VerticalAlignment = VerticalAlignment.Top;
+        row.Children.Add(open);
+        row.Children.Add(rail);
+        return Id(new OuroCard { Title = "Navigation", Description = "Sidebar, open and as a rail", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = row }, "card.nav");
     }
 
     private OuroItem Item(string title, string description, string glyph, UIElement badge, bool pressable)

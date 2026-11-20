@@ -165,6 +165,8 @@ jobs:
             & tools/dump.ps1 -Command $env:APP -Arguments "--self-report --page gallery $extra" -ProcessName OuroShop.WinUI -ReadyId card.gallery -Out "$env:EV\uia-gallery-$s.json" @g
             $f = @{}; if ($Shots) { $f.Screenshot = "$env:EV\fields-$s.png" }
             & tools/dump.ps1 -Command $env:APP -Arguments "--self-report --page fields $extra" -ProcessName OuroShop.WinUI -ReadyId gallery.descriptionlist.recipe -Out "$env:EV\uia-fields-$s.json" @f
+            $n = @{}; if ($Shots) { $n.Screenshot = "$env:EV\nav-$s.png" }
+            & tools/dump.ps1 -Command $env:APP -Arguments "--self-report --page nav $extra" -ProcessName OuroShop.WinUI -ReadyId gallery.sidebar.collapsed-rail -Out "$env:EV\uia-nav-$s.json" @n
             $c = @{}; if ($Shots) { $c.Screenshot = "$env:EV\composed-$s.png" }
             & tools/dump.ps1 -Command $env:APP -Arguments "--self-report --page composed $extra" -ProcessName OuroShop.WinUI -ReadyId composed.add_item -Out "$env:EV\uia-composed-$s.json" @c
           }

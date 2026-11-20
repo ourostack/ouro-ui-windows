@@ -45,4 +45,11 @@ public static class OuroNav
 
     /// <summary>The words of the current item: the accent where it reads at 4.5:1 on the wash, otherwise the theme's foreground.</summary>
     public static uint CurrentWords(uint accent, uint wash, uint foreground) => OuroPaint.Readable(accent, wash, foreground);
+
+    /// <summary>Core's sidebar widths, in effective pixels: open, and collapsed to a rail of icons.</summary>
+    public const double SidebarWidth = 256, RailWidth = 64;
+
+    /// <summary>What a screen reader says for a sidebar item: its label and then its badge ("Inbox 12"), or the label alone on the rail.</summary>
+    public static string SpokenName(string label, string badge, bool collapsed) =>
+        collapsed || string.IsNullOrEmpty(badge) ? label : $"{label} {badge}";
 }
