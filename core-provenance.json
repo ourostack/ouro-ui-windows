@@ -1,13 +1,13 @@
 {
-  "coreTag": "v0.21.0",
+  "coreTag": "v1.2.0",
   "files": {
     "vendor/core/ouro-actions.mts": {
       "from": "dist/actions/ouro-actions.mts",
-      "sha256": "99f9a11a39785a3dba85fd172463e2707c90ed862941c9887e77bb2b9a60a18c"
+      "sha256": "94de3473404e37776d2686785756d08cb42692c444bec1b307efc77001bc5cf4"
     },
     "vendor/core/ouro-actions-windows.mts": {
       "from": "dist/actions/ouro-actions-windows.mts",
-      "sha256": "ec86d842a11b1fe67bb821cdd38d0c0d4c9119c82df93aaf5db2ff02714d9c28"
+      "sha256": "34a702baa57a6a6584d897d2a8700b6e02b89d4bc0abed56c28b12b9c501e15c"
     },
     "vendor/core/components.claims.json": {
       "from": "dist/hx/components.claims.json",
@@ -51,7 +51,7 @@
     },
     "vendor/core/ouro-composed.mts": {
       "from": "dist/composed/ouro-composed.mts",
-      "sha256": "50b1b5c290816f0e9698fa6514eab023df38e11c559921133254cad963aa606a"
+      "sha256": "33d62bd7d35c7f7e63e16861bb7bf9cbab27c3892e7893168cb3dd6c063f1d51"
     },
     "vendor/core/ouro-mcp-app.mts": {
       "from": "dist/composed/ouro-mcp-app.mts",
@@ -59,28 +59,28 @@
     },
     "vendor/core/ouro-a2ui.mts": {
       "from": "dist/a2ui/ouro-a2ui.mts",
-      "sha256": "57bb4038955de4a953bd4d12582caa4223fe8f921b9738e231428ce5100e0e34"
+      "sha256": "e77db180bc0e9b33e4f09543e5c93b79df0246a7b0325260b75ed2361189345b"
     },
     "vendor/core/ouro-a2ui-catalog.mts": {
       "from": "dist/a2ui/ouro-a2ui-catalog.mts",
-      "sha256": "bc241cf9711eb0c019607d7a727a02a4c6c8599eb268b05e2953c52a1ddd36cd"
+      "sha256": "7d4bb33a72ce4d18dd04d1f166639f024006264561477837f4b6e63e6d16bf37"
     },
     "vendor/core/a2ui/catalog.json": {
       "from": "dist/hx/a2ui/catalog.json",
-      "sha256": "63114ca8937d25a34cf30bae46a4c6c97dda383aecfa5823daaa325b7d53e267"
+      "sha256": "576ad722f8f19fe2cd2f6f548a5bca726604f20dd514a99c7accffddc14e8f82"
     },
     "src/Ouro.UI.Windows/Vendor/OuroTokens.cs": {
       "from": "dist/windows/OuroTokens.cs",
-      "sha256": "0a28ef809657c7f17051aa293ce3ebcb2ebf2e76f9224f518aa9e0906b1d5925"
+      "sha256": "a5ef2bee4124101088030e99d65a49ca8758a073b4a994cc878d484c21004801"
     },
     "src/Ouro.UI.Windows/Vendor/OuroTokens.xaml": {
       "from": "dist/windows/OuroTokens.xaml",
-      "sha256": "4e58e93348d9c3e01d58a0f2bd23d5714f109c2058fd5a17976a3d5ae9cd4766"
+      "sha256": "9a78b80b587ed5ab8cbb8c9dd0f0d31b269947fd7cdf60b3a9caa56fa697af48"
     },
     "vendor/core/a2ui/conformance/recipe.catalog.json": {
       "from": "standard/hx/a2ui/conformance/recipe.catalog.json",
       "source": "tag",
-      "sha256": "adfffa63ae281cc784ed40898a0d098c86d7145b80bd46e1545a9876093747a3"
+      "sha256": "fde5df7ba2fcacc7153cb3a43c050262c094145e7eaaaec4cd213ba3b2fee9fd"
     },
     "vendor/core/a2ui/conformance/cases/action-buttons.json": {
       "from": "standard/hx/a2ui/conformance/cases/action-buttons.json",

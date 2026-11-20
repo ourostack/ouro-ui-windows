@@ -68,6 +68,19 @@ public sealed record OuroActionCatalog(string Set, string Scheme, string Server,
 {
     /// <summary>The action with this id, or null.</summary>
     public OuroActionInfo? Find(string id) => Actions.FirstOrDefault(a => a.Id == id);
+
+    /// <summary>
+    /// The question a person is asked before the action runs: the one its declaration gives as <c>confirm</c> (carried in the
+    /// MCP tool's <c>_meta["ouro.bot/confirm"]</c>), else its description, so the prompt says what the button and the other
+    /// doors say.
+    /// </summary>
+    public string ConfirmText(OuroActionInfo action)
+    {
+        foreach (var tool in JsonNode.Parse(McpToolsJson)!.AsArray())
+            if (tool?["name"]?.GetValue<string>() == action.Id && tool["_meta"]?["ouro.bot/confirm"]?.GetValue<string>() is { Length: > 0 } confirm)
+                return confirm;
+        return action.Description;
+    }
 }
 
 /// <summary>How the doors write JSON: as core writes it, without escaping apostrophes or non-ASCII text.</summary>

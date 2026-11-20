@@ -14,11 +14,11 @@ public static partial class OuroMessageBox
     [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "MessageBoxW")]
     private static extern int Show(nint owner, string text, string caption, uint type);
 
-    /// <summary>An <see cref="OuroConfirm"/> that shows the action's label, what was asked and by whom, and Yes or No.</summary>
-    public static OuroConfirm Confirm(string app) => (action, input, call, _) => Task.Run(() =>
+    /// <summary>An <see cref="OuroConfirm"/> that shows the action's label, its declared confirm question, what was asked and by whom, and Yes or No.</summary>
+    public static OuroConfirm Confirm(string app, OuroActionCatalog catalog) => (action, input, call, _) => Task.Run(() =>
     {
         var details = string.Join("\n", input.Where(p => p.Key != "idempotencyKey").Select(p => $"  {p.Key}: {p.Value}"));
-        var text = $"{(call.Caller is { Length: > 0 } c ? c : "An agent")} asks {app} to: {action.Description}\n{(details.Length > 0 ? details + "\n" : "")}\nDo you want this?";
+        var text = $"{(call.Caller is { Length: > 0 } c ? c : "An agent")} asks {app} to: {catalog.ConfirmText(action)}\n{(details.Length > 0 ? details + "\n" : "")}\nDo you want this?";
         return Show(0, text, $"{app}: {action.Label}", YesNo | Question | DefaultSecond | Foreground | Topmost) == Yes;
     });
 }

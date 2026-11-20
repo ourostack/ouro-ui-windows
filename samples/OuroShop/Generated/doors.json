@@ -1,5 +1,5 @@
 {
-  "generator": "ouro-actions-windows 0.21.0",
+  "generator": "ouro-actions-windows 1.2.0",
   "set": "shopping",
   "actions": {
     "add_shopping_list_item": {
@@ -11,6 +11,11 @@
       },
       "appAction": {
         "carries": true
+      },
+      "text": {
+        "label": "Add to list",
+        "description": "Add an item to your shopping list.",
+        "agent": "Add one item to the person's shopping list. Give the name as the person said it; leave quantity out when they gave none."
       }
     },
     "share_shopping_list": {
@@ -22,6 +27,12 @@
       },
       "appAction": {
         "carries": true
+      },
+      "text": {
+        "label": "Share list",
+        "description": "Share your shopping list with someone in your household.",
+        "agent": "Share the person's shopping list with another person, who can then see and change it. The person confirms first.",
+        "confirm": "Share your shopping list with someone in your household."
       }
     },
     "place_grocery_order": {
@@ -35,6 +46,11 @@
       "appAction": {
         "carries": false,
         "why": "person-only: only the person starts it, so every agent door answers the typed refusal"
+      },
+      "text": {
+        "label": "Place order",
+        "description": "Order everything on your list and pay for it.",
+        "agent": "Order the shopping list's items for delivery and pay for them."
       }
     }
   }

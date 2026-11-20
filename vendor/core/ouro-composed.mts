@@ -185,6 +185,8 @@ export interface CatalogAction {
   press: Press;
   label: string;
   description: string;
+  /** For a consequential action: the question its confirm card asks, word for word (`actionText`); the description when absent. */
+  confirm?: string;
   input: Record<string, { label: string; kind: "string" | "number" | "integer" | "boolean" | "enum"; optional: boolean; values?: string[]; shownAs?: string }>;
   /** For a person-only action: where the person does it, and the refusal every agent door answers. */
   personOnly?: { how: string; refusal: Refusal };
@@ -197,9 +199,48 @@ export interface Catalog {
   actions: Record<string, CatalogAction>;
 }
 
-/** HX's components, plus ActionButton when the catalog has actions. A catalog can't widen HX's specs. */
-export const componentsFor = (actions: Readonly<Record<string, CatalogAction>>): Record<string, ComponentSpec> =>
-  Object.keys(actions).length ? { ...COMPONENTS, ActionButton: ACTION_BUTTON } : { ...COMPONENTS };
+/**
+ * HX's components, plus ActionButton when the catalog has actions, plus the app's own `local` components. A catalog
+ * can't widen or replace HX's specs: a local component has a name HX doesn't (`localComponentProblems`).
+ */
+export const componentsFor = (actions: Readonly<Record<string, CatalogAction>>, local: Readonly<Record<string, ComponentSpec>> = {}): Record<string, ComponentSpec> => ({
+  ...COMPONENTS,
+  ...(Object.keys(actions).length ? { ActionButton: ACTION_BUTTON } : {}),
+  ...local,
+});
+
+const LOCAL_KINDS = ["string", "strings", "children", "enum", "boolean", "level", "terms"];
+
+/**
+ * Why an app's own components can't join its catalog, or an empty list when they can. A local component is data, a
+ * name, a line for the agent and typed props; it draws with a renderer the app registers, so it can't hold an action,
+ * an input or a data binding, which are what carry consent, and it can't take HX's name.
+ */
+export function localComponentProblems(local: unknown): string[] {
+  if (!isObj(local)) return ["components is an object of { name: spec }."];
+  const problems: string[] = [];
+  for (const [name, spec] of Object.entries(local)) {
+    const at = `component ${name}`;
+    if (!/^[A-Z][A-Za-z0-9]*$/.test(name)) problems.push(`${at}: a name starts with a capital letter and holds letters and digits.`);
+    if (Object.hasOwn(COMPONENTS, name) || name === "ActionButton") problems.push(`${at}: ${name} is Ouro HX's. Fix: give your own component another name, such as App${name}.`);
+    if (!isObj(spec) || typeof spec.description !== "string" || !spec.description || !isObj(spec.props)) {
+      problems.push(`${at}: is { description, props }.`);
+      continue;
+    }
+    for (const [key, prop] of Object.entries(spec.props)) {
+      if (!/^[a-z][A-Za-z0-9]*$/.test(key) || key in Object.prototype) {
+        problems.push(`${at}: prop ${key} starts with a lower-case letter, holds letters and digits, and isn't a built-in such as constructor or toString.`);
+        continue;
+      }
+      const t = isObj(prop) && isObj(prop.type) ? prop.type : undefined;
+      if (!isObj(prop) || typeof prop.description !== "string" || !t || typeof t.kind !== "string") problems.push(`${at}: prop ${key} is { description, type: { kind } }.`);
+      else if (!LOCAL_KINDS.includes(t.kind)) problems.push(`${at}: prop ${key} is ${t.kind}; a local component's props are ${LOCAL_KINDS.join(", ")}.`);
+      else if (t.kind === "enum" && !(Array.isArray(t.values) && t.values.length > 0 && t.values.every((v) => typeof v === "string") && t.values.includes(t.default as string))) problems.push(`${at}: prop ${key} is an enum with values and a default among them.`);
+      else if ((t.kind === "boolean" && typeof t.default !== "boolean") || (t.kind === "level" && ![1, 2, 3].includes(t.default as number))) problems.push(`${at}: prop ${key} needs its default.`);
+    }
+  }
+  return problems;
+}
 
 /** Why an agent can't press a button through the screen, whatever the format asked: agents use their own doors. */
 export function agentPressProblem(cat: Catalog, name: unknown): { message: string; refusal?: Refusal } {
@@ -342,7 +383,7 @@ export function actionButtonProps(cat: Catalog, action: string, prepared: Obj, o
   const a = cat.actions[action]!;
   const input: Obj = a.personOnly ? {} : prepared;
   const props: Obj = { action, label: a.label, consent: a.consent, press: a.press, input };
-  if (a.press === "confirm") props.confirm = { title: a.label, description: a.description, fields: confirmFields(action, a, input, options) };
+  if (a.press === "confirm") props.confirm = { title: a.label, description: a.confirm ?? a.description, fields: confirmFields(action, a, input, options) };
   if (a.personOnly) props.handoff = a.personOnly.how;
   return props;
 }
@@ -467,7 +508,7 @@ export function validateTree(cat: Catalog, node: unknown, path = ""): TreeProble
           }
           if (a.press === "confirm") {
             const c = props.confirm;
-            if (!isObj(c) || c.title !== a.label || c.description !== a.description || !Array.isArray(c.fields)) problems.push({ path: `${at}/props/confirm`, message: `${id} confirms, with the catalog's title and description and a row per prepared input.` });
+            if (!isObj(c) || c.title !== a.label || c.description !== (a.confirm ?? a.description) || !Array.isArray(c.fields)) problems.push({ path: `${at}/props/confirm`, message: `${id} confirms, with the catalog's title and description and a row per prepared input.` });
             else confirmRowProblems(problems, id, a, input as Obj, c.fields, `${at}/props/confirm/fields`);
           } else if (props.confirm !== undefined) problems.push({ path: `${at}/props/confirm`, message: `${id} doesn't confirm; only a consequential action does.` });
         }

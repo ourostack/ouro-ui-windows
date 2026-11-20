@@ -111,6 +111,9 @@
                 "readOnlyHint": false,
                 "destructiveHint": true,
                 "openWorldHint": true
+              },
+              "_meta": {
+                "ouro.bot/confirm": "Share your shopping list with someone in your household."
               }
             }
           ]

@@ -5,5 +5,5 @@ using OuroShop;
 using OuroShop.Actions;
 
 var audit = new OuroJsonlAudit(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "OuroShop", "audit.jsonl"));
-var runtime = new OuroActionRuntime(OuroActions.Catalog, ShoppingHandler.Handle, audit) { Confirm = OuroMessageBox.Confirm("Ouro Shop") };
+var runtime = new OuroActionRuntime(OuroActions.Catalog, ShoppingHandler.Handle, audit) { Confirm = OuroMessageBox.Confirm("Ouro Shop", OuroActions.Catalog) };
 await new OuroMcpServer(runtime).RunAsync(Console.OpenStandardInput(), Console.OpenStandardOutput());
