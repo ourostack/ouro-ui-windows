@@ -22,7 +22,7 @@ const json = async (p: string) => {
 const vendor = new URL("../vendor/core/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const claims = (await json(join(vendor, "components.claims.json")))?.claims as { id: string; tier: string; appliesTo: string[] }[];
 /** The components this kit ships. Core specs more; each one joins here when its control does, with a check for each claim. */
-const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list"];
+const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs"];
 const specs = (await Promise.all((await readdir(join(vendor, "components"))).filter((f) => f.endsWith(".spec.json")).map((f) => json(join(vendor, "components", f))))).filter((s: any) => KIT.includes(s?.name));
 const missing = KIT.filter((k) => !specs.some((s: any) => s.name === k));
 if (missing.length) {
@@ -63,6 +63,7 @@ const all = (xs: { ok: boolean; why: string }[], what: string): Result =>
 const inside = (a: any, b: any) => Boolean(a && b) && a.x >= b.x - 1 && a.y >= b.y - 1 && a.x + a.width <= b.x + b.width + 1 && a.y + a.height <= b.y + b.height + 1;
 /** What UI Automation must see for each component (its spec's accessibility.windows). */
 const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[] }) => boolean> = {
+  tabs: ({ e, r, page }) => e.controlType === "ControlType.TabItem" && Boolean(e.name) && tabList(page, r)?.controlType === "ControlType.Tab" && Boolean(tabList(page, r)?.name),
   button: ({ e }) => e.controlType === "ControlType.Button" && Boolean(e.name) && e.isKeyboardFocusable,
   badge: ({ e }) => e.controlType === "ControlType.Text" && Boolean(e.name) && !e.isKeyboardFocusable,
   card: ({ e }) => e.controlType === "ControlType.Group" && Boolean(e.name),
@@ -75,6 +76,8 @@ const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[
     e.controlType === "ControlType.List" && Number(r.items) > 0 && Boolean(e.rect) &&
     page.filter((x) => x.controlType === "ControlType.ListItem" && /., ./.test(x.name ?? "") && inside(x.rect, e.rect)).length === Number(r.items),
 };
+/** The tab list of a tab item, found on its page by the id the item reports. */
+const tabList = (page: any[], r: Record<string, string>) => page.find((x) => x.automationId === r.list);
 /** The colour pairs each component draws, from its self-report: words at 4.5:1, and edges and marks a person must see at 3:1. */
 const pairs = (r: Record<string, string>): [string, string, string, number][] => {
   switch (r.kind) {
@@ -87,6 +90,8 @@ const pairs = (r: Record<string, string>): [string, string, string, number][] =>
       return [["label", r.label!, r.behind!, 4.5], ["description", r.description!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3], ...(r.state === "off" ? [] : [["tick", r.tick!, r.checked!, 3] as [string, string, string, number]])];
     case "separator":
       return r.labelled === "true" ? [["label", r.label!, r.behind!, 4.5]] : [];
+    case "tabs":
+      return [["label", r.label!, r.behind!, 4.5], ...(r.selected === "true" ? [["line", r.line!, r.behind!, 3] as [string, string, string, number]] : [])];
     case "description-list":
       return [["term", r.term!, r.behind!, 4.5], ["details", r.details!, r.behind!, 4.5]];
     default:

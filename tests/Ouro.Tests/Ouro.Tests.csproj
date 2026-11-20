@@ -17,5 +17,7 @@
     <Compile Include="..\..\samples\OuroShop\Shared\ShoppingHandler.cs" Link="Generated\ShoppingHandler.cs" />
     <!-- The colour rules, which are plain arithmetic, tested over every theme core ships. -->
     <Compile Include="..\..\src\Ouro.UI.Windows\OuroPaint.cs" Link="Kit\OuroPaint.cs" />
+    <!-- Which tab a key moves to, also plain arithmetic. -->
+    <Compile Include="..\..\src\Ouro.UI.Windows\OuroNav.cs" Link="Kit\OuroNav.cs" />
   </ItemGroup>
 </Project>
