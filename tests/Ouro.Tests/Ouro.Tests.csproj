@@ -19,5 +19,6 @@
     <Compile Include="..\..\src\Ouro.UI.Windows\OuroPaint.cs" Link="Kit\OuroPaint.cs" />
     <!-- Which tab a key moves to, also plain arithmetic. -->
     <Compile Include="..\..\src\Ouro.UI.Windows\OuroNav.cs" Link="Kit\OuroNav.cs" />
+    <Compile Include="..\..\src\Ouro.UI.Windows\OuroPanelRules.cs" Link="Kit\OuroPanelRules.cs" />
   </ItemGroup>
 </Project>

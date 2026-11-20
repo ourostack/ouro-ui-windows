@@ -20,7 +20,7 @@ public sealed class MainWindow : Window
     private readonly TextBlock status;
     private readonly TextBlock data = new() { TextWrapping = TextWrapping.Wrap };
 
-    /// <param name="page">"list" (the default), "gallery", "fields", "nav", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
+    /// <param name="page">"list" (the default), "gallery", "fields", "nav", "overlays", "confirms", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
     public MainWindow(string page = "list")
     {
         Title = "Ouro Shop";
@@ -99,6 +99,8 @@ public sealed class MainWindow : Window
             "gallery" => Column(16, gallery, status),
             "fields" => Column(16, Fields(), status),
             "nav" => Column(16, Navigation(), status),
+            "overlays" => Column(16, Overlays(), status),
+            "confirms" => Column(16, Confirms(), status),
             "composed" => Column(16, Composed(), status, data),
             "a2ui" => Column(16, A2UI(), status, data),
             _ => Column(16, heading, list, status),
@@ -296,6 +298,41 @@ public sealed class MainWindow : Window
         row.Children.Add(open);
         row.Children.Add(rail);
         return Id(new OuroCard { Title = "Navigation", Description = "Sidebar, open and as a rail", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = row }, "card.nav");
+    }
+
+    /// <summary>The gallery's fourth page: Dialog and Sheet, already open and drawn in the page, in core's spec cases.</summary>
+    private static OuroCard Overlays()
+    {
+        T Id<T>(T e, string id) where T : FrameworkElement
+        {
+            AutomationProperties.SetAutomationId(e, id);
+            return e;
+        }
+        var share = OuroActions.Catalog.Find("share_shopping_list");
+        var left = Column(16, Id(new OuroDialog { Title = "Rename list", Description = "Pick a name your household will recognise.", PanelContent = new OuroTextField { Label = "List name", Text = "Weekly shop" }, Footer = new OuroButton { Label = "Save" } }, "gallery.dialog.rename"));
+        var right = Column(16,
+            Id(new OuroDialog { Title = "Recipe photo", HideTitle = true, CloseLabel = "Close photo", PanelContent = new TextBlock { Text = "A lemon tart.", TextWrapping = TextWrapping.Wrap } }, "gallery.dialog.hidden"),
+            Id(new OuroSheet { Title = "Filters", Description = "Narrow the recipes.", Side = OuroSheetSide.Bottom, PanelContent = new OuroCheckbox { Label = "Vegetarian" } }, "gallery.sheet.filters"));
+        Grid.SetColumn(right, 1);
+        var panels = new Grid { ColumnSpacing = 16, MinWidth = 720, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition() }, Children = { left, right } };
+        return Id(new OuroCard { Title = "Overlays", Description = "Dialog and Sheet", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = panels }, "card.overlays");
+    }
+
+    /// <summary>The gallery's fifth page: ConfirmDialog, asking about a declared action and about a step that can't be undone.</summary>
+    private static OuroCard Confirms()
+    {
+        T Id<T>(T e, string id) where T : FrameworkElement
+        {
+            AutomationProperties.SetAutomationId(e, id);
+            return e;
+        }
+        var share = OuroActions.Catalog.Find("share_shopping_list");
+        var left = Column(16,
+            Id(new OuroConfirmDialog { Title = "Share your list?", ConfirmLabel = "Share", Action = share, Catalog = OuroActions.Catalog }, "gallery.confirm.share"));
+        var right = Column(16, Id(new OuroConfirmDialog { Title = "Delete this recipe?", Description = "This can't be undone.", ConfirmLabel = "Delete", Tone = OuroTone.Destructive }, "gallery.confirm.delete"));
+        Grid.SetColumn(right, 1);
+        var panels = new Grid { ColumnSpacing = 16, MinWidth = 720, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition() }, Children = { left, right } };
+        return Id(new OuroCard { Title = "Confirmations", Description = "ConfirmDialog", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = panels }, "card.confirms");
     }
 
     private OuroItem Item(string title, string description, string glyph, UIElement badge, bool pressable)
