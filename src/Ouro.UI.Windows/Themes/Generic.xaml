@@ -328,6 +328,22 @@
         </Setter>
     </Style>
 
+    <Style TargetType="local:OuroSelect">
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:OuroSelect">
+                    <StackPanel Spacing="6">
+                        <TextBlock x:Name="LabelText" TextWrapping="Wrap" FontWeight="SemiBold" AutomationProperties.AccessibilityView="Raw" />
+                        <TextBlock x:Name="DescriptionText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
+                        <ComboBox x:Name="Box" HorizontalAlignment="Stretch" />
+                        <TextBlock x:Name="ErrorText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
+                    </StackPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style TargetType="local:OuroSwitch">
         <Setter Property="UseSystemFocusVisuals" Value="True" />
         <Setter Property="FocusVisualMargin" Value="-3" />
