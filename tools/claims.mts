@@ -146,7 +146,7 @@ const NO_SCALE = ["select"];
 const STACKS = ["card", "item", "description-list", "dialog", "sheet", "confirm-dialog"];
 
 const checks: Record<string, (kind: string) => Result> = {
-  "name.spoken": (kind) => all(of("light", kind).map((x) => ({ ok: spoken[kind]!(x), why: `${key(x)}: ${x.e.controlType} "${x.e.name}" focusable ${x.e.isKeyboardFocusable}` })), `${kind}s named and typed as the spec says`),
+  "name.spoken": (kind) => all(of("light", kind).map((x) => ({ ok: spoken[kind]!(x), why: `${key(x)}: ${x.e.controlType} "${x.e.name}" focusable ${x.e.isKeyboardFocusable} help "${x.e.helpText ?? ""}"` })), `${kind}s named and typed as the spec says`),
   "dismiss.reachable": (kind) => all(of("light", kind).map((x) => { const b = named(x.page, x.e, x.r.close); return { ok: Boolean(b) && b.isKeyboardFocusable, why: `${key(x)}: close "${x.r.close}" ${b ? `found, focusable ${b.isKeyboardFocusable}` : "not found inside it"}` }; }), `${kind}s with a named Close button a screen reader reaches`),
   "target.touch": (kind) => PANELS.includes(kind)
     ? all(of("light", kind).flatMap((x) => { const bs = buttonsIn(x.page, x.e); return bs.length === 0 ? [{ ok: false, why: `${key(x)} has no buttons` }] : bs.map((b) => ({ ok: b.rect.width / x.dpi >= 44 && b.rect.height / x.dpi >= 44, why: `${key(x)} "${b.name}" ${(b.rect.width / x.dpi).toFixed(0)}x${(b.rect.height / x.dpi).toFixed(0)} epx` })); }), `${kind} buttons at least 44x44 epx`)
