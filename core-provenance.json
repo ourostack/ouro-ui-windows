@@ -1,9 +1,9 @@
 {
-  "coreTag": "v1.2.0",
+  "coreTag": "v1.3.0",
   "files": {
     "vendor/core/ouro-actions.mts": {
       "from": "dist/actions/ouro-actions.mts",
-      "sha256": "94de3473404e37776d2686785756d08cb42692c444bec1b307efc77001bc5cf4"
+      "sha256": "ccd24fb0539e7cceb50a7db3e9b2e7c720650cbafb69669bb9199d7e52735030"
     },
     "vendor/core/ouro-actions-windows.mts": {
       "from": "dist/actions/ouro-actions-windows.mts",
@@ -11,7 +11,7 @@
     },
     "vendor/core/components.claims.json": {
       "from": "dist/hx/components.claims.json",
-      "sha256": "67648917e86d330556f6221d449f14bf339331ce168c6fff0df379ba59cfc160"
+      "sha256": "1f27b73a9e9a42a337f9422c359e1e097de894dcfd7e7115c0a402b6baa1024b"
     },
     "vendor/core/components/component.schema.json": {
       "from": "dist/hx/components/component.schema.json",
@@ -49,6 +49,18 @@
       "from": "dist/hx/components/description-list.spec.json",
       "sha256": "11cac2a8e2f6295f0206a1d23b2cf9ef10e3a252152b1cb1ec6e89e7f5874d69"
     },
+    "vendor/core/components/tabs.spec.json": {
+      "from": "dist/hx/components/tabs.spec.json",
+      "sha256": "03dc31c76ed1609cec921e1081754a74dbdde5132c9d08fd40fe09b7808a72d8"
+    },
+    "vendor/core/components/tab-bar.spec.json": {
+      "from": "dist/hx/components/tab-bar.spec.json",
+      "sha256": "b7f3fd9721f9d84ed71ad732b13b8695144f0eed6cf1db828b8628d996e83c79"
+    },
+    "vendor/core/components/sidebar.spec.json": {
+      "from": "dist/hx/components/sidebar.spec.json",
+      "sha256": "d8c14dbd9c626f90366209794ac1fd61a607647e50ef2168ecdecfaaa660f19f"
+    },
     "vendor/core/ouro-composed.mts": {
       "from": "dist/composed/ouro-composed.mts",
       "sha256": "33d62bd7d35c7f7e63e16861bb7bf9cbab27c3892e7893168cb3dd6c063f1d51"
@@ -67,20 +79,20 @@
     },
     "vendor/core/a2ui/catalog.json": {
       "from": "dist/hx/a2ui/catalog.json",
-      "sha256": "576ad722f8f19fe2cd2f6f548a5bca726604f20dd514a99c7accffddc14e8f82"
+      "sha256": "6c241991ad8a6416d08a68db3a7969d20754319d2217fce42a6bc4441423aadb"
     },
     "src/Ouro.UI.Windows/Vendor/OuroTokens.cs": {
       "from": "dist/windows/OuroTokens.cs",
-      "sha256": "a5ef2bee4124101088030e99d65a49ca8758a073b4a994cc878d484c21004801"
+      "sha256": "bf647400b12f0cef3a15e39098ceef628a64adbefa9dca6595ea30c4925ffe6a"
     },
     "src/Ouro.UI.Windows/Vendor/OuroTokens.xaml": {
       "from": "dist/windows/OuroTokens.xaml",
-      "sha256": "9a78b80b587ed5ab8cbb8c9dd0f0d31b269947fd7cdf60b3a9caa56fa697af48"
+      "sha256": "a37605db492b3cea477f36208540096c4cb259ba4afd22704ec5b31cde6ea1cc"
     },
     "vendor/core/a2ui/conformance/recipe.catalog.json": {
       "from": "standard/hx/a2ui/conformance/recipe.catalog.json",
       "source": "tag",
-      "sha256": "fde5df7ba2fcacc7153cb3a43c050262c094145e7eaaaec4cd213ba3b2fee9fd"
+      "sha256": "ee3cd53417b1742194030b7fb779aba56bc926ebfe90a1f70d4cf9aa0b3bac9a"
     },
     "vendor/core/a2ui/conformance/cases/action-buttons.json": {
       "from": "standard/hx/a2ui/conformance/cases/action-buttons.json",
