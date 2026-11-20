@@ -13,6 +13,24 @@ public class RuntimeTests
     private static OuroCall Call(string id, string json, OuroDoor door) => new(id, JsonNode.Parse(json)!.AsObject(), door);
 
     [Fact]
+    public void Every_action_shows_the_words_its_declaration_gave_core_in_doors_json()
+    {
+        var dir = AppContext.BaseDirectory;
+        while (dir is not null && !File.Exists(Path.Combine(dir, "samples", "OuroShop", "Generated", "doors.json"))) dir = Path.GetDirectoryName(dir);
+        var doors = JsonNode.Parse(File.ReadAllText(Path.Combine(dir!, "samples", "OuroShop", "Generated", "doors.json")))!["actions"]!.AsObject();
+        Assert.NotEmpty(OuroActions.Catalog.Actions);
+        foreach (var action in OuroActions.Catalog.Actions)
+        {
+            var text = doors[action.Id]!["text"]!;
+            Assert.Equal(text["label"]!.GetValue<string>(), action.Label);
+            Assert.Equal(text["description"]!.GetValue<string>(), action.Description);
+            Assert.Equal(text["agent"]!.GetValue<string>(), action.Agent);
+            if (action.Consent == OuroConsent.PersonOnly) continue;
+            Assert.Equal((text["confirm"] ?? text["description"])!.GetValue<string>(), OuroActions.Catalog.ConfirmText(action));
+        }
+    }
+
+    [Fact]
     public async Task A_person_only_action_is_refused_at_every_agent_door_with_cores_refusal_byte_for_byte()
     {
         var runtime = Runtime();
