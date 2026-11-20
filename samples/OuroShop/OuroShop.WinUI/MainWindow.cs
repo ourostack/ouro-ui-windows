@@ -240,9 +240,10 @@ public sealed class MainWindow : Window
             return e;
         }
         var fields = Column(16,
-            Id(new OuroTextField { Label = "Email", Type = OuroTextFieldType.Email, IsRequired = true, Description = "We send your recipes here.", Placeholder = "you@example.com" }, "gallery.textfield.email"),
-            Id(new OuroTextField { Label = "Recipe title", Error = "Give the recipe a title." }, "gallery.textfield.error"),
-            Id(new OuroTextField { Label = "Note", IsMultiline = true, Text = "Use the ripe lemons first." }, "gallery.textfield.note"));
+            Id(new OuroTextField { Label = "Email", Type = OuroTextFieldType.Email, IsRequired = true, Description = "We send your recipes here.", Placeholder = "you@example.com" }, "gallery.text-field.email-with-description"),
+            Id(new OuroTextField { Label = "Password", Type = OuroTextFieldType.Password, Text = "lemon-orzo" }, "gallery.text-field.password"),
+            Id(new OuroTextField { Label = "Recipe title", Error = "Give the recipe a title." }, "gallery.text-field.with-error"),
+            Id(new OuroTextField { Label = "Note", IsMultiline = true, Text = "Use the ripe lemons first." }, "gallery.text-field.note"));
         var choices = Column(4,
             Id(new OuroCheckbox { Label = "I agree to the terms", IsRequired = true }, "gallery.checkbox.terms"),
             Id(new OuroCheckbox { Label = "Whole basket", IsChecked = null }, "gallery.checkbox.mixed"),

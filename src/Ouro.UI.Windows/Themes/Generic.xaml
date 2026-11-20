@@ -210,6 +210,50 @@
         </Setter>
     </Style>
 
+    <!-- The same bare box for a password: a PasswordBox, which masks the text; OuroTextField's own Show password
+         button reveals it. -->
+    <Style x:Key="OuroTextFieldSecret" TargetType="PasswordBox">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="PasswordBox">
+                    <Border
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                        <ScrollViewer
+                            x:Name="ContentElement"
+                            Padding="{TemplateBinding Padding}"
+                            Foreground="{TemplateBinding Foreground}"
+                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                            HorizontalScrollMode="Auto"
+                            HorizontalScrollBarVisibility="Hidden"
+                            VerticalScrollMode="Disabled"
+                            VerticalScrollBarVisibility="Disabled"
+                            IsTabStop="False"
+                            ZoomMode="Disabled"
+                            AutomationProperties.AccessibilityView="Raw" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- The buttons at the end of a field's box (Clear, Show password): a bare button with its own focus ring. -->
+    <Style x:Key="OuroTextFieldAdornment" TargetType="Button">
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="FocusVisualMargin" Value="-3" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Background="Transparent">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Content="{TemplateBinding Content}" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style TargetType="local:OuroTextField">
         <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Template">
@@ -220,11 +264,20 @@
                         <TextBlock x:Name="DescriptionText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
                         <Grid>
                             <TextBox x:Name="Input" Style="{StaticResource OuroTextFieldInput}" />
+                            <PasswordBox x:Name="Secret" Style="{StaticResource OuroTextFieldSecret}" Visibility="Collapsed" PasswordRevealMode="Hidden" />
                             <TextBlock
                                 x:Name="PlaceholderText"
                                 IsHitTestVisible="False"
                                 TextTrimming="CharacterEllipsis"
                                 AutomationProperties.AccessibilityView="Raw" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                                <Button x:Name="ClearButton" Style="{StaticResource OuroTextFieldAdornment}" Visibility="Collapsed">
+                                    <FontIcon x:Name="ClearGlyph" Glyph="&#xE711;" FontSize="14" AutomationProperties.AccessibilityView="Raw" />
+                                </Button>
+                                <Button x:Name="RevealButton" Style="{StaticResource OuroTextFieldAdornment}" Visibility="Collapsed">
+                                    <FontIcon x:Name="RevealGlyph" Glyph="&#xE7B3;" FontSize="14" AutomationProperties.AccessibilityView="Raw" />
+                                </Button>
+                            </StackPanel>
                         </Grid>
                         <TextBlock x:Name="ErrorText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
                     </StackPanel>
