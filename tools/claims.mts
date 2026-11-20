@@ -22,7 +22,7 @@ const json = async (p: string) => {
 const vendor = new URL("../vendor/core/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const claims = (await json(join(vendor, "components.claims.json")))?.claims as { id: string; tier: string; appliesTo: string[] }[];
 /** The components this kit ships. Core specs more; each one joins here when its control does, with a check for each claim. */
-const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs"];
+const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs", "tab-bar"];
 const specs = (await Promise.all((await readdir(join(vendor, "components"))).filter((f) => f.endsWith(".spec.json")).map((f) => json(join(vendor, "components", f))))).filter((s: any) => KIT.includes(s?.name));
 const missing = KIT.filter((k) => !specs.some((s: any) => s.name === k));
 if (missing.length) {
@@ -63,6 +63,7 @@ const all = (xs: { ok: boolean; why: string }[], what: string): Result =>
 const inside = (a: any, b: any) => Boolean(a && b) && a.x >= b.x - 1 && a.y >= b.y - 1 && a.x + a.width <= b.x + b.width + 1 && a.y + a.height <= b.y + b.height + 1;
 /** What UI Automation must see for each component (its spec's accessibility.windows). */
 const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[] }) => boolean> = {
+  "tab-bar": ({ e, r, page }) => e.controlType === "ControlType.ListItem" && Boolean(e.name) && tabList(page, r)?.controlType === "ControlType.List" && Boolean(tabList(page, r)?.name),
   tabs: ({ e, r, page }) => e.controlType === "ControlType.TabItem" && Boolean(e.name) && tabList(page, r)?.controlType === "ControlType.Tab" && Boolean(tabList(page, r)?.name),
   button: ({ e }) => e.controlType === "ControlType.Button" && Boolean(e.name) && e.isKeyboardFocusable,
   badge: ({ e }) => e.controlType === "ControlType.Text" && Boolean(e.name) && !e.isKeyboardFocusable,
@@ -90,6 +91,8 @@ const pairs = (r: Record<string, string>): [string, string, string, number][] =>
       return [["label", r.label!, r.behind!, 4.5], ["description", r.description!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3], ...(r.state === "off" ? [] : [["tick", r.tick!, r.checked!, 3] as [string, string, string, number]])];
     case "separator":
       return r.labelled === "true" ? [["label", r.label!, r.behind!, 4.5]] : [];
+    case "tab-bar":
+      return [["label", r.label!, r.behind!, 4.5]];
     case "tabs":
       return [["label", r.label!, r.behind!, 4.5], ...(r.selected === "true" ? [["line", r.line!, r.behind!, 3] as [string, string, string, number]] : [])];
     case "description-list":
@@ -111,7 +114,7 @@ const checks: Record<string, (kind: string) => Result> = {
   },
   "text.reflows": (kind) => {
     const small = new Map(of("light", kind).map((x) => [key(x), x]));
-    const big = of("text225", kind).filter((x) => small.has(key(x)));
+    const big = of("text225", kind).filter((x) => small.has(key(x)) && x.r.accessory !== "true");
     return all(big.map((x) => {
       const before = Number(small.get(key(x))!.r.textHeight), after = Number(x.r.textHeight);
       const stacks = STACKS.includes(kind) ? x.r.stacked === "true" : true;

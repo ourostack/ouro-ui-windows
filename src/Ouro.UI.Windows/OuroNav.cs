@@ -39,4 +39,10 @@ public static class OuroNav
         }
         return -1;
     }
+
+    /// <summary>The accent wash behind the current item of a tab bar: the accent at 14% over what is behind it.</summary>
+    public static uint Wash(uint behind, uint accent) => OuroPaint.Mix(behind, accent, 0.14);
+
+    /// <summary>The words of the current item: the accent where it reads at 4.5:1 on the wash, otherwise the theme's foreground.</summary>
+    public static uint CurrentWords(uint accent, uint wash, uint foreground) => OuroPaint.Readable(accent, wash, foreground);
 }
