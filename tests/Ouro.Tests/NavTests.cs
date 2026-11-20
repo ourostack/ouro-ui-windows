@@ -59,4 +59,12 @@ public class NavTests
     [InlineData("Recipes", "", false, "Recipes")]
     public void A_sidebar_item_is_named_by_its_label_and_then_its_badge_except_on_the_rail(string label, string badge, bool collapsed, string spoken) =>
         Assert.Equal(spoken, OuroNav.SpokenName(label, badge, collapsed));
+
+    [Theory]
+    [InlineData(null, 1, -1)]
+    [InlineData("b", 0, 1)]
+    [InlineData("c", 0, 0)]
+    [InlineData("gone", 2, 2)]
+    public void Rebuilt_tabs_give_focus_back_to_the_tab_that_held_it_else_the_selected_one(string? focused, int selected, int expected) =>
+        Assert.Equal(expected, OuroNav.FocusTarget(focused, ["a", "b", "c"], [true, true, false], selected));
 }

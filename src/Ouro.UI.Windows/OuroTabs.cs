@@ -118,6 +118,7 @@ public sealed partial class OuroTabs : Control
 
     private void Build()
     {
+        var focused = tabs.FirstOrDefault(t => t.FocusState != FocusState.Unfocused)?.Value;
         tabs.Clear();
         list.Children.Clear();
         list.Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal;
@@ -139,6 +140,8 @@ public sealed partial class OuroTabs : Control
         root.Children.Add(list);
         root.Children.Add(panel);
         Apply();
+        var target = OuroNav.FocusTarget(focused, tabs.Select(t => t.Value).ToList(), tabs.Select(t => t.IsEnabled).ToList(), tabs.FindIndex(t => t.IsSelected));
+        if (target >= 0) tabs[target].Focus(FocusState.Keyboard);
     }
 
     private void Apply()
