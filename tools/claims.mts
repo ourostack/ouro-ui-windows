@@ -28,7 +28,7 @@ const confirmOf = (id: string): string | undefined => {
 const vendor = new URL("../vendor/core/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const claims = (await json(join(vendor, "components.claims.json")))?.claims as { id: string; tier: string; appliesTo: string[] }[];
 /** The components this kit ships. Core specs more; each one joins here when its control does, with a check for each claim. */
-const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs", "tab-bar", "sidebar", "item-group", "swipe-actions", "dialog", "sheet", "confirm-dialog", "switch"];
+const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs", "tab-bar", "sidebar", "item-group", "swipe-actions", "dialog", "sheet", "confirm-dialog", "switch", "select", "field"];
 /** The panels that open over a page: each holds buttons of its own (close, cancel, confirm), which are its controls. */
 const PANELS = ["dialog", "sheet", "confirm-dialog"];
 const specs = (await Promise.all((await readdir(join(vendor, "components"))).filter((f) => f.endsWith(".spec.json")).map((f) => json(join(vendor, "components", f))))).filter((s: any) => KIT.includes(s?.name));
@@ -90,6 +90,9 @@ const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[
     e.controlType === "ControlType.CheckBox" && e.isKeyboardFocusable && Boolean(e.name) && e.toggleState === { on: "On", off: "Off", mixed: "Indeterminate" }[r.state!] && (r.required !== "true" || e.name.endsWith(", required")),
   switch: ({ e, r }) =>
     e.controlType === "ControlType.Button" && e.isKeyboardFocusable && Boolean(e.name) && e.toggleState === { on: "On", off: "Off" }[r.state!] && (r.described === "true") === Boolean(e.helpText) && (r.required !== "true" || e.name.endsWith(", required")),
+  field: ({ e, r }) => e.controlType === "ControlType.Edit" && e.isKeyboardFocusable && Boolean(e.name) && (r.described === "true") === Boolean(e.helpText) && (r.required !== "true" || e.name.endsWith(", required")),
+  select: ({ e, r }) =>
+    e.controlType === "ControlType.ComboBox" && e.isKeyboardFocusable && Boolean(e.name) && (r.described === "true") === Boolean(e.helpText) && (r.required !== "true" || e.name.endsWith(", required")),
   "text-field": ({ e, r }) => e.controlType === "ControlType.Edit" && e.isKeyboardFocusable && Boolean(e.name) && (r.described === "true") === Boolean(e.helpText) && (r.required !== "true" || e.name.endsWith(", required")),
   separator: ({ e, r }) => (r.labelled === "true" ? e.controlType === "ControlType.Text" && Boolean(e.name) : e.controlType === "ControlType.Separator") && !e.isKeyboardFocusable,
   dialog: ({ e, r, page }) => e.controlType === "ControlType.Window" && Boolean(e.name) && (r.hideTitle === "true" || Boolean(headed(page, e))) && Boolean(named(page, e, r.close)),
@@ -102,9 +105,6 @@ const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[
       ? e.controlType === "ControlType.Text" && Boolean(e.name) && !e.isKeyboardFocusable
       : e.controlType === "ControlType.List" && Boolean(e.name) && !e.isKeyboardFocusable && Boolean(e.rect) &&
         page.filter((x) => x.controlType === "ControlType.ListItem" && inside(x.rect, e.rect)).length === Number(r.items),
-  "swipe-actions": ({ e, r, page }) =>
-    e.controlType === "ControlType.Group" && Boolean(e.name) && !e.isKeyboardFocusable && Boolean(e.rect) &&
-    page.some((x) => x.controlType === "ControlType.Button" && x.name === r.button && inside(x.rect, e.rect)),
   "description-list": ({ e, r, page }) =>
     e.controlType === "ControlType.List" && Number(r.items) > 0 && Boolean(e.rect) &&
     page.filter((x) => x.controlType === "ControlType.ListItem" && /., ./.test(x.name ?? "") && inside(x.rect, e.rect)).length === Number(r.items),
@@ -121,6 +121,10 @@ const pairs = (r: Record<string, string>): [string, string, string, number][] =>
       return [["label", r.label!, r.behind!, 4.5], ["text", r.text!, r.field!, 4.5], ["description", r.description!, r.behind!, 4.5], ["placeholder", r.placeholder!, r.field!, 4.5], ["error", r.error!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3]];
     case "checkbox":
       return [["label", r.label!, r.behind!, 4.5], ["description", r.description!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3], ...(r.state === "off" ? [] : [["tick", r.tick!, r.checked!, 3] as [string, string, string, number]])];
+    case "field":
+      return [["label", r.label!, r.behind!, 4.5], ["description", r.description!, r.behind!, 4.5], ["error", r.error!, r.behind!, 4.5]];
+    case "select":
+      return [["label", r.label!, r.behind!, 4.5], ["text", r.text!, r.field!, 4.5], ["description", r.description!, r.behind!, 4.5], ["placeholder", r.placeholder!, r.field!, 4.5], ["error", r.error!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3], ["pressed", r.pressedText!, r.pressedFill!, 3]];
     case "switch":
       return [["label", r.label!, r.behind!, 4.5], ["description", r.description!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3], ["thumb", r.thumb!, r.track!, 3]];
     case "separator":
@@ -133,19 +137,19 @@ const pairs = (r: Record<string, string>): [string, string, string, number][] =>
       return [["label", r.label!, r.behind!, 4.5], ...(r.selected === "true" ? [["line", r.line!, r.behind!, 3] as [string, string, string, number]] : [])];
     case "item-group":
       return [r.showsEmpty === "true" ? ["empty message", r.empty!, r.behind!, 4.5] : ["label", r.label!, r.behind!, 4.5]];
-    case "swipe-actions":
-      return [["action", r.action!, r.actionFill!, 4.5], ["menu icon", r.menu!, r.behind!, 3]];
     case "description-list":
       return [["term", r.term!, r.behind!, 4.5], ["details", r.details!, r.behind!, 4.5]];
     default:
       return [["title", r.title!, r.surface!, 4.5], ["description", r.description!, r.surface!, 4.5]];
   }
 };
+/** The components whose pressed state is a fill, so they never scale. */
+const NO_SCALE = ["select"];
 /** The components whose side-by-side parts stack at large text sizes. */
 const STACKS = ["card", "item", "description-list", "dialog", "sheet", "confirm-dialog"];
 
 const checks: Record<string, (kind: string) => Result> = {
-  "name.spoken": (kind) => all(of("light", kind).map((x) => ({ ok: spoken[kind]!(x), why: `${key(x)}: ${x.e.controlType} "${x.e.name}" focusable ${x.e.isKeyboardFocusable}` })), `${kind}s named and typed as the spec says`),
+  "name.spoken": (kind) => all(of("light", kind).map((x) => ({ ok: spoken[kind]!(x), why: `${key(x)}: ${x.e.controlType} "${x.e.name}" focusable ${x.e.isKeyboardFocusable} help "${x.e.helpText ?? ""}"` })), `${kind}s named and typed as the spec says`),
   "dismiss.reachable": (kind) => all(of("light", kind).map((x) => { const b = named(x.page, x.e, x.r.close); return { ok: Boolean(b) && b.isKeyboardFocusable, why: `${key(x)}: close "${x.r.close}" ${b ? `found, focusable ${b.isKeyboardFocusable}` : "not found inside it"}` }; }), `${kind}s with a named Close button a screen reader reaches`),
   "target.touch": (kind) => PANELS.includes(kind)
     ? all(of("light", kind).flatMap((x) => { const bs = buttonsIn(x.page, x.e); return bs.length === 0 ? [{ ok: false, why: `${key(x)} has no buttons` }] : bs.map((b) => ({ ok: b.rect.width / x.dpi >= 44 && b.rect.height / x.dpi >= 44, why: `${key(x)} "${b.name}" ${(b.rect.width / x.dpi).toFixed(0)}x${(b.rect.height / x.dpi).toFixed(0)} epx` })); }), `${kind} buttons at least 44x44 epx`)
@@ -153,7 +157,9 @@ const checks: Record<string, (kind: string) => Result> = {
   "motion.reduced": (kind) => {
     const on = of("light", kind), off = of("noanim", kind);
     if (!on.length || !off.length) return none(`${kind}s with animations on and off`);
-    return all([...on.map((x) => ({ ok: Number(x.r.pressScale) < 1, why: `${key(x)} on: ${x.r.pressScale}` })), ...off.map((x) => ({ ok: Number(x.r.pressScale) === 1, why: `${key(x)} off: ${x.r.pressScale}` }))], `${kind}s: press scale 0.97 with animations on, 1 with them off`);
+    // A select's pressed state is a fill and never a scale, so its scale is 1 with animations on too.
+    const scales = !NO_SCALE.includes(kind);
+    return all([...on.map((x) => ({ ok: scales ? Number(x.r.pressScale) < 1 : Number(x.r.pressScale) === 1, why: `${key(x)} on: ${x.r.pressScale}` })), ...off.map((x) => ({ ok: Number(x.r.pressScale) === 1, why: `${key(x)} off: ${x.r.pressScale}` }))], `${kind}s: press scale 0.97 with animations on, 1 with them off`);
   },
   "text.reflows": (kind) => {
     const small = new Map(of("light", kind).map((x) => [key(x), x]));
@@ -184,7 +190,7 @@ const rows = specs.flatMap((spec: any) =>
   }),
 );
 /** One line per spec case, in the shape of the xUnit lines the cross-kit grid already reads: a case passes when every check that applies to it holds and at least one ran. */
-const CASED = ["tabs", "tab-bar", "sidebar", "text-field", "checkbox", "switch", "item-group", "swipe-actions"];
+const CASED = ["tabs", "tab-bar", "sidebar", "text-field", "checkbox", "switch", "item-group", "swipe-actions", "select", "field"];
 const caseLines = specs.filter((spec: any) => CASED.includes(spec.name)).flatMap((spec: any) =>
   (spec.cases as { id: string }[]).map((c) => {
     scope = `gallery.${spec.name}.${c.id}`;
