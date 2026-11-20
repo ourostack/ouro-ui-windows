@@ -254,11 +254,11 @@ public sealed class MainWindow : Window
             Id(new OuroTabs { Label = "Settings", Value = "profile", Vertical = true, Items = new OuroTabItem[] { new("profile", "Profile"), new("billing", "Billing", Disabled: true) }, Content = new TextBlock { Text = "Your profile", Margin = new Thickness(16, 0, 0, 0) } }, "gallery.tabs.vertical-with-disabled"));
         var grid = new Grid { ColumnSpacing = 32, MinWidth = 720, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition() } };
         var tabBars = Column(16,
-            Id(new OuroTabBar { Label = "Main", Current = "Recipes", Width = 360, Items = new OuroTabBarItem[] { new("Home", "\uE80F"), new("Recipes", "\uE8F1"), new("Shopping", "\uE719") }, Accessory = new("Search", "\uE721") }, "gallery.tab-bar.main-with-search"),
-            Id(new OuroTabBar { Label = "Main", Current = "Home", Width = 360, Items = new OuroTabBarItem[] { new("Home", "\uE80F"), new("Settings", "\uE713") } }, "gallery.tab-bar.two-tabs"));
-        var right = Column(16, choices, lines, details, tabs, tabBars);
+            Id(new OuroTabBar { Label = "Main", Current = "Recipes", Width = 320, Items = new OuroTabBarItem[] { new("Home", "\uE80F"), new("Recipes", "\uE8F1"), new("Shopping", "\uE719") }, Accessory = new("Search", "\uE721") }, "gallery.tab-bar.main-with-search"),
+            Id(new OuroTabBar { Label = "Main", Current = "Home", Width = 320, Items = new OuroTabBarItem[] { new("Home", "\uE80F"), new("Settings", "\uE713") } }, "gallery.tab-bar.two-tabs"));
+        var right = Column(16, choices, lines, details, tabs);
         Grid.SetColumn(right, 1);
-        grid.Children.Add(fields);
+        grid.Children.Add(Column(16, fields, tabBars));
         grid.Children.Add(right);
         return Id(new OuroCard { Title = "Fields and lists", Description = "TextField, Checkbox, Separator, DescriptionList, Tabs and TabBar", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = grid }, "card.fields");
     }
