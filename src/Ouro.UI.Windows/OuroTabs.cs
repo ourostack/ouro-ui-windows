@@ -48,7 +48,7 @@ public sealed partial class OuroTabs : Control
         DefaultStyleKey = typeof(OuroTabs);
         IsTabStop = false;
         list.KeyDown += OnListKeyDown;
-        list.XYFocusKeyboardNavigation = XYFocusKeyboardNavigationMode.Disabled;
+        list.XYFocusKeyboardNavigation = Microsoft.UI.Xaml.Input.XYFocusKeyboardNavigationMode.Disabled;
     }
 
     /// <summary>Names the tab list for a screen reader, such as "Recipe sections".</summary>
