@@ -8,7 +8,7 @@
 
 Ouro UI's native kit for Windows: core's components as WinUI 3 controls, and the agent doors (Windows App Actions and an MCP server for the On-device Agent Registry), all generated from [ouro-ui-core](https://github.com/ourostack/ouro-ui-core)'s one `defineAction` declaration.
 
-**Status: v0.5.0.** Nine components (Button, Badge, Card, Item, Checkbox, TextField, Separator, DescriptionList, Tabs), the agent side, and agent cards drawn natively, as Ouro's composed tree or as A2UI messages. The plan is in [the decision record](https://github.com/ourostack/ouro-ui-core/blob/main/docs/decisions/2026-11-14-native-kits.md)'s "Windows v0.1.0" section.
+**Status: v0.5.0.** Ten components (Button, Badge, Card, Item, Checkbox, TextField, Separator, DescriptionList, Tabs, TabBar), the agent side, and agent cards drawn natively, as Ouro's composed tree or as A2UI messages. The plan is in [the decision record](https://github.com/ourostack/ouro-ui-core/blob/main/docs/decisions/2026-11-14-native-kits.md)'s "Windows v0.1.0" section.
 
 ## Agent cards
 
@@ -52,7 +52,7 @@ What's still missing:
 | Package | What it is |
 | --- | --- |
 | `Ouro.Actions` (`src/Ouro.Actions`, plain .NET) | The runtime every door goes through: input checked against the schema, idempotency keys, an audit of every call, a yes from the person before a consequential action an agent prepared, and core's typed refusal for a person-only action at every agent door. Also the App Action URI reader, the MCP server, Ouro's composed tree (`OuroComposed`: core's `composed.mts` in C#, which validates an agent's tree against the app's catalog) and the A2UI adapter (`OuroA2UI`: core's `a2ui.mts` in C#). |
-| `Ouro.UI.Windows` (`src/Ouro.UI.Windows`, WinUI 3) | `OuroComposedSurface`, which draws an agent's card, as a composed tree or as A2UI messages; and `OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator`, `OuroDescriptionList` and `OuroTabs`, from core's specs (`vendor/core/components`) and tokens. Each follows light and dark mode, a Windows contrast theme, the text size and the animation setting. An `OuroButton` with an `Action` runs it through `Ouro.Actions`. |
+| `Ouro.UI.Windows` (`src/Ouro.UI.Windows`, WinUI 3) | `OuroComposedSurface`, which draws an agent's card, as a composed tree or as A2UI messages; and `OuroButton`, `OuroBadge`, `OuroCard`, `OuroItem`, `OuroCheckbox`, `OuroTextField`, `OuroSeparator`, `OuroDescriptionList`, `OuroTabs` and `OuroTabBar`, from core's specs (`vendor/core/components`) and tokens. Each follows light and dark mode, a Windows contrast theme, the text size and the animation setting. An `OuroButton` with an `Action` runs it through `Ouro.Actions`. |
 | Ouro Shop (`samples/OuroShop`) | A shopping list whose buttons people press and agents call, with a gallery of every tone and variant, and of the fields and lists, and a card its agent composed (`--page composed`), and the same card arriving as A2UI messages (`--page a2ui`). The MSIX registers its App Actions and its MCP server. |
 
 ## Use it
@@ -141,6 +141,7 @@ CI runs on the free `windows-latest` runner (`.github/workflows/ci.yml`):
 - Checkbox: mixed is WinUI's `IsChecked = null`. Separator: the default tone, Secondary, draws the border colour; another tone colours the line and its label.
 - DescriptionList: details are words, not views.
 - Tabs: a templated control that follows WinUI's TabView and Pivot semantics (a Tab of TabItems), with no close or add buttons. Every tab is at least 44 epx tall, not the spec's 36 for a mouse, because the claim check runs with a mouse and holds every control to 44.
+- TabBar: a bottom bar is a phone pattern, so on a desktop use a sidebar; the bar is a List of ListItems with SelectionItem, as the spec says. Its items are at least 64 epx tall, and the accessory is a 48 epx circle.
 - Person-only actions: UI Automation can press their buttons. Requiring Windows Hello first is built and off; [docs/person-check.md](docs/person-check.md) is the open decision.
 
 ## How the kits fit together

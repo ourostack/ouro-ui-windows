@@ -41,4 +41,15 @@ public class NavTests
     {
         Assert.Equal(1, OuroNav.Move([false, true], 1, OuroNavKey.Next));
     }
+
+    [Theory]
+    [InlineData(0xFFFFFFFFu, 0xFF2563EBu, 0xFF111111u)]
+    [InlineData(0xFF0B0B0Bu, 0xFF60A5FAu, 0xFFFAFAFAu)]
+    [InlineData(0xFFFFFFFFu, 0xFFFFFF00u, 0xFF000000u)]
+    public void The_current_item_reads_at_4_5_to_1_on_its_wash(uint behind, uint accent, uint foreground)
+    {
+        var wash = OuroNav.Wash(behind, accent);
+        Assert.NotEqual(behind, wash);
+        Assert.True(OuroPaint.Contrast(OuroNav.CurrentWords(accent, wash, foreground), wash) >= 4.5);
+    }
 }
