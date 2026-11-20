@@ -353,7 +353,7 @@ public sealed class MainWindow : Window
         return Id(new OuroCard { Title = "Confirmations", Description = "ConfirmDialog", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = panels }, "card.confirms");
     }
 
-    /// <summary>The gallery's sixth page: Select and Switch, in core's spec cases.</summary>
+    /// <summary>The gallery's sixth page: Field, Select and Switch, in core's spec cases.</summary>
     private static OuroCard Forms()
     {
         T Id<T>(T e, string id) where T : FrameworkElement
@@ -368,7 +368,10 @@ public sealed class MainWindow : Window
         var selects = Column(12,
             Id(new OuroSelect { Label = "Course", Placeholder = "Choose a course", IsRequired = true, Options = courses }, "gallery.select.course"),
             Id(new OuroSelect { Label = "Course", Value = "main", Error = "Main is full.", Options = courses }, "gallery.select.chosen-with-error"));
-        return Id(new OuroCard { Title = "Forms", Description = "Select and switch", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = Column(16, selects, switches) }, "card.forms");
+        var fields = Column(12,
+            new OuroField { Label = "Email", IsRequired = true, Description = "We never share it.", Content = Id(new TextBox(), "gallery.field.email") },
+            new OuroField { Label = "Email", Error = "Enter an email address.", Content = Id(new TextBox(), "gallery.field.with-error") });
+        return Id(new OuroCard { Title = "Forms", Description = "Field, select and switch", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = Column(16, fields, selects, switches) }, "card.forms");
     }
 
     private OuroItem Item(string title, string description, string glyph, UIElement badge, bool pressable)

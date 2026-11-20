@@ -328,6 +328,22 @@
         </Setter>
     </Style>
 
+    <Style TargetType="local:OuroField">
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:OuroField">
+                    <StackPanel Spacing="8">
+                        <TextBlock x:Name="LabelText" TextWrapping="Wrap" FontWeight="SemiBold" AutomationProperties.AccessibilityView="Raw" />
+                        <TextBlock x:Name="DescriptionText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
+                        <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch" />
+                        <TextBlock x:Name="ErrorText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
+                    </StackPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style TargetType="local:OuroSelect">
         <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Template">
