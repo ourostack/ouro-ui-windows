@@ -86,7 +86,7 @@ public sealed partial class OuroSwipeActions : Control
         set { trailing = value; Build(); }
     }
 
-    /// <summary>The colour behind each side's first action, the one a long swipe commits, such as destructive for Delete. The other actions are secondary.</summary>
+    /// <summary>The colour behind each side's first action, the primary one, such as destructive for Delete. The other actions are secondary.</summary>
     public OuroTone Tone
     {
         get => tone;
