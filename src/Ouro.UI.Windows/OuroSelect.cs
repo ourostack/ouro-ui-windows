@@ -76,7 +76,7 @@ public sealed partial class OuroSelect : Control
 
     private IReadOnlyList<OuroSelectOption> options = Array.Empty<OuroSelectOption>();
 
-    /// <summary>An option was chosen; the argument is its value.</summary>
+    /// <summary>A person chose an option; the argument is its value. Setting <see cref="Value"/> in code does not raise it.</summary>
     public event EventHandler<string>? Changed;
 
     private static DependencyProperty Register(string name, System.Type type, object fallback) =>
@@ -95,7 +95,9 @@ public sealed partial class OuroSelect : Control
             {
                 if (syncing) return;
                 var chosen = (box.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
-                if (chosen != Value) Value = chosen;
+                if (chosen == Value) return;
+                Value = chosen;
+                Changed?.Invoke(this, chosen);
             };
             box.GotFocus += (_, _) => Refresh();
             box.LostFocus += (_, _) => Refresh();
@@ -123,7 +125,6 @@ public sealed partial class OuroSelect : Control
             box.SelectedIndex = options.ToList().FindIndex(o => o.Value == Value);
             syncing = false;
         }
-        if (!string.IsNullOrEmpty(Value)) Changed?.Invoke(this, Value);
         Refresh();
     }
 

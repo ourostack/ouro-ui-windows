@@ -121,7 +121,7 @@ const pairs = (r: Record<string, string>): [string, string, string, number][] =>
     case "checkbox":
       return [["label", r.label!, r.behind!, 4.5], ["description", r.description!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3], ...(r.state === "off" ? [] : [["tick", r.tick!, r.checked!, 3] as [string, string, string, number]])];
     case "select":
-      return [["label", r.label!, r.behind!, 4.5], ["text", r.text!, r.field!, 4.5], ["description", r.description!, r.behind!, 4.5], ["placeholder", r.placeholder!, r.field!, 4.5], ["error", r.error!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3], ["pressed", r.pressedText!, r.pressedFill!, 4.5]];
+      return [["label", r.label!, r.behind!, 4.5], ["text", r.text!, r.field!, 4.5], ["description", r.description!, r.behind!, 4.5], ["placeholder", r.placeholder!, r.field!, 4.5], ["error", r.error!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3], ["pressed", r.pressedText!, r.pressedFill!, 3]];
     case "switch":
       return [["label", r.label!, r.behind!, 4.5], ["description", r.description!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3], ["thumb", r.thumb!, r.track!, 3]];
     case "separator":
