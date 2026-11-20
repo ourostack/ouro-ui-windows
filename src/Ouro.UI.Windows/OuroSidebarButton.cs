@@ -109,6 +109,7 @@ public sealed partial class OuroSidebarButton : Button
             expanded = value;
             (FrameworkElementAutomationPeer.FromElement(this) as OuroSidebarButtonAutomationPeer)?.RaiseExpanded(!value, value);
             Refresh();
+            ExpandedChanged?.Invoke();
         }
     }
 
@@ -117,6 +118,9 @@ public sealed partial class OuroSidebarButton : Button
 
     /// <summary>The sidebar this row belongs to, which names it to UI Automation.</summary>
     internal FrameworkElement? Container { get; set; }
+
+    /// <summary>Tells the sidebar to show or hide the rows under this group.</summary>
+    internal Action? ExpandedChanged { get; set; }
 
     /// <summary>What UI Automation's Select and Invoke ask for: the sidebar reports the press.</summary>
     internal Action? Choose { get; set; }

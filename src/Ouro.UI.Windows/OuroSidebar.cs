@@ -159,7 +159,8 @@ public sealed partial class OuroSidebar : Control
             column.Children.Add(b);
         }
         groups.Add((row, nested));
-        row.Click += (_, _) => { row.IsExpanded = !row.IsExpanded; Apply(); };
+        row.ExpandedChanged = Apply;
+        row.Click += (_, _) => row.IsExpanded = !row.IsExpanded;
     }
 
     private OuroSidebarButton Make(OuroSidebarItem item)
