@@ -167,7 +167,7 @@ public sealed partial class OuroTabs : Control
         };
         if (key is not { } k) return;
         var from = tabs.FindIndex(t => t.FocusState != FocusState.Unfocused);
-        var to = OuroNav.Move([.. tabs.Select(t => t.IsEnabled)], from < 0 ? tabs.FindIndex(t => t.IsSelected) : from, k);
+        var to = OuroNav.Move(tabs.Select(t => t.IsEnabled).ToList(), from < 0 ? tabs.FindIndex(t => t.IsSelected) : from, k);
         e.Handled = true;
         if (to >= 0) Choose(tabs[to], true);
     }
