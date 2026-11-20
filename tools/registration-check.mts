@@ -1,4 +1,6 @@
 import { readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 type Extension = { app?: string; category?: string; name?: string; alias?: string; protocol?: string };
 
@@ -28,7 +30,7 @@ export function check(installed: { extensions: Extension[] }, registeredActions:
   return { ok: problems.length === 0, problems, actions, tools, doors };
 }
 
-if (process.argv[1] && import.meta.url === new URL(process.argv[1], "file:").href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const [pkg, registeredActions, generatedActions, registeredMcp, generatedMcp, out] = process.argv.slice(2);
   const result = check(read(pkg), read(registeredActions), read(generatedActions), read(registeredMcp), read(generatedMcp));
   writeFileSync(out, JSON.stringify(result, null, 2));
