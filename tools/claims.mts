@@ -19,10 +19,18 @@ const json = async (p: string) => {
     return null;
   }
 };
+const manifest = await json(new URL("../samples/OuroShop/Generated/mcpb.manifest.json", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
+/** The question the declaration asks before an action runs: the confirm text the MCP tool carries (core's actionText(action).confirm). */
+const confirmOf = (id: string): string | undefined => {
+  const find = (n: any): any => (n && typeof n === "object" ? (n.name === id && n._meta ? n : Object.values(n).map(find).find(Boolean)) : undefined);
+  return find(manifest)?._meta?.["ouro.bot/confirm"];
+};
 const vendor = new URL("../vendor/core/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const claims = (await json(join(vendor, "components.claims.json")))?.claims as { id: string; tier: string; appliesTo: string[] }[];
 /** The components this kit ships. Core specs more; each one joins here when its control does, with a check for each claim. */
-const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs", "tab-bar", "sidebar"];
+const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs", "tab-bar", "sidebar", "dialog", "sheet", "confirm-dialog"];
+/** The panels that open over a page: each holds buttons of its own (close, cancel, confirm), which are its controls. */
+const PANELS = ["dialog", "sheet", "confirm-dialog"];
 const specs = (await Promise.all((await readdir(join(vendor, "components"))).filter((f) => f.endsWith(".spec.json")).map((f) => json(join(vendor, "components", f))))).filter((s: any) => KIT.includes(s?.name));
 const missing = KIT.filter((k) => !specs.some((s: any) => s.name === k));
 if (missing.length) {
@@ -33,7 +41,7 @@ if (missing.length) {
 /** Every dump, by the setting it was taken under. Each holds the list page and the gallery's two pages. */
 const settings = ["light", "dark", "contrast", "noanim", "text225"] as const;
 type Setting = (typeof settings)[number];
-const dumps = Object.fromEntries(await Promise.all(settings.map(async (s) => [s, [await json(join(dir, `uia-${s}.json`)), await json(join(dir, `uia-gallery-${s}.json`)), await json(join(dir, `uia-fields-${s}.json`)), await json(join(dir, `uia-nav-${s}.json`))].filter(Boolean)] as const))) as Record<Setting, any[]>;
+const dumps = Object.fromEntries(await Promise.all(settings.map(async (s) => [s, [await json(join(dir, `uia-${s}.json`)), await json(join(dir, `uia-gallery-${s}.json`)), await json(join(dir, `uia-fields-${s}.json`)), await json(join(dir, `uia-nav-${s}.json`)), await json(join(dir, `uia-overlays-${s}.json`)), await json(join(dir, `uia-confirms-${s}.json`))].filter(Boolean)] as const))) as Record<Setting, any[]>;
 
 const report = (e: any): Record<string, string> => {
   const m = /ouro:([\w-]+);(.*)$/.exec(String(e?.itemStatus ?? ""));
@@ -61,6 +69,11 @@ const all = (xs: { ok: boolean; why: string }[], what: string): Result =>
 
 /** Whether one element's box lies within another's, give or take a pixel. */
 const inside = (a: any, b: any) => Boolean(a && b) && a.x >= b.x - 1 && a.y >= b.y - 1 && a.x + a.width <= b.x + b.width + 1 && a.y + a.height <= b.y + b.height + 1;
+/** The buttons of a panel: the controls inside its box, by name. */
+const buttonsIn = (page: any[], panel: any) => page.filter((b) => b.controlType === "ControlType.Button" && inside(b.rect, panel.rect));
+const named = (page: any[], panel: any, name: string | undefined) => buttonsIn(page, panel).find((b) => b.name === name);
+/** The panel's title is a level 2 heading and, when it has a description, its words are a text inside it. */
+const headed = (page: any[], e: any) => e.name && page.some((h) => h.headingLevel === 2 && h.name === e.name && inside(h.rect, e.rect));
 /** What UI Automation must see for each component (its spec's accessibility.windows). */
 const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[] }) => boolean> = {
   sidebar: ({ e, r, page }) => e.controlType === "ControlType.ListItem" && e.name === r.spokenName && tabList(page, r)?.controlType === "ControlType.List" && Boolean(tabList(page, r)?.name),
@@ -74,6 +87,11 @@ const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[
     e.controlType === "ControlType.CheckBox" && e.isKeyboardFocusable && Boolean(e.name) && e.toggleState === { on: "On", off: "Off", mixed: "Indeterminate" }[r.state!] && (r.required !== "true" || e.name.endsWith(", required")),
   "text-field": ({ e, r }) => e.controlType === "ControlType.Edit" && e.isKeyboardFocusable && Boolean(e.name) && (r.described === "true") === Boolean(e.helpText) && (r.required !== "true" || e.name.endsWith(", required")),
   separator: ({ e, r }) => (r.labelled === "true" ? e.controlType === "ControlType.Text" && Boolean(e.name) : e.controlType === "ControlType.Separator") && !e.isKeyboardFocusable,
+  dialog: ({ e, r, page }) => e.controlType === "ControlType.Window" && Boolean(e.name) && (r.hideTitle === "true" || Boolean(headed(page, e))) && Boolean(named(page, e, r.close)),
+  sheet: ({ e, r, page }) => e.controlType === "ControlType.Pane" && Boolean(e.name) && (r.hideTitle === "true" || Boolean(headed(page, e))) && Boolean(named(page, e, r.close)),
+  "confirm-dialog": ({ e, r, page }) =>
+    e.controlType === "ControlType.Window" && Boolean(e.name) && Boolean(headed(page, e)) && Boolean(named(page, e, r.cancel)) && Boolean(named(page, e, r.confirm)) &&
+    (r.action === "none" || (confirmOf(r.action!) !== undefined && page.some((t) => t.controlType === "ControlType.Text" && t.name === confirmOf(r.action!) && inside(t.rect, e.rect)))),
   "description-list": ({ e, r, page }) =>
     e.controlType === "ControlType.List" && Number(r.items) > 0 && Boolean(e.rect) &&
     page.filter((x) => x.controlType === "ControlType.ListItem" && /., ./.test(x.name ?? "") && inside(x.rect, e.rect)).length === Number(r.items),
@@ -105,11 +123,14 @@ const pairs = (r: Record<string, string>): [string, string, string, number][] =>
   }
 };
 /** The components whose side-by-side parts stack at large text sizes. */
-const STACKS = ["card", "item", "description-list"];
+const STACKS = ["card", "item", "description-list", "dialog", "sheet", "confirm-dialog"];
 
 const checks: Record<string, (kind: string) => Result> = {
   "name.spoken": (kind) => all(of("light", kind).map((x) => ({ ok: spoken[kind]!(x), why: `${key(x)}: ${x.e.controlType} "${x.e.name}" focusable ${x.e.isKeyboardFocusable}` })), `${kind}s named and typed as the spec says`),
-  "target.touch": (kind) => all(of("light", kind).map((x) => !x.e.rect ? { ok: false, why: `${key(x)} not on screen` } : ({ ok: x.e.rect.width / x.dpi >= 44 && x.e.rect.height / x.dpi >= 44, why: `${key(x)} ${(x.e.rect.width / x.dpi).toFixed(0)}x${(x.e.rect.height / x.dpi).toFixed(0)} epx` })), `${kind}s at least 44x44 epx`),
+  "dismiss.reachable": (kind) => all(of("light", kind).map((x) => { const b = named(x.page, x.e, x.r.close); return { ok: Boolean(b) && b.isKeyboardFocusable, why: `${key(x)}: close "${x.r.close}" ${b ? `found, focusable ${b.isKeyboardFocusable}` : "not found inside it"}` }; }), `${kind}s with a named Close button a screen reader reaches`),
+  "target.touch": (kind) => PANELS.includes(kind)
+    ? all(of("light", kind).flatMap((x) => { const bs = buttonsIn(x.page, x.e); return bs.length === 0 ? [{ ok: false, why: `${key(x)} has no buttons` }] : bs.map((b) => ({ ok: b.rect.width / x.dpi >= 44 && b.rect.height / x.dpi >= 44, why: `${key(x)} "${b.name}" ${(b.rect.width / x.dpi).toFixed(0)}x${(b.rect.height / x.dpi).toFixed(0)} epx` })); }), `${kind} buttons at least 44x44 epx`)
+    : all(of("light", kind).map((x) => !x.e.rect ? { ok: false, why: `${key(x)} not on screen` } : ({ ok: x.e.rect.width / x.dpi >= 44 && x.e.rect.height / x.dpi >= 44, why: `${key(x)} ${(x.e.rect.width / x.dpi).toFixed(0)}x${(x.e.rect.height / x.dpi).toFixed(0)} epx` })), `${kind}s at least 44x44 epx`),
   "motion.reduced": (kind) => {
     const on = of("light", kind), off = of("noanim", kind);
     if (!on.length || !off.length) return none(`${kind}s with animations on and off`);
@@ -117,7 +138,8 @@ const checks: Record<string, (kind: string) => Result> = {
   },
   "text.reflows": (kind) => {
     const small = new Map(of("light", kind).map((x) => [key(x), x]));
-    const big = of("text225", kind).filter((x) => small.has(key(x)) && x.r.accessory !== "true" && x.r.collapsed !== "true");
+    // A panel whose title is hidden has no title text to measure (its words are the content's).
+    const big = of("text225", kind).filter((x) => small.has(key(x)) && x.r.accessory !== "true" && x.r.collapsed !== "true" && x.r.hideTitle !== "true");
     return all(big.map((x) => {
       const before = Number(small.get(key(x))!.r.textHeight), after = Number(x.r.textHeight);
       const stacks = STACKS.includes(kind) ? x.r.stacked === "true" : true;
