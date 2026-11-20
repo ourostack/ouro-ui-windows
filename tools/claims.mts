@@ -105,6 +105,9 @@ const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[
       ? e.controlType === "ControlType.Text" && Boolean(e.name) && !e.isKeyboardFocusable
       : e.controlType === "ControlType.List" && Boolean(e.name) && !e.isKeyboardFocusable && Boolean(e.rect) &&
         page.filter((x) => x.controlType === "ControlType.ListItem" && inside(x.rect, e.rect)).length === Number(r.items),
+  "swipe-actions": ({ e, r, page }) =>
+    e.controlType === "ControlType.Group" && Boolean(e.name) && !e.isKeyboardFocusable && Boolean(e.rect) &&
+    page.some((x) => x.controlType === "ControlType.Button" && x.name === r.button && inside(x.rect, e.rect)),
   "description-list": ({ e, r, page }) =>
     e.controlType === "ControlType.List" && Number(r.items) > 0 && Boolean(e.rect) &&
     page.filter((x) => x.controlType === "ControlType.ListItem" && /., ./.test(x.name ?? "") && inside(x.rect, e.rect)).length === Number(r.items),
@@ -137,6 +140,8 @@ const pairs = (r: Record<string, string>): [string, string, string, number][] =>
       return [["label", r.label!, r.behind!, 4.5], ...(r.selected === "true" ? [["line", r.line!, r.behind!, 3] as [string, string, string, number]] : [])];
     case "item-group":
       return [r.showsEmpty === "true" ? ["empty message", r.empty!, r.behind!, 4.5] : ["label", r.label!, r.behind!, 4.5]];
+    case "swipe-actions":
+      return [["action", r.action!, r.actionFill!, 4.5], ["menu icon", r.menu!, r.behind!, 3]];
     case "description-list":
       return [["term", r.term!, r.behind!, 4.5], ["details", r.details!, r.behind!, 4.5]];
     default:
