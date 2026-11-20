@@ -315,10 +315,10 @@ public sealed class MainWindow : Window
         var groups = Column(24,
             Id(new OuroItemGroup { Label = "Recipes", Items = new FrameworkElement[] { Row("Braised short ribs"), Row("Lemon orzo"), Row("Miso soup") } }, "gallery.item-group.divided-three-rows"),
             Id(new OuroItemGroup { Label = "Recipes", Empty = "No recipes yet" }, "gallery.item-group.empty-message"));
-        OuroSwipeActions Swipe() => new() { Label = "Lunch plans", Content = new TextBlock { Text = "Lunch plans", TextWrapping = TextWrapping.Wrap, IsTextScaleFactorEnabled = true } };
+        TextBlock Words() => new() { Text = "Lunch plans", TextWrapping = TextWrapping.Wrap, IsTextScaleFactorEnabled = true };
         var swipes = Column(24,
-            Id(new OuroSwipeActions { Label = "Lunch plans", Trailing = "Delete, Archive", Tone = OuroTone.Destructive, Content = Swipe().Content }, "gallery.swipe-actions.trailing-delete"),
-            Id(new OuroSwipeActions { Label = "Lunch plans", ActionsLabel = "More for lunch", Leading = "Pin", Content = Swipe().Content }, "gallery.swipe-actions.named-actions-button"));
+            Id(new OuroSwipeActions { Label = "Lunch plans", Trailing = "Delete, Archive", Tone = OuroTone.Destructive, Content = Words() }, "gallery.swipe-actions.trailing-delete"),
+            Id(new OuroSwipeActions { Label = "Lunch plans", ActionsLabel = "More for lunch", Leading = "Pin", Content = Words() }, "gallery.swipe-actions.named-actions-button"));
         groups = Column(24, groups, swipes);
         return Id(new OuroCard { Title = "Lists", Description = "ItemGroup, SwipeActions", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = groups }, "card.lists");
     }
