@@ -26,4 +26,19 @@ public class ListTests
     [InlineData(0, 0, -1)]
     public void Focus_goes_to_the_row_that_took_the_place_or_the_one_before_when_it_was_last(int removed, int count, int next) =>
         Assert.Equal(next, OuroListRules.FocusAfterRemoval(removed, count));
+
+    [Fact]
+    public void Actions_are_the_trimmed_labels_in_order()
+    {
+        Assert.Equal(["Delete", "Archive"], OuroListRules.Actions(" Delete , Archive,, "));
+        Assert.Empty(OuroListRules.Actions(null));
+    }
+
+    [Fact]
+    public void The_actions_button_is_named_by_the_app_or_by_the_row()
+    {
+        Assert.Equal("Actions for Lunch plans", OuroListRules.ActionsButtonName("Lunch plans", null));
+        Assert.Equal("Actions for Lunch plans", OuroListRules.ActionsButtonName("Lunch plans", ""));
+        Assert.Equal("More for lunch", OuroListRules.ActionsButtonName("Lunch plans", "More for lunch"));
+    }
 }

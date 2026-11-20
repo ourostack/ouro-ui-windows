@@ -27,4 +27,11 @@ public static class OuroListRules
     /// place, or the one before it when it was last, or -1 when none is left.
     /// </summary>
     public static int FocusAfterRemoval(int removed, int count) => count <= 0 ? -1 : Math.Min(Math.Max(removed, 0), count - 1);
+
+    /// <summary>The actions a list of labels names, such as "Delete, Archive": each label trimmed, in order, with empty ones left out.</summary>
+    public static IReadOnlyList<string> Actions(string? labels) =>
+        (labels ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+    /// <summary>The name of a row's actions button: the name the app gave it, else "Actions for {label}".</summary>
+    public static string ActionsButtonName(string label, string? actionsLabel) => string.IsNullOrEmpty(actionsLabel) ? $"Actions for {label}" : actionsLabel;
 }
