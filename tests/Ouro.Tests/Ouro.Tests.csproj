@@ -21,5 +21,6 @@
     <Compile Include="..\..\src\Ouro.UI.Windows\OuroNav.cs" Link="Kit\OuroNav.cs" />
     <Compile Include="..\..\src\Ouro.UI.Windows\OuroPanelRules.cs" Link="Kit\OuroPanelRules.cs" />
     <Compile Include="..\..\src\Ouro.UI.Windows\OuroFormRules.cs" Link="Kit\OuroFormRules.cs" />
+    <Compile Include="..\..\src\Ouro.UI.Windows\OuroListRules.cs" Link="Kit\OuroListRules.cs" />
   </ItemGroup>
 </Project>

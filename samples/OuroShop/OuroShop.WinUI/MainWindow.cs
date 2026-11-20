@@ -20,7 +20,7 @@ public sealed class MainWindow : Window
     private readonly TextBlock status;
     private readonly TextBlock data = new() { TextWrapping = TextWrapping.Wrap };
 
-    /// <param name="page">"list" (the default), "gallery", "fields", "nav", "overlays", "confirms", "forms", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
+    /// <param name="page">"list" (the default), "gallery", "fields", "nav", "lists", "overlays", "confirms", "forms", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
     public MainWindow(string page = "list")
     {
         Title = "Ouro Shop";
@@ -99,6 +99,7 @@ public sealed class MainWindow : Window
             "gallery" => Column(16, gallery, status),
             "fields" => Column(16, Fields(), status),
             "nav" => Column(16, Navigation(), status),
+            "lists" => Column(16, Lists(), status),
             "overlays" => Column(16, Overlays(), status),
             "confirms" => Column(16, Confirms(), status),
             "forms" => Column(16, Forms(), status),
@@ -300,6 +301,21 @@ public sealed class MainWindow : Window
         row.Children.Add(open);
         row.Children.Add(rail);
         return Id(new OuroCard { Title = "Navigation", Description = "Sidebar, open and as a rail", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = row }, "card.nav");
+    }
+
+    /// <summary>The gallery's lists page: ItemGroup, in core's spec cases.</summary>
+    private static OuroCard Lists()
+    {
+        T Id<T>(T e, string id) where T : FrameworkElement
+        {
+            AutomationProperties.SetAutomationId(e, id);
+            return e;
+        }
+        OuroItem Row(string title) => new() { Title = title };
+        var groups = Column(24,
+            Id(new OuroItemGroup { Label = "Recipes", Items = new FrameworkElement[] { Row("Braised short ribs"), Row("Lemon orzo"), Row("Miso soup") } }, "gallery.item-group.divided-three-rows"),
+            Id(new OuroItemGroup { Label = "Recipes", Empty = "No recipes yet" }, "gallery.item-group.empty-message"));
+        return Id(new OuroCard { Title = "Lists", Description = "ItemGroup", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = groups }, "card.lists");
     }
 
     /// <summary>The gallery's fourth page: Dialog and Sheet, already open and drawn in the page, in core's spec cases.</summary>
