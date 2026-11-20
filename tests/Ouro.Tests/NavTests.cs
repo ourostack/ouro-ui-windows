@@ -52,4 +52,11 @@ public class NavTests
         Assert.NotEqual(behind, wash);
         Assert.True(OuroPaint.Contrast(OuroNav.CurrentWords(accent, wash, foreground), wash) >= 4.5);
     }
+
+    [Theory]
+    [InlineData("Inbox", "12", false, "Inbox 12")]
+    [InlineData("Inbox", "12", true, "Inbox")]
+    [InlineData("Recipes", "", false, "Recipes")]
+    public void A_sidebar_item_is_named_by_its_label_and_then_its_badge_except_on_the_rail(string label, string badge, bool collapsed, string spoken) =>
+        Assert.Equal(spoken, OuroNav.SpokenName(label, badge, collapsed));
 }
