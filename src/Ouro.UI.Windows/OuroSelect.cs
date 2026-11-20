@@ -22,6 +22,7 @@ public sealed partial class OuroSelect : Control
 
     private TextBlock? label, description, error;
     private ComboBox? box;
+    private TextBlock? placeholder;
     private bool syncing;
 
     public static readonly DependencyProperty LabelProperty = Register(nameof(Label), typeof(string), "");
@@ -89,6 +90,7 @@ public sealed partial class OuroSelect : Control
         description = GetTemplateChild("DescriptionText") as TextBlock;
         error = GetTemplateChild("ErrorText") as TextBlock;
         box = GetTemplateChild("Box") as ComboBox;
+        placeholder = GetTemplateChild("PlaceholderText") as TextBlock;
         if (box is not null)
         {
             box.SelectionChanged += (_, _) =>
@@ -149,8 +151,14 @@ public sealed partial class OuroSelect : Control
         Show(description, Description, p.Muted);
         Show(error, Error, p.Error);
 
-        box.PlaceholderText = Placeholder;
-        box.PlaceholderForeground = OuroUI.Brush(p.Placeholder);
+        // The placeholder is drawn beside the box, because the box's own PlaceholderText is spoken as its help text.
+        if (placeholder is not null)
+        {
+            placeholder.Text = Placeholder;
+            placeholder.Foreground = OuroUI.Brush(p.Placeholder);
+            placeholder.Margin = new Thickness(PaddingX, 0, 36, 0);
+            placeholder.Visibility = string.IsNullOrEmpty(Value) && !string.IsNullOrEmpty(Placeholder) ? Visibility.Visible : Visibility.Collapsed;
+        }
         box.Background = OuroUI.Brush(p.Field);
         box.Foreground = OuroUI.Brush(p.Text);
         box.BorderBrush = OuroUI.Brush(edge);

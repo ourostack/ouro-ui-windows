@@ -336,7 +336,10 @@
                     <StackPanel Spacing="6">
                         <TextBlock x:Name="LabelText" TextWrapping="Wrap" FontWeight="SemiBold" AutomationProperties.AccessibilityView="Raw" />
                         <TextBlock x:Name="DescriptionText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
-                        <ComboBox x:Name="Box" HorizontalAlignment="Stretch" />
+                        <Grid>
+                            <ComboBox x:Name="Box" HorizontalAlignment="Stretch" />
+                            <TextBlock x:Name="PlaceholderText" IsHitTestVisible="False" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" AutomationProperties.AccessibilityView="Raw" />
+                        </Grid>
                         <TextBlock x:Name="ErrorText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
                     </StackPanel>
                 </ControlTemplate>
