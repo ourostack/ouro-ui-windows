@@ -328,6 +328,31 @@
         </Setter>
     </Style>
 
+    <Style TargetType="local:OuroSwitch">
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="FocusVisualMargin" Value="-3" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:OuroSwitch">
+                    <Grid Background="Transparent" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="Track" VerticalAlignment="Center">
+                            <Border x:Name="Thumb" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock x:Name="LabelText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
+                            <TextBlock x:Name="DescriptionText" TextWrapping="Wrap" AutomationProperties.AccessibilityView="Raw" />
+                        </StackPanel>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style TargetType="local:OuroSeparator">
         <Setter Property="IsTabStop" Value="False" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />

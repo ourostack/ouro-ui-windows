@@ -28,7 +28,7 @@ const confirmOf = (id: string): string | undefined => {
 const vendor = new URL("../vendor/core/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const claims = (await json(join(vendor, "components.claims.json")))?.claims as { id: string; tier: string; appliesTo: string[] }[];
 /** The components this kit ships. Core specs more; each one joins here when its control does, with a check for each claim. */
-const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs", "tab-bar", "sidebar", "dialog", "sheet", "confirm-dialog"];
+const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs", "tab-bar", "sidebar", "dialog", "sheet", "confirm-dialog", "switch"];
 /** The panels that open over a page: each holds buttons of its own (close, cancel, confirm), which are its controls. */
 const PANELS = ["dialog", "sheet", "confirm-dialog"];
 const specs = (await Promise.all((await readdir(join(vendor, "components"))).filter((f) => f.endsWith(".spec.json")).map((f) => json(join(vendor, "components", f))))).filter((s: any) => KIT.includes(s?.name));
@@ -41,7 +41,7 @@ if (missing.length) {
 /** Every dump, by the setting it was taken under. Each holds the list page and the gallery's two pages. */
 const settings = ["light", "dark", "contrast", "noanim", "text225"] as const;
 type Setting = (typeof settings)[number];
-const dumps = Object.fromEntries(await Promise.all(settings.map(async (s) => [s, [await json(join(dir, `uia-${s}.json`)), await json(join(dir, `uia-gallery-${s}.json`)), await json(join(dir, `uia-fields-${s}.json`)), await json(join(dir, `uia-nav-${s}.json`)), await json(join(dir, `uia-overlays-${s}.json`)), await json(join(dir, `uia-confirms-${s}.json`))].filter(Boolean)] as const))) as Record<Setting, any[]>;
+const dumps = Object.fromEntries(await Promise.all(settings.map(async (s) => [s, [await json(join(dir, `uia-${s}.json`)), await json(join(dir, `uia-gallery-${s}.json`)), await json(join(dir, `uia-fields-${s}.json`)), await json(join(dir, `uia-nav-${s}.json`)), await json(join(dir, `uia-overlays-${s}.json`)), await json(join(dir, `uia-confirms-${s}.json`)), await json(join(dir, `uia-forms-${s}.json`))].filter(Boolean)] as const))) as Record<Setting, any[]>;
 
 const report = (e: any): Record<string, string> => {
   const m = /ouro:([\w-]+);(.*)$/.exec(String(e?.itemStatus ?? ""));
@@ -88,6 +88,8 @@ const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[
   item: ({ e, r }) => (r.pressable === "true" ? e.controlType === "ControlType.Button" && e.isKeyboardFocusable && Boolean(e.helpText) : e.controlType === "ControlType.Group" && !e.isKeyboardFocusable) && Boolean(e.name),
   checkbox: ({ e, r }) =>
     e.controlType === "ControlType.CheckBox" && e.isKeyboardFocusable && Boolean(e.name) && e.toggleState === { on: "On", off: "Off", mixed: "Indeterminate" }[r.state!] && (r.required !== "true" || e.name.endsWith(", required")),
+  switch: ({ e, r }) =>
+    e.controlType === "ControlType.Button" && e.isKeyboardFocusable && Boolean(e.name) && e.toggleState === { on: "On", off: "Off" }[r.state!] && (r.described === "true") === Boolean(e.helpText) && (r.required !== "true" || e.name.endsWith(", required")),
   "text-field": ({ e, r }) => e.controlType === "ControlType.Edit" && e.isKeyboardFocusable && Boolean(e.name) && (r.described === "true") === Boolean(e.helpText) && (r.required !== "true" || e.name.endsWith(", required")),
   separator: ({ e, r }) => (r.labelled === "true" ? e.controlType === "ControlType.Text" && Boolean(e.name) : e.controlType === "ControlType.Separator") && !e.isKeyboardFocusable,
   dialog: ({ e, r, page }) => e.controlType === "ControlType.Window" && Boolean(e.name) && (r.hideTitle === "true" || Boolean(headed(page, e))) && Boolean(named(page, e, r.close)),
@@ -111,6 +113,8 @@ const pairs = (r: Record<string, string>): [string, string, string, number][] =>
       return [["label", r.label!, r.behind!, 4.5], ["text", r.text!, r.field!, 4.5], ["description", r.description!, r.behind!, 4.5], ["placeholder", r.placeholder!, r.field!, 4.5], ["error", r.error!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3]];
     case "checkbox":
       return [["label", r.label!, r.behind!, 4.5], ["description", r.description!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3], ...(r.state === "off" ? [] : [["tick", r.tick!, r.checked!, 3] as [string, string, string, number]])];
+    case "switch":
+      return [["label", r.label!, r.behind!, 4.5], ["description", r.description!, r.behind!, 4.5], ["edge", r.edge!, r.behind!, 3], ["thumb", r.thumb!, r.track!, 3]];
     case "separator":
       return r.labelled === "true" ? [["label", r.label!, r.behind!, 4.5]] : [];
     case "tab-bar":

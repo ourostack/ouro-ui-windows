@@ -20,7 +20,7 @@ public sealed class MainWindow : Window
     private readonly TextBlock status;
     private readonly TextBlock data = new() { TextWrapping = TextWrapping.Wrap };
 
-    /// <param name="page">"list" (the default), "gallery", "fields", "nav", "overlays", "confirms", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
+    /// <param name="page">"list" (the default), "gallery", "fields", "nav", "overlays", "confirms", "forms", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
     public MainWindow(string page = "list")
     {
         Title = "Ouro Shop";
@@ -101,6 +101,7 @@ public sealed class MainWindow : Window
             "nav" => Column(16, Navigation(), status),
             "overlays" => Column(16, Overlays(), status),
             "confirms" => Column(16, Confirms(), status),
+            "forms" => Column(16, Forms(), status),
             "composed" => Column(16, Composed(), status, data),
             "a2ui" => Column(16, A2UI(), status, data),
             _ => Column(16, heading, list, status),
@@ -334,6 +335,20 @@ public sealed class MainWindow : Window
         Grid.SetColumn(right, 1);
         var panels = new Grid { ColumnSpacing = 16, MinWidth = 720, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition() }, Children = { left, right } };
         return Id(new OuroCard { Title = "Confirmations", Description = "ConfirmDialog", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = panels }, "card.confirms");
+    }
+
+    /// <summary>The gallery's sixth page: Switch, in core's spec cases.</summary>
+    private static OuroCard Forms()
+    {
+        T Id<T>(T e, string id) where T : FrameworkElement
+        {
+            AutomationProperties.SetAutomationId(e, id);
+            return e;
+        }
+        var switches = Column(4,
+            Id(new OuroSwitch { Label = "Wi-Fi", IsOn = true }, "gallery.switch.wifi"),
+            Id(new OuroSwitch { Label = "Nightly backups", Description = "At 2 a.m.", IsRequired = true }, "gallery.switch.backups"));
+        return Id(new OuroCard { Title = "Forms", Description = "Switch", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = switches }, "card.forms");
     }
 
     private OuroItem Item(string title, string description, string glyph, UIElement badge, bool pressable)
