@@ -28,7 +28,7 @@ const confirmOf = (id: string): string | undefined => {
 const vendor = new URL("../vendor/core/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const claims = (await json(join(vendor, "components.claims.json")))?.claims as { id: string; tier: string; appliesTo: string[] }[];
 /** The components this kit ships. Core specs more; each one joins here when its control does, with a check for each claim. */
-const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs", "tab-bar", "sidebar", "item-group", "dialog", "sheet", "confirm-dialog", "switch"];
+const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs", "tab-bar", "sidebar", "item-group", "swipe-actions", "dialog", "sheet", "confirm-dialog", "switch"];
 /** The panels that open over a page: each holds buttons of its own (close, cancel, confirm), which are its controls. */
 const PANELS = ["dialog", "sheet", "confirm-dialog"];
 const specs = (await Promise.all((await readdir(join(vendor, "components"))).filter((f) => f.endsWith(".spec.json")).map((f) => json(join(vendor, "components", f))))).filter((s: any) => KIT.includes(s?.name));
@@ -102,6 +102,9 @@ const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[
       ? e.controlType === "ControlType.Text" && Boolean(e.name) && !e.isKeyboardFocusable
       : e.controlType === "ControlType.List" && Boolean(e.name) && !e.isKeyboardFocusable && Boolean(e.rect) &&
         page.filter((x) => x.controlType === "ControlType.ListItem" && inside(x.rect, e.rect)).length === Number(r.items),
+  "swipe-actions": ({ e, r, page }) =>
+    e.controlType === "ControlType.Group" && Boolean(e.name) && !e.isKeyboardFocusable && Boolean(e.rect) &&
+    page.some((x) => x.controlType === "ControlType.Button" && x.name === r.button && inside(x.rect, e.rect)),
   "description-list": ({ e, r, page }) =>
     e.controlType === "ControlType.List" && Number(r.items) > 0 && Boolean(e.rect) &&
     page.filter((x) => x.controlType === "ControlType.ListItem" && /., ./.test(x.name ?? "") && inside(x.rect, e.rect)).length === Number(r.items),
@@ -130,6 +133,8 @@ const pairs = (r: Record<string, string>): [string, string, string, number][] =>
       return [["label", r.label!, r.behind!, 4.5], ...(r.selected === "true" ? [["line", r.line!, r.behind!, 3] as [string, string, string, number]] : [])];
     case "item-group":
       return [r.showsEmpty === "true" ? ["empty message", r.empty!, r.behind!, 4.5] : ["label", r.label!, r.behind!, 4.5]];
+    case "swipe-actions":
+      return [["action", r.action!, r.actionFill!, 4.5], ["menu icon", r.menu!, r.behind!, 3]];
     case "description-list":
       return [["term", r.term!, r.behind!, 4.5], ["details", r.details!, r.behind!, 4.5]];
     default:
@@ -179,7 +184,7 @@ const rows = specs.flatMap((spec: any) =>
   }),
 );
 /** One line per spec case, in the shape of the xUnit lines the cross-kit grid already reads: a case passes when every check that applies to it holds and at least one ran. */
-const CASED = ["tabs", "tab-bar", "sidebar", "text-field", "checkbox", "switch", "item-group"];
+const CASED = ["tabs", "tab-bar", "sidebar", "text-field", "checkbox", "switch", "item-group", "swipe-actions"];
 const caseLines = specs.filter((spec: any) => CASED.includes(spec.name)).flatMap((spec: any) =>
   (spec.cases as { id: string }[]).map((c) => {
     scope = `gallery.${spec.name}.${c.id}`;
