@@ -47,9 +47,9 @@ const report = (e: any): Record<string, string> => {
   const m = /ouro:([\w-]+);(.*)$/.exec(String(e?.itemStatus ?? ""));
   return m ? { kind: m[1]!, ...Object.fromEntries(m[2]!.split(";").filter(Boolean).map((kv) => kv.split("=") as [string, string])) } : {};
 };
-/** The kit's controls of one kind under a setting, each with its self-report and the rest of its page, keyed by automation id or name. */
+/** The kit's controls of one kind under a setting (a composer's Send button is judged by the composer's checks, since it can be unavailable or busy and a button's spec has no case for that), each with its self-report and the rest of its page, keyed by automation id or name. */
 const of = (setting: Setting, kind: string) =>
-  dumps[setting].flatMap((d) => (d.elements as any[]).map((e) => ({ e, r: report(e), dpi: (d.systemDpi ?? 96) / 96, page: d.elements as any[] })).filter((x) => x.r.kind === kind && (scope === undefined || belongs(x, scope))));
+  dumps[setting].flatMap((d) => (d.elements as any[]).map((e) => ({ e, r: report(e), dpi: (d.systemDpi ?? 96) / 96, page: d.elements as any[] })).filter((x) => x.r.kind === kind && !(kind === "button" && x.e.automationId === "SendButton") && (scope === undefined || belongs(x, scope))));
 const key = (x: { e: any }) => x.e.automationId || x.e.name;
 /** While set, `of` returns only the elements of one spec case: the gallery id it carries, or an item inside it. */
 let scope: string | undefined;
