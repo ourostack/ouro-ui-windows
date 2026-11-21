@@ -307,16 +307,23 @@ public sealed partial class OuroReorderable : Control
             Grid.SetColumn(handle, 1);
             row.Children.Add(handle);
             var id = source.Id;
-            row.AddHandler(PointerPressedEvent, new PointerEventHandler((_, e) => Press(handle, OnHandle(handle, e.GetCurrentPoint(handle).Position))), true);
-            row.AddHandler(PointerReleasedEvent, new PointerEventHandler((_, _) => Press(handle, false)), true);
-            row.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => Press(handle, false)), true);
-            row.AddHandler(PointerCaptureLostEvent, new PointerEventHandler((_, _) => Press(handle, false)), true);
-            row.Tapped += (_, e) =>
+            var down = false;
+            row.AddHandler(PointerPressedEvent, new PointerEventHandler((_, e) =>
             {
-                if (!OnHandle(handle, e.GetPosition(handle))) return;
+                down = OnHandle(handle, e.GetCurrentPoint(handle).Position);
+                Press(handle, down);
+            }), true);
+            row.AddHandler(PointerReleasedEvent, new PointerEventHandler((_, e) =>
+            {
+                var tap = down && OnHandle(handle, e.GetCurrentPoint(handle).Position);
+                down = false;
+                Press(handle, false);
+                if (!tap) return;
                 handle.Focus(FocusState.Pointer);
                 if (!Locked) Menu(id).ShowAt(handle);
-            };
+            }), true);
+            row.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => { down = false; Press(handle, false); }), true);
+            row.AddHandler(PointerCaptureLostEvent, new PointerEventHandler((_, _) => { down = false; Press(handle, false); }), true);
             parts[source.Id] = (row, handle, source);
             list.Items.Add(row);
         }
