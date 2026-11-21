@@ -28,9 +28,9 @@ const confirmOf = (id: string): string | undefined => {
 const vendor = new URL("../vendor/core/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const claims = (await json(join(vendor, "components.claims.json")))?.claims as { id: string; tier: string; appliesTo: string[] }[];
 /** The components this kit ships. Core specs more; each one joins here when its control does, with a check for each claim. */
-const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs", "tab-bar", "sidebar", "item-group", "swipe-actions", "reorderable", "conversation-list", "dialog", "sheet", "confirm-dialog", "switch", "select", "field", "message"];
-/** The panels that open over a page: each holds buttons of its own (close, cancel, confirm), which are its controls. */
-const PANELS = ["dialog", "sheet", "confirm-dialog"];
+const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs", "tab-bar", "sidebar", "item-group", "swipe-actions", "reorderable", "conversation-list", "dialog", "sheet", "confirm-dialog", "switch", "select", "field", "message", "reaction-bar"];
+/** The panels that open over a page, and the bars of buttons: each holds buttons of its own (close, cancel, confirm, a reaction), which are its controls. */
+const PANELS = ["dialog", "sheet", "confirm-dialog", "reaction-bar"];
 const specs = (await Promise.all((await readdir(join(vendor, "components"))).filter((f) => f.endsWith(".spec.json")).map((f) => json(join(vendor, "components", f))))).filter((s: any) => KIT.includes(s?.name));
 const missing = KIT.filter((k) => !specs.some((s: any) => s.name === k));
 if (missing.length) {
@@ -121,6 +121,11 @@ const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[
       names.every((n) => page.some((x) => x.controlType === "ControlType.ListItem" && x.name === n && inside(x.rect, e.rect))) &&
       mores.every((n) => page.some((x) => x.controlType === "ControlType.Button" && x.name === n && inside(x.rect, e.rect)));
   },
+  "reaction-bar": ({ e, r, page }) => {
+    const names = (r.buttonNames ?? "").split("|").filter(Boolean), buttons = buttonsIn(page, e);
+    return e.controlType === "ControlType.Group" && Boolean(e.name) && !e.isKeyboardFocusable && Boolean(e.rect) && names.length === Number(r.pills) && buttons.length === names.length &&
+      names.every((n) => buttons.some((b) => b.name === n));
+  },
   message: ({ e, r }) => e.controlType === "ControlType.ListItem" && !e.isKeyboardFocusable && Boolean(e.name) && e.name === r.spokenName,
   "description-list": ({ e, r, page }) =>
     e.controlType === "ControlType.List" && Number(r.items) > 0 && Boolean(e.rect) &&
@@ -162,6 +167,8 @@ const pairs = (r: Record<string, string>): [string, string, string, number][] =>
       return r.showsEmpty === "true" ? [["empty message", r.muted!, r.behind!, 4.5]] : [["title", r.title!, r.behind!, 4.5], ["time and preview", r.muted!, r.behind!, 4.5], ...(Number(r.unread) > 0 ? [["unread dot", r.dot!, r.behind!, 3] as [string, string, string, number]] : [])];
     case "message":
       return [["words", r.label!, r.bubble!, 4.5], ["author and time", r.muted!, r.behind!, 4.5], ...(r.failed === "true" ? [["not sent", r.error!, r.behind!, 4.5] as [string, string, string, number]] : [])];
+    case "reaction-bar":
+      return [["pill words", r.words!, r.pill!, 4.5], ["own pill words", r.ownWords!, r.ownFill!, 4.5]];
     case "description-list":
       return [["term", r.term!, r.behind!, 4.5], ["details", r.details!, r.behind!, 4.5]];
     default:
@@ -215,7 +222,7 @@ const rows = specs.flatMap((spec: any) =>
   }),
 );
 /** One line per spec case, in the shape of the xUnit lines the cross-kit grid already reads: a case passes when every check that applies to it holds and at least one ran. */
-const CASED = ["tabs", "tab-bar", "sidebar", "text-field", "checkbox", "switch", "item-group", "swipe-actions", "reorderable", "conversation-list", "select", "field", "message"];
+const CASED = ["tabs", "tab-bar", "sidebar", "text-field", "checkbox", "switch", "item-group", "swipe-actions", "reorderable", "conversation-list", "select", "field", "message", "reaction-bar"];
 const caseLines = specs.filter((spec: any) => CASED.includes(spec.name)).flatMap((spec: any) =>
   (spec.cases as { id: string }[]).map((c) => {
     scope = `gallery.${spec.name}.${c.id}`;

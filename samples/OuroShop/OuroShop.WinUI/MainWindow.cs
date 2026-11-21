@@ -387,7 +387,11 @@ public sealed class MainWindow : Window
             Id(new OuroMessage { Author = "Ana", Time = "9:41", Text = "See you at noon." }, "gallery.message.received"),
             Id(new OuroMessage { Author = "You", Role = OuroMessageRole.User, Time = "9:42", Failed = true, Text = "On my way." }, "gallery.message.own-failed"),
             Id(new OuroMessage { Author = "Ouro", Role = OuroMessageRole.System, Text = "Ana joined the conversation." }, "gallery.message.system"));
-        return Id(new OuroCard { Title = "Chat", Description = "Message", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = messages }, "card.chat");
+        var bars = Column(12,
+            Id(new OuroReactionBar { Reactions = "like: 👍 | Like | 3 | mine; heart: ❤️ | Love | 1" }, "gallery.reaction-bar.two-reactions"),
+            Id(new OuroReactionBar { ShowMore = true, Reactions = "like: 👍 | Like | 2" }, "gallery.reaction-bar.with-add"),
+            Id(new OuroReactionBar { IsEnabled = false, Reactions = "like: 👍 | Like | 2" }, "gallery.reaction-bar.disabled"));
+        return Id(new OuroCard { Title = "Chat", Description = "Message and reaction bar", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = Column(16, messages, bars) }, "card.chat");
     }
 
     /// <summary>The gallery's sixth page: Field, Select and Switch, in core's spec cases.</summary>

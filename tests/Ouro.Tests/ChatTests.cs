@@ -15,4 +15,20 @@ public class ChatTests
 
     [Fact]
     public void A_bubble_takes_at_most_four_fifths_of_the_row() => Assert.Equal(400, OuroChatRules.BubbleMaxWidth(500));
+
+    [Fact]
+    public void Reactions_are_read_from_lines_of_key_emoji_name_count_and_mine()
+    {
+        var list = OuroChatRules.ParseReactions("like: 👍 | Like | 3 | mine; heart: ❤️ | Love | 1\nwow: 😮");
+        Assert.Equal(new[] { new OuroReaction("like", "👍", "Like", 3, true), new OuroReaction("heart", "❤️", "Love", 1, false), new OuroReaction("wow", "😮", "wow", 0, false) }, list);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("no colon here")]
+    [InlineData("empty:  | Name | 2")]
+    public void A_line_without_a_key_or_an_emoji_is_left_out(string slot) => Assert.Empty(OuroChatRules.ParseReactions(slot));
+
+    [Fact]
+    public void A_reaction_is_named_by_its_name_and_count() => Assert.Equal("Like, 3", OuroChatRules.ReactionName("Like", 3));
 }
