@@ -28,7 +28,7 @@ const confirmOf = (id: string): string | undefined => {
 const vendor = new URL("../vendor/core/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
 const claims = (await json(join(vendor, "components.claims.json")))?.claims as { id: string; tier: string; appliesTo: string[] }[];
 /** The components this kit ships. Core specs more; each one joins here when its control does, with a check for each claim. */
-const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs", "tab-bar", "sidebar", "item-group", "swipe-actions", "reorderable", "conversation-list", "dialog", "sheet", "confirm-dialog", "switch", "select", "field"];
+const KIT = ["button", "badge", "card", "item", "checkbox", "text-field", "separator", "description-list", "tabs", "tab-bar", "sidebar", "item-group", "swipe-actions", "reorderable", "conversation-list", "dialog", "sheet", "confirm-dialog", "switch", "select", "field", "message"];
 /** The panels that open over a page: each holds buttons of its own (close, cancel, confirm), which are its controls. */
 const PANELS = ["dialog", "sheet", "confirm-dialog"];
 const specs = (await Promise.all((await readdir(join(vendor, "components"))).filter((f) => f.endsWith(".spec.json")).map((f) => json(join(vendor, "components", f))))).filter((s: any) => KIT.includes(s?.name));
@@ -41,7 +41,7 @@ if (missing.length) {
 /** Every dump, by the setting it was taken under. Each holds the list page and the gallery's two pages. */
 const settings = ["light", "dark", "contrast", "noanim", "text225"] as const;
 type Setting = (typeof settings)[number];
-const dumps = Object.fromEntries(await Promise.all(settings.map(async (s) => [s, [await json(join(dir, `uia-${s}.json`)), await json(join(dir, `uia-gallery-${s}.json`)), await json(join(dir, `uia-fields-${s}.json`)), await json(join(dir, `uia-nav-${s}.json`)), await json(join(dir, `uia-lists-${s}.json`)), await json(join(dir, `uia-overlays-${s}.json`)), await json(join(dir, `uia-confirms-${s}.json`)), await json(join(dir, `uia-forms-${s}.json`))].filter(Boolean)] as const))) as Record<Setting, any[]>;
+const dumps = Object.fromEntries(await Promise.all(settings.map(async (s) => [s, [await json(join(dir, `uia-${s}.json`)), await json(join(dir, `uia-gallery-${s}.json`)), await json(join(dir, `uia-fields-${s}.json`)), await json(join(dir, `uia-nav-${s}.json`)), await json(join(dir, `uia-lists-${s}.json`)), await json(join(dir, `uia-overlays-${s}.json`)), await json(join(dir, `uia-confirms-${s}.json`)), await json(join(dir, `uia-forms-${s}.json`)), await json(join(dir, `uia-chat-${s}.json`))].filter(Boolean)] as const))) as Record<Setting, any[]>;
 
 const report = (e: any): Record<string, string> => {
   const m = /ouro:([\w-]+);(.*)$/.exec(String(e?.itemStatus ?? ""));
@@ -121,6 +121,7 @@ const spoken: Record<string, (x: { e: any; r: Record<string, string>; page: any[
       names.every((n) => page.some((x) => x.controlType === "ControlType.ListItem" && x.name === n && inside(x.rect, e.rect))) &&
       mores.every((n) => page.some((x) => x.controlType === "ControlType.Button" && x.name === n && inside(x.rect, e.rect)));
   },
+  message: ({ e, r }) => e.controlType === "ControlType.ListItem" && !e.isKeyboardFocusable && Boolean(e.name) && e.name === r.spokenName,
   "description-list": ({ e, r, page }) =>
     e.controlType === "ControlType.List" && Number(r.items) > 0 && Boolean(e.rect) &&
     page.filter((x) => x.controlType === "ControlType.ListItem" && /., ./.test(x.name ?? "") && inside(x.rect, e.rect)).length === Number(r.items),
@@ -159,6 +160,8 @@ const pairs = (r: Record<string, string>): [string, string, string, number][] =>
       return [["row words", r.words!, r.behind!, 4.5], ["handle", r.handle!, r.behind!, 3]];
     case "conversation-list":
       return r.showsEmpty === "true" ? [["empty message", r.muted!, r.behind!, 4.5]] : [["title", r.title!, r.behind!, 4.5], ["time and preview", r.muted!, r.behind!, 4.5], ...(Number(r.unread) > 0 ? [["unread dot", r.dot!, r.behind!, 3] as [string, string, string, number]] : [])];
+    case "message":
+      return [["words", r.label!, r.bubble!, 4.5], ["author and time", r.muted!, r.behind!, 4.5], ...(r.failed === "true" ? [["not sent", r.error!, r.behind!, 4.5] as [string, string, string, number]] : [])];
     case "description-list":
       return [["term", r.term!, r.behind!, 4.5], ["details", r.details!, r.behind!, 4.5]];
     default:
@@ -212,7 +215,7 @@ const rows = specs.flatMap((spec: any) =>
   }),
 );
 /** One line per spec case, in the shape of the xUnit lines the cross-kit grid already reads: a case passes when every check that applies to it holds and at least one ran. */
-const CASED = ["tabs", "tab-bar", "sidebar", "text-field", "checkbox", "switch", "item-group", "swipe-actions", "reorderable", "conversation-list", "select", "field"];
+const CASED = ["tabs", "tab-bar", "sidebar", "text-field", "checkbox", "switch", "item-group", "swipe-actions", "reorderable", "conversation-list", "select", "field", "message"];
 const caseLines = specs.filter((spec: any) => CASED.includes(spec.name)).flatMap((spec: any) =>
   (spec.cases as { id: string }[]).map((c) => {
     scope = `gallery.${spec.name}.${c.id}`;

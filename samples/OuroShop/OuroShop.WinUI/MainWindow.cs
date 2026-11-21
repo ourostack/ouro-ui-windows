@@ -20,7 +20,7 @@ public sealed class MainWindow : Window
     private readonly TextBlock status;
     private readonly TextBlock data = new() { TextWrapping = TextWrapping.Wrap };
 
-    /// <param name="page">"list" (the default), "gallery", "fields", "nav", "lists", "overlays", "confirms", "forms", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
+    /// <param name="page">"list" (the default), "gallery", "fields", "nav", "lists", "overlays", "confirms", "forms", "chat", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
     public MainWindow(string page = "list")
     {
         Title = "Ouro Shop";
@@ -103,6 +103,7 @@ public sealed class MainWindow : Window
             "overlays" => Column(16, Overlays(), status),
             "confirms" => Column(16, Confirms(), status),
             "forms" => Column(16, Forms(), status),
+            "chat" => Column(16, Chat(), status),
             "composed" => Column(16, Composed(), status, data),
             "a2ui" => Column(16, A2UI(), status, data),
             _ => Column(16, heading, list, status),
@@ -372,6 +373,21 @@ public sealed class MainWindow : Window
         Grid.SetColumn(right, 1);
         var panels = new Grid { ColumnSpacing = 16, MinWidth = 720, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition() }, Children = { left, right } };
         return Id(new OuroCard { Title = "Confirmations", Description = "ConfirmDialog", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = panels }, "card.confirms");
+    }
+
+    /// <summary>The gallery's chat page: Message, in core's spec cases.</summary>
+    private static OuroCard Chat()
+    {
+        T Id<T>(T e, string id) where T : FrameworkElement
+        {
+            AutomationProperties.SetAutomationId(e, id);
+            return e;
+        }
+        var messages = Column(12,
+            Id(new OuroMessage { Author = "Ana", Time = "9:41", Text = "See you at noon." }, "gallery.message.received"),
+            Id(new OuroMessage { Author = "You", Role = OuroMessageRole.User, Time = "9:42", Failed = true, Text = "On my way." }, "gallery.message.own-failed"),
+            Id(new OuroMessage { Author = "Ouro", Role = OuroMessageRole.System, Text = "Ana joined the conversation." }, "gallery.message.system"));
+        return Id(new OuroCard { Title = "Chat", Description = "Message", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = messages }, "card.chat");
     }
 
     /// <summary>The gallery's sixth page: Field, Select and Switch, in core's spec cases.</summary>
