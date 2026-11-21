@@ -122,10 +122,13 @@ public sealed partial class OuroMessageList : Control
         if (before.Count == 0 || wasAtBottom)
         {
             scroller.Loaded -= OpenAtNewest;
-            scroller.Loaded += OpenAtNewest;
+            if (scroller.IsLoaded)
+            {
+                scroller.UpdateLayout();
+                ToNewest();
+            }
+            else scroller.Loaded += OpenAtNewest;
         }
-        scroller.UpdateLayout();
-        if (before.Count > 0 && wasAtBottom) ToNewest();
         Refresh();
     }
 
