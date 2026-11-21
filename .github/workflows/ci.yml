@@ -155,6 +155,11 @@ jobs:
           $answer | Wait-Process -Timeout 30 -ErrorAction SilentlyContinue
           Get-Content "$env:EV\answer-dialog.log" -ErrorAction SilentlyContinue
           exit $code
+      - name: Drag a Reorderable row from its handle with a real mouse
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          & tools/pointer.ps1 -Command $env:APP -ProcessName OuroShop.WinUI -Out "$env:EV\pointer-reorder.json"
+          exit $LASTEXITCODE
       - name: Read each page as people and agents see it, under each setting
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
