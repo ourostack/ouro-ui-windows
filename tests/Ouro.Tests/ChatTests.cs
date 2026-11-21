@@ -31,4 +31,41 @@ public class ChatTests
 
     [Fact]
     public void A_reaction_is_named_by_its_name_and_count() => Assert.Equal("Like, 3", OuroChatRules.ReactionName("Like", 3));
+
+    private static IReadOnlyList<OuroListMessage> Msgs(string slot) => OuroChatRules.ParseMessages(slot);
+
+    [Fact]
+    public void A_message_slot_is_read_line_by_line_and_mine_marks_the_persons_own()
+    {
+        var list = Msgs("a: Ana | 9:41 | See you at noon.; b: You | 9:42 | On my way. | mine\nnot a line; c: Bo");
+        Assert.Equal(3, list.Count);
+        Assert.Equal(new OuroListMessage("a", "Ana", "9:41", "See you at noon.", false), list[0]);
+        Assert.True(list[1].Mine);
+        Assert.Equal(new OuroListMessage("c", "Bo", "", "", false), list[2]);
+    }
+
+    [Fact]
+    public void Only_messages_added_after_the_newest_from_someone_else_are_announced()
+    {
+        var before = Msgs("a: Ana | 9:41 | Hi.");
+        var now = Msgs("a: Ana | 9:41 | Hi.; b: You | 9:42 | Yo. | mine; c: Ana | 9:43 | Ready?");
+        var said = OuroChatRules.ToAnnounce(before, now);
+        Assert.Equal(new[] { "c" }, said.Select(m => m.Id));
+        Assert.Equal("Ana: Ready?", OuroChatRules.Announcement(said[0]));
+    }
+
+    [Fact]
+    public void History_at_mount_and_older_messages_loaded_above_are_never_announced()
+    {
+        var now = Msgs("o: Ana | 8:00 | Earlier.; a: Ana | 9:41 | Hi.");
+        Assert.Empty(OuroChatRules.ToAnnounce([], now));
+        Assert.Empty(OuroChatRules.ToAnnounce(Msgs("a: Ana | 9:41 | Hi."), now));
+        Assert.Empty(OuroChatRules.ToAnnounce(Msgs("a: Ana | 9:41 | Hi."), Msgs("z: Ana | 9:50 | Else.")));
+    }
+
+    [Theory]
+    [InlineData(500, 500, true)]
+    [InlineData(480, 500, true)]
+    [InlineData(100, 500, false)]
+    public void A_reader_near_the_end_is_at_the_newest(double offset, double extent, bool expected) => Assert.Equal(expected, OuroChatRules.AtBottom(offset, extent));
 }
