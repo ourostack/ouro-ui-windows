@@ -9,7 +9,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Ouro.UI.Windows;
 
-/// <summary>One message in a conversation. Put them in an <see cref="OuroMessageList"/>, or use one alone for a single note.</summary>
+/// <summary>One message in a conversation. Stack them in a column, or use one alone for a single note.</summary>
 public sealed partial class OuroMessage : Control
 {
     private readonly TextBlock header = new() { TextWrapping = TextWrapping.Wrap, FontSize = 12, IsTextScaleFactorEnabled = true, HighContrastAdjustment = ElementHighContrastAdjustment.None };
