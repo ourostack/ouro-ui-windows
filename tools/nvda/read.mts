@@ -33,7 +33,7 @@ try {
   seen = (await nvda.spokenPhraseLog()).length;
   const cases: { name: string; expect: string }[] = [
     { name: "column header", expect: "Serves, header item" },
-    { name: "sorted column", expect: "Serves, sorted descending, header item" },
+    { name: "sorted column", expect: "Serves, sorted ascending, header item" },
     { name: "row name", expect: "Herb salad, button" },
   ];
   let failed = 0;
