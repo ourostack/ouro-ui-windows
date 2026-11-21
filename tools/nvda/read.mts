@@ -31,8 +31,16 @@ await nvda.start();
 try {
   await pause(4000);
   seen = (await nvda.spokenPhraseLog()).length;
-  for (let i = 1; i <= 8; i++) await press("Tab");
-  for (const key of ["Insert+Tab", "Control+Alt+ArrowDown", "Control+Alt+ArrowRight", "Control+Alt+ArrowUp", "ArrowDown", "ArrowUp", "Shift+Tab", "Shift+Tab", "Shift+Tab", "Insert+Tab", "Control+Alt+ArrowRight", "Control+Alt+ArrowDown", "Insert+ArrowUp"]) await press(key);
+  const nav = ["Insert+Numpad5", "Insert+Numpad8", "Insert+Numpad5", "Insert+Numpad2", "Insert+Numpad5", "Insert+Numpad6", "Insert+Numpad5", "Insert+Numpad6", "Insert+Numpad5", "Insert+Numpad6", "Insert+Numpad5", "Insert+Numpad8", "Insert+Numpad8", "Insert+Numpad5", "Insert+Numpad4", "Insert+Numpad5", "Insert+Numpad2", "Insert+Numpad5"];
+  for (const target of ["Serves, sorted descending", "Herb salad, button"]) {
+    for (let i = 0; i < 12; i++) {
+      const said = await press("Tab");
+      await pause(600);
+      if (said.concat((await nvda.spokenPhraseLog()).slice(-2)).some((p) => p.startsWith(target))) break;
+    }
+    console.log(`NVDA --- at ${target}`);
+    for (const key of nav) await press(key);
+  }
   writeFileSync(`${ev}/nvda-table.json`, JSON.stringify({ log, all: await nvda.spokenPhraseLog() }, null, 2));
 } finally {
   await nvda.stop();
