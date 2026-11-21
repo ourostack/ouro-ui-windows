@@ -21,6 +21,14 @@ public class ListTests
         Assert.Equal(line, OuroListRules.LineAbove(variant, index));
 
     [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    [InlineData(3, false)]
+    public void A_swipe_past_the_end_commits_only_a_side_with_one_action(int actions, bool commits) =>
+        Assert.Equal(commits, OuroListRules.SwipeCommits(actions));
+
+    [Theory]
     [InlineData(1, 4, 1)]
     [InlineData(4, 4, 3)]
     [InlineData(0, 0, -1)]
