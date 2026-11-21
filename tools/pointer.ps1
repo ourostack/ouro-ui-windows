@@ -1,7 +1,7 @@
-# Drives Ouro Shop with a real mouse, as a person's hand would: it drags the first row of the lists page's Reorderable from its handle past the last
+# Drives Ouro Shop (-Grab row is the control: a drag from the row's own words) with a real mouse, as a person's hand would: it drags the first row of the lists page's Reorderable from its handle past the last
 # row, and records the order of the handles before and after. Windows' UI Automation cannot say whether a drag starts, so this presses, moves and
 # releases the mouse itself. Writes the record to -Out and exits 1 when the row did not move.
-param([Parameter(Mandatory)][string]$Command, [Parameter(Mandatory)][string]$ProcessName, [Parameter(Mandatory)][string]$Out)
+param([Parameter(Mandatory)][string]$Command, [Parameter(Mandatory)][string]$ProcessName, [Parameter(Mandatory)][string]$Out, [ValidateSet("handle","row")][string]$Grab = "handle")
 $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\uia.ps1"
 Add-Type @"
@@ -32,6 +32,7 @@ Start-Sleep -Milliseconds 2000
 $before = Get-Order
 $handles = Get-Handles
 $from = Center $handles[0]
+if ($Grab -eq "row") { $from.x -= 120 }
 $to = Center $handles[$handles.Count - 1]
 $to.y += 12
 [void][OuroDpi]::SetCursorPos($from.x, $from.y)
@@ -49,7 +50,7 @@ Start-Sleep -Milliseconds 1500
 $after = Get-Order
 $status = (Find-ByAutomationId (Get-OuroWindow $ProcessName) "status").Current.Name
 $moved = ($before -join "|") -ne ($after -join "|") -and $after[0] -ne $before[0]
-[ordered]@{ from = $from; to = $to; before = $before; after = $after; status = $status; moved = $moved } | ConvertTo-Json | Set-Content -Encoding utf8 $Out
+[ordered]@{ grab = $Grab; from = $from; to = $to; before = $before; after = $after; status = $status; moved = $moved } | ConvertTo-Json | Set-Content -Encoding utf8 $Out
 Get-Content $Out
 Get-Process -Name $ProcessName -ErrorAction SilentlyContinue | Stop-Process -Force
-if (-not $moved) { Write-Host "::error::A drag from the handle did not move the row: before $($before -join ', '), after $($after -join ', ')"; exit 1 }
+if (-not $moved) { Write-Host "::error::A drag from the $Grab did not move the row: before $($before -join ', '), after $($after -join ', ')"; exit 1 }

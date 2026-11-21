@@ -210,8 +210,11 @@ jobs:
       - name: Drag a Reorderable row from its handle with a real mouse
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
-          & tools/pointer.ps1 -Command $env:APP -ProcessName OuroShop.WinUI -Out "$env:EV\pointer-reorder.json"
-          exit $LASTEXITCODE
+          & tools/pointer.ps1 -Command $env:APP -ProcessName OuroShop.WinUI -Out "$env:EV\pointer-reorder-row.json" -Grab row
+          $row = $LASTEXITCODE
+          & tools/pointer.ps1 -Command $env:APP -ProcessName OuroShop.WinUI -Out "$env:EV\pointer-reorder-handle.json" -Grab handle
+          $handle = $LASTEXITCODE
+          exit ([int]($row -ne 0 -or $handle -ne 0))
       - name: Read each page as people and agents see it, under each setting
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
