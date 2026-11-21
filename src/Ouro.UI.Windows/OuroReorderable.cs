@@ -74,7 +74,8 @@ public sealed partial class OuroReorderable : Control
     private string? picked;
     private int pickedFrom;
     private int dragFrom = -1;
-    private bool moving, space;
+    private int moving;
+    private bool space;
 
     public OuroReorderable()
     {
@@ -164,11 +165,11 @@ public sealed partial class OuroReorderable : Control
     // is not ended by the focus that leaves in between.
     private void FocusHandle(string id)
     {
-        moving = true;
+        moving++;
         DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
         {
             if (parts.TryGetValue(id, out var part)) part.Handle.Focus(FocusState.Keyboard);
-            moving = false;
+            moving--;
         });
     }
 
@@ -178,9 +179,10 @@ public sealed partial class OuroReorderable : Control
         var from = list.Items.IndexOf(part.Row);
         to = Math.Clamp(to, 0, list.Items.Count - 1);
         if (from < 0 || from == to) return;
-        moving = true;
+        moving++;
         list.Items.RemoveAt(from);
         list.Items.Insert(to, part.Row);
+        moving--;
         Refresh();
         Announce(Moved(id));
         if (raise) Reordered?.Invoke(this, new OuroReorderedEventArgs(Order, id, from, to));
@@ -219,6 +221,7 @@ public sealed partial class OuroReorderable : Control
             case VirtualKey.Space:
                 space = true;
                 e.Handled = true;
+                if (e.KeyStatus.WasKeyDown) break;
                 if (picked == id) Release(id, true);
                 else
                 {
@@ -267,7 +270,7 @@ public sealed partial class OuroReorderable : Control
         handle.AddHandler(KeyUpEvent, new KeyEventHandler((_, _) => DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => space = false)), true);
         handle.LostFocus += (_, _) =>
         {
-            if (!moving) Release(id, true);
+            if (moving == 0) Release(id, true);
         };
         handle.RegisterPropertyChangedCallback(Microsoft.UI.Xaml.Controls.Primitives.ButtonBase.IsPressedProperty, (_, _) =>
         {
@@ -283,7 +286,7 @@ public sealed partial class OuroReorderable : Control
     {
         if (root is null) return;
         var focused = parts.Where(p => p.Value.Handle.FocusState != FocusState.Unfocused).Select(p => p.Key).FirstOrDefault();
-        moving = true;
+        moving++;
         picked = null;
         parts.Clear();
         list.Items.Clear();
@@ -299,7 +302,7 @@ public sealed partial class OuroReorderable : Control
             parts[source.Id] = (row, handle, source);
             list.Items.Add(row);
         }
-        moving = false;
+        moving--;
         Refresh();
         if (focused is not null && parts.ContainsKey(focused)) FocusHandle(focused);
     }
