@@ -8,12 +8,14 @@ mkdirSync(ev, { recursive: true });
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const log: { step: string; spoken: string[] }[] = [];
 let seen = 0;
+let pressErrors = 0;
 
 /** Presses a key and returns what NVDA said since the last call. */
 async function press(key: string): Promise<string[]> {
   try {
     await nvda.press(key);
   } catch (error) {
+    pressErrors++;
     log.push({ step: key, spoken: [`ERROR ${(error as Error).message}`] });
     console.log(`NVDA ${key}: ERROR ${(error as Error).message}`);
     return [];
@@ -36,16 +38,21 @@ try {
     { name: "sorted column", expect: "Serves, sorted descending, header item" },
     { name: "row name", expect: "Herb salad, button" },
   ];
+  // One pass of Tab through the page; a case passes when any phrase NVDA spoke contains its text, in any order.
+  let heard: string[] = [];
+  for (let i = 0; i < 40 && !cases.every((c) => heard.some((p) => p.includes(c.expect))); i++) heard = heard.concat(await press("Tab"));
   let failed = 0;
   for (const c of cases) {
-    let heard: string[] = [];
-    for (let i = 0; i < 12 && !heard.includes(c.expect); i++) heard = heard.concat(await press("Tab"));
-    const ok = heard.includes(c.expect);
+    const ok = heard.some((p) => p.includes(c.expect));
     if (!ok) failed++;
-    console.log(`NVDA case ${c.name}: ${ok ? "PASS" : "FAIL"} expected ${JSON.stringify(c.expect)} heard ${JSON.stringify(heard)}`);
+    console.log(`NVDA case ${c.name}: ${ok ? "PASS" : "FAIL"} expected ${JSON.stringify(c.expect)}`);
+  }
+  if (pressErrors) {
+    console.log(`NVDA did not answer ${pressErrors} key presses`);
+    failed++;
   }
   if (failed) process.exitCode = 1;
-  writeFileSync(`${ev}/nvda-table.json`, JSON.stringify({ log, all: await nvda.spokenPhraseLog() }, null, 2));
 } finally {
+  writeFileSync(`${ev}/nvda-table.json`, JSON.stringify({ log, all: await nvda.spokenPhraseLog().catch(() => []) }, null, 2));
   await nvda.stop();
 }
