@@ -376,7 +376,7 @@ public sealed class MainWindow : Window
     }
 
     /// <summary>Two columns side by side, so a tall page keeps every case on screen for the UI Automation dump.</summary>
-    private static Grid Side(UIElement left, UIElement right)
+    private static Grid Side(FrameworkElement left, FrameworkElement right)
     {
         var grid = new Grid { ColumnSpacing = 24 };
         grid.ColumnDefinitions.Add(new ColumnDefinition());
