@@ -38,6 +38,11 @@ if ($Grab -eq "row") { $from.x -= 50 }
 $to = Center $handles[$handles.Count - 1]
 $to.y += 12
 if ($Grab -eq "click") {
+  [OuroMouse]::To($from.x - 300, $from.y - 60)
+  Start-Sleep -Milliseconds 300
+  [OuroMouse]::mouse_event([OuroMouse]::Down, 0, 0, 0, [UIntPtr]::Zero)
+  [OuroMouse]::mouse_event([OuroMouse]::Up, 0, 0, 0, [UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 500
   [OuroMouse]::To($from.x, $from.y)
   Start-Sleep -Milliseconds 300
   [OuroMouse]::mouse_event([OuroMouse]::Down, 0, 0, 0, [UIntPtr]::Zero)
