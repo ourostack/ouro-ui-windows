@@ -110,7 +110,7 @@ public sealed class MainWindow : Window
             _ => Column(16, heading, list, status),
         };
         root.Padding = new Thickness(32);
-        var card = page is "composed" or "a2ui";
+        var card = page is "composed" or "a2ui" or "tables";
         root.MaxWidth = card ? double.PositiveInfinity : 900;
         root.HorizontalAlignment = card ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
         Content = new Grid
@@ -435,7 +435,7 @@ public sealed class MainWindow : Window
             (new OuroTable { Caption = "Recipes", Columns = cols }, "empty"),
             (new OuroTable { Caption = "Recipes", Columns = cols, Empty = "No recipes match." }, "empty-custom"),
         };
-        var tables = new Grid { ColumnSpacing = 16, RowSpacing = 16, MinWidth = 880, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition(), new ColumnDefinition() }, RowDefinitions = { new RowDefinition { Height = GridLength.Auto }, new RowDefinition { Height = GridLength.Auto }, new RowDefinition { Height = GridLength.Auto } } };
+        var tables = new Grid { ColumnSpacing = 16, RowSpacing = 16, MinWidth = 800, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition(), new ColumnDefinition() }, RowDefinitions = { new RowDefinition { Height = GridLength.Auto }, new RowDefinition { Height = GridLength.Auto }, new RowDefinition { Height = GridLength.Auto } } };
         for (var i = 0; i < ids.Length; i++)
         {
             Grid.SetRow(ids[i].table, i / 3);
