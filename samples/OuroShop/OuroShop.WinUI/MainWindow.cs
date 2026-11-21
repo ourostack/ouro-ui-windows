@@ -319,8 +319,12 @@ public sealed class MainWindow : Window
         var swipes = Column(24,
             Id(new OuroSwipeActions { Label = "Lunch plans", Trailing = "Delete, Archive", Tone = OuroTone.Destructive, Content = Words() }, "gallery.swipe-actions.trailing-delete"),
             Id(new OuroSwipeActions { Label = "Lunch plans", ActionsLabel = "More for lunch", Leading = "Pin", Content = Words() }, "gallery.swipe-actions.named-actions-button"));
-        groups = Column(24, groups, swipes);
-        return Id(new OuroCard { Title = "Lists", Description = "ItemGroup, SwipeActions", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = groups }, "card.lists");
+        OuroReorderableRow Step(string name) => new(name, name, new TextBlock { Text = name, TextWrapping = TextWrapping.Wrap, IsTextScaleFactorEnabled = true });
+        var orders = Column(24,
+            Id(new OuroReorderable { Label = "Playlist", Rows = new[] { Step("Intro"), Step("Verse"), Step("Chorus") } }, "gallery.reorderable.three-rows"),
+            Id(new OuroReorderable { Label = "Playlist", DisabledReason = "Sorted by date", Rows = new[] { Step("Intro"), Step("Verse"), Step("Chorus") } }, "gallery.reorderable.locked"));
+        groups = Column(24, groups, swipes, orders);
+        return Id(new OuroCard { Title = "Lists", Description = "ItemGroup, SwipeActions, Reorderable", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = groups }, "card.lists");
     }
 
     /// <summary>The gallery's fourth page: Dialog and Sheet, already open and drawn in the page, in core's spec cases.</summary>

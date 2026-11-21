@@ -13,6 +13,19 @@ public enum OuroItemGroupVariant
     Outline,
 }
 
+/// <summary>A move a person can make to a reorderable row.</summary>
+public enum OuroMove
+{
+    /// <summary>One place toward the start.</summary>
+    Up,
+    /// <summary>One place toward the end.</summary>
+    Down,
+    /// <summary>To the start.</summary>
+    Top,
+    /// <summary>To the end.</summary>
+    Bottom,
+}
+
 /// <summary>What a list says and draws, as plain numbers and words.</summary>
 public static class OuroListRules
 {
@@ -34,4 +47,22 @@ public static class OuroListRules
 
     /// <summary>The name of a row's actions button: the name the app gave it, else "Actions for {label}".</summary>
     public static string ActionsButtonName(string label, string? actionsLabel) => string.IsNullOrEmpty(actionsLabel) ? $"Actions for {label}" : actionsLabel;
+
+    /// <summary>Where the row at <paramref name="from"/> in a list of <paramref name="count"/> rows lands after <paramref name="move"/>; a move off either end stays where it is.</summary>
+    public static int MoveTarget(int from, int count, OuroMove move) => count <= 0 ? from : move switch
+    {
+        OuroMove.Up => Math.Max(from - 1, 0),
+        OuroMove.Down => Math.Min(from + 1, count - 1),
+        OuroMove.Top => 0,
+        _ => count - 1,
+    };
+
+    /// <summary>Whether the order is locked: <paramref name="disabled"/>, or any reason given, which alone locks it.</summary>
+    public static bool Locked(bool disabled, string? reason) => disabled || !string.IsNullOrEmpty(reason);
+
+    /// <summary>A row's handle name, "Reorder Intro", with the reason the order is locked after it when there is one.</summary>
+    public static string HandleName(string row, string? reason) => string.IsNullOrEmpty(reason) ? $"Reorder {row}" : $"Reorder {row}, {reason}";
+
+    /// <summary>A row's place as it is announced, "Position 2 of 5". Places count from 1.</summary>
+    public static string Position(int index, int count) => $"Position {index + 1} of {count}";
 }

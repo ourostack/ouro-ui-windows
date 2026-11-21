@@ -447,6 +447,17 @@
         </Setter>
     </Style>
 
+    <Style TargetType="local:OuroReorderable">
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:OuroReorderable">
+                    <Grid x:Name="Root" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style TargetType="local:OuroNavButton">
         <Setter Property="UseSystemFocusVisuals" Value="True" />
         <Setter Property="FocusVisualMargin" Value="-3" />
