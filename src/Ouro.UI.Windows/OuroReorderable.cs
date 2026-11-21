@@ -104,7 +104,8 @@ public sealed partial class OuroReorderable : Control
             foreach (var part in parts.Values) Press(part.Handle, false);
             if (id is null || HandleAt(e) != id) return;
             parts[id].Handle.Focus(FocusState.Pointer);
-            if (!Locked) Menu(id).ShowAt(parts[id].Handle);
+            var handle = parts[id].Handle;
+            if (!Locked) DispatcherQueue.TryEnqueue(() => Menu(id).ShowAt(handle));
         }), true);
         list.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => Cancel()), true);
         list.AddHandler(PointerCaptureLostEvent, new PointerEventHandler((_, _) => Cancel()), true);
