@@ -34,7 +34,7 @@ Start-Sleep -Milliseconds 2000
 $before = Get-Order
 $handles = Get-Handles
 $from = Center $handles[0]
-if ($Grab -eq "row") { $from.x -= 120 }
+if ($Grab -eq "row") { $from.x -= 50 }
 $to = Center $handles[$handles.Count - 1]
 $to.y += 12
 # A first click, on the empty end of the card, gives the window the foreground as a person's would, before the drag.
