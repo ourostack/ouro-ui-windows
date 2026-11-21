@@ -8,7 +8,9 @@ Add-Type @"
 using System; using System.Runtime.InteropServices;
 public static class OuroMouse {
   [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
-  public const uint Down = 0x0002, Up = 0x0004;
+  [DllImport("user32.dll")] public static extern int GetSystemMetrics(int index);
+  public const uint Down = 0x0002, Up = 0x0004, Move = 0x0001, Absolute = 0x8000;
+  public static void To(int x, int y) { mouse_event(Move | Absolute, (uint)(x * 65535L / GetSystemMetrics(0)), (uint)(y * 65535L / GetSystemMetrics(1)), 0, UIntPtr.Zero); }
 }
 "@
 
@@ -35,13 +37,19 @@ $from = Center $handles[0]
 if ($Grab -eq "row") { $from.x -= 120 }
 $to = Center $handles[$handles.Count - 1]
 $to.y += 12
-[void][OuroDpi]::SetCursorPos($from.x, $from.y)
+# A first click, on the empty end of the card, gives the window the foreground as a person's would, before the drag.
+[OuroMouse]::To($from.x - 300, $from.y - 60)
+Start-Sleep -Milliseconds 300
+[OuroMouse]::mouse_event([OuroMouse]::Down, 0, 0, 0, [UIntPtr]::Zero)
+[OuroMouse]::mouse_event([OuroMouse]::Up, 0, 0, 0, [UIntPtr]::Zero)
+Start-Sleep -Milliseconds 500
+[OuroMouse]::To($from.x, $from.y)
 Start-Sleep -Milliseconds 300
 [OuroMouse]::mouse_event([OuroMouse]::Down, 0, 0, 0, [UIntPtr]::Zero)
 Start-Sleep -Milliseconds 300
 $steps = 30
 foreach ($i in 1..$steps) {
-  [void][OuroDpi]::SetCursorPos($from.x, [int]($from.y + ($to.y - $from.y) * $i / $steps))
+  [OuroMouse]::To($from.x, [int]($from.y + ($to.y - $from.y) * $i / $steps))
   Start-Sleep -Milliseconds 30
 }
 Start-Sleep -Milliseconds 500
