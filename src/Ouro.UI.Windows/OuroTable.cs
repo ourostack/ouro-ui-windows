@@ -418,14 +418,14 @@ internal sealed partial class OuroTableBody : Panel
 }
 
 /// <summary>A body cell: its words, a Text to UI Automation, or hidden from it inside a linked row.</summary>
-internal sealed partial class OuroTableCell : Border
+internal sealed partial class OuroTableCell : Grid
 {
     private readonly TextBlock text = new() { TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, IsTextScaleFactorEnabled = true, HighContrastAdjustment = ElementHighContrastAdjustment.None };
     private string words = "";
 
     public OuroTableCell()
     {
-        Child = text;
+        Children.Add(text);
         Padding = new Thickness(OuroTable.CellPaddingX, 8, OuroTable.CellPaddingX, 8);
     }
 
@@ -449,13 +449,13 @@ internal sealed partial class OuroTableCell : Border
 }
 
 /// <summary>A header that no press sorts: its words, a HeaderItem to UI Automation.</summary>
-internal sealed partial class OuroTableHeaderCell : Border
+internal sealed partial class OuroTableHeaderCell : Grid
 {
     internal TextBlock Label { get; } = new() { TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, IsTextScaleFactorEnabled = true, HighContrastAdjustment = ElementHighContrastAdjustment.None };
 
     public OuroTableHeaderCell()
     {
-        Child = Label;
+        Children.Add(Label);
         Padding = new Thickness(OuroTable.CellPaddingX, 8, OuroTable.CellPaddingX, 8);
         AutomationProperties.SetAccessibilityView(Label, AccessibilityView.Raw);
     }
