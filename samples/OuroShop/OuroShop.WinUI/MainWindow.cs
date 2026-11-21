@@ -422,17 +422,26 @@ public sealed class MainWindow : Window
             AutomationProperties.SetAutomationId(e, id);
             return e;
         }
-        const string rows = "Braised short ribs | 4 h | 6; Herb salad | 10 min | 2; Rye bread | 18 h | 8";
-        const string sortedRows = "Rye bread | 18 h | 8; Braised short ribs | 4 h | 6; Herb salad | 10 min | 2";
+        const string rows = "Braised short ribs | 4 h | 6; Herb salad | 10 min | 2";
+        const string sortedRows = "Braised short ribs | 4 h | 6; Herb salad | 10 min | 2";
         const string cols = "Recipe, Time, Serves";
-        var tables = Column(16,
-            Id(new OuroTable { Caption = "Recipes", Columns = cols, Rows = rows }, "gallery.table.basic"),
-            Id(new OuroTable { Caption = "Recipes", HideCaption = true, Columns = cols, Rows = rows }, "gallery.table.hidden-caption"),
-            Id(new OuroTable { Caption = "Recipes", Columns = cols, Sortable = "Recipe, Serves", Rows = rows }, "gallery.table.sortable"),
-            Id(new OuroTable { Caption = "Recipes", Columns = cols, Sortable = "Recipe, Serves", SortedBy = "Serves", SortDirection = OuroSortDirection.Descending, Rows = sortedRows }, "gallery.table.sorted"),
-            Id(new OuroTable { Caption = "Recipes", Columns = cols, RowHref = true, Rows = rows }, "gallery.table.row-links"),
-            Id(new OuroTable { Caption = "Recipes", Columns = cols }, "gallery.table.empty"),
-            Id(new OuroTable { Caption = "Recipes", Columns = cols, Empty = "No recipes match." }, "gallery.table.empty-custom"));
+        var ids = new (OuroTable table, string id)[]
+        {
+            (new OuroTable { Caption = "Recipes", Columns = cols, Rows = rows }, "basic"),
+            (new OuroTable { Caption = "Recipes", HideCaption = true, Columns = cols, Rows = rows }, "hidden-caption"),
+            (new OuroTable { Caption = "Recipes", Columns = cols, Sortable = "Recipe, Serves", Rows = rows }, "sortable"),
+            (new OuroTable { Caption = "Recipes", Columns = cols, Sortable = "Recipe, Serves", SortedBy = "Serves", SortDirection = OuroSortDirection.Descending, Rows = sortedRows }, "sorted"),
+            (new OuroTable { Caption = "Recipes", Columns = cols, RowHref = true, Rows = rows }, "row-links"),
+            (new OuroTable { Caption = "Recipes", Columns = cols }, "empty"),
+            (new OuroTable { Caption = "Recipes", Columns = cols, Empty = "No recipes match." }, "empty-custom"),
+        };
+        var tables = new Grid { ColumnSpacing = 16, RowSpacing = 16, MinWidth = 880, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition(), new ColumnDefinition() }, RowDefinitions = { new RowDefinition { Height = GridLength.Auto }, new RowDefinition { Height = GridLength.Auto }, new RowDefinition { Height = GridLength.Auto } } };
+        for (var i = 0; i < ids.Length; i++)
+        {
+            Grid.SetRow(ids[i].table, i / 3);
+            Grid.SetColumn(ids[i].table, i % 3);
+            tables.Children.Add(Id(ids[i].table, "gallery.table." + ids[i].id));
+        }
         return Id(new OuroCard { Title = "Tables", Description = "Table", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = tables }, "card.tables");
     }
 
