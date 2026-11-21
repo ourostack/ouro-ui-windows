@@ -112,4 +112,20 @@ public static class OuroChatRules
 
     /// <summary>Whether a reader at <paramref name="offset"/> in a view with <paramref name="extent"/> of scrollable height is at the newest message.</summary>
     public static bool AtBottom(double offset, double extent) => extent - offset <= AtBottomSlack;
+
+    /// <summary>The Composer's default row limit before its box scrolls.</summary>
+    public const int DefaultMaxRows = 10;
+
+    /// <summary>"modenter" when asked for, otherwise "enter": the two ways a Composer sends.</summary>
+    public static string NormalizeSendOn(string? sendOn) => string.Equals(sendOn?.Trim(), "modenter", StringComparison.OrdinalIgnoreCase) ? "modenter" : "enter";
+
+    /// <summary>Whether Enter with these modifiers is the send key: Enter alone sends (Shift+Enter is a newline), and with "modenter" only Ctrl+Enter sends.</summary>
+    public static bool IsSendKey(bool shift, bool ctrl, string sendOn) => !shift && (NormalizeSendOn(sendOn) == "modenter" ? ctrl : true);
+
+    /// <summary>Whether the Composer may send now: never while an input method is composing, while sending, with a reason set, disabled, or with nothing written.</summary>
+    public static bool CanSend(string text, bool composing, bool sending, bool hasReason, bool disabled) =>
+        !composing && !sending && !hasReason && !disabled && !string.IsNullOrWhiteSpace(text);
+
+    /// <summary>The tallest the Composer's box grows, in epx, before it scrolls: <paramref name="maxRows"/> lines plus its padding.</summary>
+    public static double BoxMaxHeight(int maxRows, double lineHeight, double padding) => Math.Max(1, maxRows) * lineHeight + padding;
 }

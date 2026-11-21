@@ -492,6 +492,41 @@
         </Setter>
     </Style>
 
+    <Style TargetType="local:OuroComposer">
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:OuroComposer">
+                    <Grid x:Name="Root" RowSpacing="4">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Border x:Name="Frame">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="Input" Style="{StaticResource OuroTextFieldInput}" />
+                                <TextBlock
+                                    x:Name="PlaceholderText"
+                                    IsHitTestVisible="False"
+                                    TextWrapping="Wrap"
+                                    IsTextScaleFactorEnabled="True"
+                                    HighContrastAdjustment="None"
+                                    AutomationProperties.AccessibilityView="Raw" />
+                                <local:OuroButton x:Name="SendButton" Grid.Column="1" Margin="4" VerticalAlignment="Bottom" />
+                            </Grid>
+                        </Border>
+                        <TextBlock x:Name="ReasonText" Grid.Row="1" TextWrapping="Wrap" IsTextScaleFactorEnabled="True" HighContrastAdjustment="None" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style TargetType="local:OuroSwipeActions">
         <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Template">

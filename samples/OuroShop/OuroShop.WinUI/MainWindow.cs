@@ -375,6 +375,18 @@ public sealed class MainWindow : Window
         return Id(new OuroCard { Title = "Confirmations", Description = "ConfirmDialog", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = panels }, "card.confirms");
     }
 
+    /// <summary>Two columns side by side, so a tall page keeps every case on screen for the UI Automation dump.</summary>
+    private static Grid Side(FrameworkElement left, FrameworkElement right)
+    {
+        var grid = new Grid { ColumnSpacing = 24 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition());
+        grid.ColumnDefinitions.Add(new ColumnDefinition());
+        Grid.SetColumn(right, 1);
+        grid.Children.Add(left);
+        grid.Children.Add(right);
+        return grid;
+    }
+
     /// <summary>The gallery's chat page: Message, in core's spec cases.</summary>
     private static OuroCard Chat()
     {
@@ -394,7 +406,11 @@ public sealed class MainWindow : Window
         var lists = Column(12,
             Id(new OuroMessageList { Label = "Conversation with Ana", Messages = "a: Ana | 9:41 | See you at noon.; b: You | 9:42 | On my way. | mine" }, "gallery.message-list.two-messages"),
             Id(new OuroMessageList { Label = "Team chat", HasOlder = true, Messages = "a: Ana | 9:41 | Morning." }, "gallery.message-list.older-available"));
-        return Id(new OuroCard { Title = "Chat", Description = "Message, reaction bar and message list", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = Column(16, messages, bars, lists) }, "card.chat");
+        var composers = Column(12,
+            Id(new OuroComposer { Label = "Message Mia", Placeholder = "Write a message" }, "gallery.composer.empty"),
+            Id(new OuroComposer { Label = "Reply in thread", Placeholder = "Write a reply", SendDisabledReason = "You're offline. Sending resumes when you reconnect." }, "gallery.composer.sending-off"),
+            Id(new OuroComposer { Label = "Message Mia", Placeholder = "Write a message", Sending = true }, "gallery.composer.sending"));
+        return Id(new OuroCard { Title = "Chat", Description = "Message, reaction bar, message list and composer", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = Side(Column(16, composers, bars), Column(16, messages, lists)) }, "card.chat");
     }
 
     /// <summary>The gallery's sixth page: Field, Select and Switch, in core's spec cases.</summary>
