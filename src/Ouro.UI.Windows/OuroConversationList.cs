@@ -298,7 +298,7 @@ public sealed partial class OuroConversationList : Control
         quiet = false;
         Refresh();
         if (focused is null) return;
-        if (shown.Contains(focused)) FocusRow(focused);
+        if (shown.FirstOrDefault(x => x.Id == focused.Id) is { } same) FocusRow(same);
         else if (OuroListRules.FocusAfterRemoval(at, shown.Count) is var to and >= 0) FocusRow(shown[to]);
     }
 
@@ -423,11 +423,11 @@ public sealed partial class OuroConversationList : Control
         foreach (var (key, fill) in states) list.Resources[key] = OuroUI.Brush(fill);
         // Rows are drawn again only when what they are drawn with changed, so a size change never takes focus from a more button.
         var now = $"{p.Text}{p.Muted}{p.Behind}{density}{selectedId}{moreLabel}{unreadLabel}";
-        if (now != look)
+        if (now != look && FocusedRow() is null)
         {
             look = now;
             foreach (var row in shown)
-                if (list.ContainerFromItem(row) is ListViewItem item && FocusedRow() is null) Fill(item, row);
+                if (list.ContainerFromItem(row) is ListViewItem item) Fill(item, row);
         }
         var title = showsEmpty ? message : FirstTitle();
         var dot = OuroUI.Paint(this, OuroTone.Primary, OuroVariant.Solid).Fill;
