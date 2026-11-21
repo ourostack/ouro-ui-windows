@@ -1,5 +1,5 @@
 // Drives NVDA, through Guidepup, over Ouro Shop's tables page and records what it says (CI job `nvda`).
-// The app is already running on the tables page. Each key press is one case's evidence; the log goes to $EV.
+// The app is already running on the tables page. Each case presses Tab until NVDA says the expected phrase and prints one `NVDA case` line; the log goes to $EV.
 import { nvda } from "@guidepup/guidepup";
 import { mkdirSync, writeFileSync } from "node:fs";
 
@@ -31,16 +31,20 @@ await nvda.start();
 try {
   await pause(4000);
   seen = (await nvda.spokenPhraseLog()).length;
-  const nav = ["Insert+Numpad5", "Insert+Numpad8", "Insert+Numpad5", "Insert+Numpad2", "Insert+Numpad5", "Insert+Numpad6", "Insert+Numpad5", "Insert+Numpad6", "Insert+Numpad5", "Insert+Numpad6", "Insert+Numpad5", "Insert+Numpad8", "Insert+Numpad8", "Insert+Numpad5", "Insert+Numpad4", "Insert+Numpad5", "Insert+Numpad2", "Insert+Numpad5"];
-  for (const target of ["Serves, sorted descending", "Herb salad, button"]) {
-    for (let i = 0; i < 12; i++) {
-      const said = await press("Tab");
-      await pause(600);
-      if (said.concat((await nvda.spokenPhraseLog()).slice(-2)).some((p) => p.startsWith(target))) break;
-    }
-    console.log(`NVDA --- at ${target}`);
-    for (const key of nav) await press(key);
+  const cases: { name: string; expect: string }[] = [
+    { name: "column header", expect: "Serves, header item" },
+    { name: "sorted column", expect: "Serves, sorted descending, header item" },
+    { name: "row name", expect: "Herb salad, button" },
+  ];
+  let failed = 0;
+  for (const c of cases) {
+    let heard: string[] = [];
+    for (let i = 0; i < 12 && !heard.includes(c.expect); i++) heard = heard.concat(await press("Tab"));
+    const ok = heard.includes(c.expect);
+    if (!ok) failed++;
+    console.log(`NVDA case ${c.name}: ${ok ? "PASS" : "FAIL"} expected ${JSON.stringify(c.expect)} heard ${JSON.stringify(heard)}`);
   }
+  if (failed) process.exitCode = 1;
   writeFileSync(`${ev}/nvda-table.json`, JSON.stringify({ log, all: await nvda.spokenPhraseLog() }, null, 2));
 } finally {
   await nvda.stop();
