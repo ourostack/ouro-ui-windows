@@ -1,7 +1,7 @@
 # Drives Ouro Shop (-Grab row is the control: a drag from the row's own words) with a real mouse, as a person's hand would: it drags the first row of the lists page's Reorderable from its handle past the last
 # row, and records the order of the handles before and after. Windows' UI Automation cannot say whether a drag starts, so this presses, moves and
 # releases the mouse itself. Writes the record to -Out and exits 1 when the row did not move.
-param([Parameter(Mandatory)][string]$Command, [Parameter(Mandatory)][string]$ProcessName, [Parameter(Mandatory)][string]$Out, [ValidateSet("handle","row")][string]$Grab = "handle")
+param([Parameter(Mandatory)][string]$Command, [Parameter(Mandatory)][string]$ProcessName, [Parameter(Mandatory)][string]$Out, [ValidateSet("handle","row","click")][string]$Grab = "handle")
 $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\uia.ps1"
 Add-Type @"
@@ -37,6 +37,19 @@ $from = Center $handles[0]
 if ($Grab -eq "row") { $from.x -= 50 }
 $to = Center $handles[$handles.Count - 1]
 $to.y += 12
+if ($Grab -eq "click") {
+  [OuroMouse]::To($from.x, $from.y)
+  Start-Sleep -Milliseconds 300
+  [OuroMouse]::mouse_event([OuroMouse]::Down, 0, 0, 0, [UIntPtr]::Zero)
+  [OuroMouse]::mouse_event([OuroMouse]::Up, 0, 0, 0, [UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 1500
+  $menu = (Get-OuroWindow $ProcessName).FindAll([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty, "Move down"))).Count
+  [ordered]@{ grab = $Grab; from = $from; moveDownItems = $menu } | ConvertTo-Json | Set-Content -Encoding utf8 $Out
+  Get-Content $Out
+  Get-Process -Name $ProcessName -ErrorAction SilentlyContinue | Stop-Process -Force
+  if ($menu -lt 1) { Write-Host "::error::A click on the handle did not open its menu"; exit 1 }
+  exit 0
+}
 # A first click, on the empty end of the card, gives the window the foreground as a person's would, before the drag.
 [OuroMouse]::To($from.x - 300, $from.y - 60)
 Start-Sleep -Milliseconds 300
@@ -67,3 +80,4 @@ $moved = ($before -join "|") -ne ($after -join "|") -and $after[0] -ne $before[0
 Get-Content $Out
 Get-Process -Name $ProcessName -ErrorAction SilentlyContinue | Stop-Process -Force
 if (-not $moved) { Write-Host "::error::A drag from the $Grab did not move the row: before $($before -join ', '), after $($after -join ', ')"; exit 1 }
+exit 0
