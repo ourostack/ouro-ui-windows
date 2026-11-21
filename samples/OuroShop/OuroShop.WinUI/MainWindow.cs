@@ -391,7 +391,10 @@ public sealed class MainWindow : Window
             Id(new OuroReactionBar { Reactions = "like: 👍 | Like | 3 | mine; heart: ❤️ | Love | 1" }, "gallery.reaction-bar.two-reactions"),
             Id(new OuroReactionBar { ShowMore = true, Reactions = "like: 👍 | Like | 2" }, "gallery.reaction-bar.with-add"),
             Id(new OuroReactionBar { IsEnabled = false, Reactions = "like: 👍 | Like | 2" }, "gallery.reaction-bar.disabled"));
-        return Id(new OuroCard { Title = "Chat", Description = "Message and reaction bar", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = Column(16, messages, bars) }, "card.chat");
+        var lists = Column(12,
+            Id(new OuroMessageList { Label = "Conversation with Ana", Messages = "a: Ana | 9:41 | See you at noon.; b: You | 9:42 | On my way. | mine" }, "gallery.message-list.two-messages"),
+            Id(new OuroMessageList { Label = "Team chat", HasOlder = true, Messages = "a: Ana | 9:41 | Morning." }, "gallery.message-list.older-available"));
+        return Id(new OuroCard { Title = "Chat", Description = "Message, reaction bar and message list", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = Column(16, messages, bars, lists) }, "card.chat");
     }
 
     /// <summary>The gallery's sixth page: Field, Select and Switch, in core's spec cases.</summary>

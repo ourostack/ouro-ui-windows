@@ -99,6 +99,9 @@ public sealed partial class OuroMessage : Control
     /// <summary>The message's words are cut off.</summary>
     internal bool Trimmed => text.IsTextTrimmed;
 
+    /// <summary>The height of the message's words.</summary>
+    internal double TextHeight => text.ActualHeight;
+
     protected override void OnApplyTemplate()
     {
         base.OnApplyTemplate();
