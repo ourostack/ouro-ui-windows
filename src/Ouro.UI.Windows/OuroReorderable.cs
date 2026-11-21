@@ -91,6 +91,23 @@ public sealed partial class OuroReorderable : Control
             e.ItemContainer.MinHeight = 0;
             e.ItemContainer.HorizontalContentAlignment = HorizontalAlignment.Stretch;
         };
+        // The list sees every press, because its row takes the pointer; a press and release on a handle's own square opens that handle's menu.
+        list.AddHandler(PointerPressedEvent, new PointerEventHandler((_, e) =>
+        {
+            tapped = HandleAt(e);
+            if (tapped is { } id) Press(parts[id].Handle, true);
+        }), true);
+        list.AddHandler(PointerReleasedEvent, new PointerEventHandler((_, e) =>
+        {
+            var id = tapped;
+            tapped = null;
+            foreach (var part in parts.Values) Press(part.Handle, false);
+            if (id is null || HandleAt(e) != id) return;
+            parts[id].Handle.Focus(FocusState.Pointer);
+            var handle = parts[id].Handle;
+            if (!Locked) DispatcherQueue.TryEnqueue(() => Menu(id).ShowAt(handle));
+        }), true);
+        list.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => Cancel()), true);
         list.DragItemsStarting += (_, e) => dragFrom = e.Items.Count == 0 ? -1 : list.Items.IndexOf(e.Items[0]);
         list.DragItemsCompleted += (_, e) => Dropped(e.Items.Count == 0 ? null : e.Items[0] as Grid);
         OuroUI.Follow(this, Refresh);
@@ -272,15 +289,32 @@ public sealed partial class OuroReorderable : Control
         {
             if (moving == 0) Release(id, true);
         };
-        handle.RegisterPropertyChangedCallback(Microsoft.UI.Xaml.Controls.Primitives.ButtonBase.IsPressedProperty, (_, _) =>
-        {
-            handle.CenterPoint = new Vector3((float)handle.ActualWidth / 2, (float)handle.ActualHeight / 2, 0);
-            var s = handle.IsPressed && !Locked ? OuroUI.PressScale : 1f;
-            handle.ScaleTransition = OuroUI.AnimationsEnabled ? new Vector3Transition { Duration = TimeSpan.FromMilliseconds(OuroTokens.Duration.Press) } : null;
-            handle.Scale = new Vector3(s, s, 1);
-        });
+        handle.RegisterPropertyChangedCallback(Microsoft.UI.Xaml.Controls.Primitives.ButtonBase.IsPressedProperty, (_, _) => Press(handle, handle.IsPressed));
+        // A pointer never reaches the handle: a Button takes the pointer on a press, and then the list's drag, which starts from the row, never begins (#72). The
+        // row passes a press or tap on the handle's own square to it instead; UI Automation and the keyboard still reach the Button itself.
+        handle.IsHitTestVisible = false;
         return handle;
     }
+
+    private string? tapped;
+
+    private string? HandleAt(PointerRoutedEventArgs e) => parts.FirstOrDefault(p => OnHandle(p.Value.Handle, e.GetCurrentPoint(p.Value.Handle).Position)).Key;
+
+    private void Cancel()
+    {
+        tapped = null;
+        foreach (var part in parts.Values) Press(part.Handle, false);
+    }
+
+    private void Press(OuroReorderHandle handle, bool pressed)
+    {
+        handle.CenterPoint = new Vector3((float)handle.ActualWidth / 2, (float)handle.ActualHeight / 2, 0);
+        var s = pressed && !Locked ? OuroUI.PressScale : 1f;
+        handle.ScaleTransition = OuroUI.AnimationsEnabled ? new Vector3Transition { Duration = TimeSpan.FromMilliseconds(OuroTokens.Duration.Press) } : null;
+        handle.Scale = new Vector3(s, s, 1);
+    }
+
+    private static bool OnHandle(OuroReorderHandle handle, global::Windows.Foundation.Point at) => at.X >= 0 && at.Y >= 0 && at.X <= handle.ActualWidth && at.Y <= handle.ActualHeight;
 
     private void Build()
     {
