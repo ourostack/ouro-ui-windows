@@ -62,4 +62,16 @@ public class ListTests
         Assert.Equal("Reorder Intro, Sorted by date", OuroListRules.HandleName("Intro", "Sorted by date"));
         Assert.Equal("Position 2 of 5", OuroListRules.Position(1, 5));
     }
+
+    [Fact]
+    public void A_conversation_is_named_by_title_unread_time_preview_and_current_in_that_order()
+    {
+        Assert.Equal("Ari, Unread, 9:41, Lunch at noon?", OuroListRules.ConversationName("Ari", true, null, "9:41", "Lunch at noon?", false));
+        Assert.Equal("Sam, Mon, Notes from Monday, current", OuroListRules.ConversationName("Sam", false, null, "Mon", "Notes from Monday", true));
+        Assert.Equal("Sam, New", OuroListRules.ConversationName("Sam", true, "New", "", null, false));
+        Assert.Equal("More options for Ari", OuroListRules.MoreName("Ari", null));
+        Assert.Equal("More about Ari", OuroListRules.MoreName("Ari", "More about"));
+        Assert.Equal("Nothing here yet", OuroListRules.EmptyText(""));
+        Assert.Equal("No conversations yet", OuroListRules.EmptyText("No conversations yet"));
+    }
 }

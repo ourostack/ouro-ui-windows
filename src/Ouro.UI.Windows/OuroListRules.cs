@@ -65,4 +65,21 @@ public static class OuroListRules
 
     /// <summary>A row's place as it is announced, "Position 2 of 5". Places count from 1.</summary>
     public static string Position(int index, int count) => $"Position {index + 1} of {count}";
+
+    /// <summary>A conversation row's name: its title, then the unread label when it has new messages, then its time and preview, then "current" for the open one.</summary>
+    public static string ConversationName(string title, bool unread, string? unreadLabel, string? time, string? preview, bool current)
+    {
+        var parts = new List<string> { title };
+        if (unread) parts.Add(string.IsNullOrEmpty(unreadLabel) ? "Unread" : unreadLabel);
+        if (!string.IsNullOrEmpty(time)) parts.Add(time);
+        if (!string.IsNullOrEmpty(preview)) parts.Add(preview);
+        if (current) parts.Add("current");
+        return string.Join(", ", parts);
+    }
+
+    /// <summary>The name of a conversation's more button: the label (default "More options for"), then the row's title.</summary>
+    public static string MoreName(string title, string? moreLabel) => $"{(string.IsNullOrEmpty(moreLabel) ? "More options for" : moreLabel)} {title}";
+
+    /// <summary>What a list with no conversations shows: the app's words, else "Nothing here yet".</summary>
+    public static string EmptyText(string? empty) => string.IsNullOrEmpty(empty) ? "Nothing here yet" : empty;
 }

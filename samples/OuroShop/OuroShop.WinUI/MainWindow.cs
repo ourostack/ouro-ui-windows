@@ -323,11 +323,20 @@ public sealed class MainWindow : Window
         var orders = Column(24,
             Id(new OuroReorderable { Label = "Playlist", Rows = new[] { Step("Intro"), Step("Verse"), Step("Chorus") } }, "gallery.reorderable.three-rows"),
             Id(new OuroReorderable { Label = "Playlist", DisabledReason = "Sorted by date", Rows = new[] { Step("Intro"), Step("Verse"), Step("Chorus") } }, "gallery.reorderable.locked"));
-        var both = new Grid { ColumnSpacing = 24, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition() } };
+        var chats = Column(24,
+            Id(new OuroConversationList
+            {
+                Label = "Conversations", SelectedId = "b",
+                Rows = new[] { new OuroConversationRow("a", "Ari", "9:41", "Lunch at noon?", unread: true), new OuroConversationRow("b", "Sam", "Mon", "Notes from Monday") },
+            }, "gallery.conversation-list.unread-and-selected"),
+            Id(new OuroConversationList { Label = "Conversations", Empty = "No conversations yet" }, "gallery.conversation-list.empty-list"));
+        var both = new Grid { ColumnSpacing = 24, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition(), new ColumnDefinition() } };
         Grid.SetColumn(orders, 1);
+        Grid.SetColumn(chats, 2);
         both.Children.Add(Column(24, groups, swipes));
         both.Children.Add(orders);
-        return Id(new OuroCard { Title = "Lists", Description = "ItemGroup, SwipeActions, Reorderable", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = both }, "card.lists");
+        both.Children.Add(chats);
+        return Id(new OuroCard { Title = "Lists", Description = "ItemGroup, SwipeActions, Reorderable, ConversationList", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = both }, "card.lists");
     }
 
     /// <summary>The gallery's fourth page: Dialog and Sheet, already open and drawn in the page, in core's spec cases.</summary>
