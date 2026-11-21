@@ -313,7 +313,7 @@ internal sealed partial class OuroTableCells : Panel
 
     internal double[] Wanted { get; private set; } = [];
 
-    public string Name => OuroTableRules.RowName(Children.OfType<OuroTableCell>().Select(c => c.Words));
+    public string SpokenName => OuroTableRules.RowName(Children.OfType<OuroTableCell>().Select(c => c.Words));
 
     internal void Paint(uint words, uint strong, uint line)
     {
@@ -368,7 +368,7 @@ internal sealed partial class OuroTableCellsAutomationPeer(OuroTableCells owner)
 
     protected override string GetClassNameCore() => "OuroTableRow";
 
-    protected override string GetNameCore() => owner.Kind == OuroTableCellsKind.Header ? "" : owner.Name;
+    protected override string GetNameCore() => owner.Kind == OuroTableCellsKind.Header ? "" : owner.SpokenName;
 
     protected override bool IsKeyboardFocusableCore() => false;
 }
@@ -393,9 +393,11 @@ internal sealed partial class OuroTableBody : Panel
         var widths = Enumerable.Range(0, count).Select(i => lines.Where(l => i < l.Wanted.Length).Select(l => l.Wanted[i]).DefaultIfEmpty(OuroTable.MinColumnWidth).Max()).ToArray();
         foreach (var line in lines) line.Widths = widths;
         double width = 0, height = 0;
+        var total = widths.Sum();
         foreach (var child in Children)
         {
-            child.Measure(new global::Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+            child.InvalidateMeasure();
+            child.Measure(new global::Windows.Foundation.Size(total + 1, double.PositiveInfinity));
             width = Math.Max(width, child.DesiredSize.Width);
             height += child.DesiredSize.Height;
         }
@@ -514,7 +516,7 @@ internal sealed partial class OuroTableHeaderButton : Button
 
     public OuroSortDirection Direction { get; set; }
 
-    public string Name => OuroTableRules.HeaderName(Words, SortedHere, Direction);
+    public string SpokenName => OuroTableRules.HeaderName(Words, SortedHere, Direction);
 
     internal void Paint(uint muted, uint strong, uint line)
     {
@@ -536,7 +538,7 @@ internal sealed partial class OuroTableHeaderButtonAutomationPeer(OuroTableHeade
 
     protected override string GetClassNameCore() => "OuroTableHeaderButton";
 
-    protected override string GetNameCore() => owner.Name;
+    protected override string GetNameCore() => owner.SpokenName;
 }
 
 /// <summary>A row that is one press: the cells inside it, a Button named by the row header, shaded while pointed at or pressed.</summary>
