@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Markup;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using VirtualKey = global::Windows.System.VirtualKey;
@@ -93,6 +94,7 @@ public sealed partial class OuroConversationList : Control
         IsTabStop = false;
         HorizontalAlignment = HorizontalAlignment.Stretch;
         AutomationProperties.SetAccessibilityView(message, AccessibilityView.Raw);
+        list.ItemTemplate = (DataTemplate)XamlReader.Load("<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'><Grid /></DataTemplate>");
         list.ContainerContentChanging += (_, e) =>
         {
             if (e.InRecycleQueue || e.Item is not OuroConversationRow row || e.ItemContainer is not ListViewItem item) return;
@@ -325,7 +327,12 @@ public sealed partial class OuroConversationList : Control
         item.Padding = new Thickness(12, 0, 4, 0);
         item.MinHeight = row.IsSection ? RowMinHeight : density == OuroConversationDensity.Compact ? RowHeightCompact : RowHeightComfortable;
         Speak(item, row);
-        var grid = new Grid { MinHeight = item.MinHeight, ColumnDefinitions = { new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }, new ColumnDefinition { Width = GridLength.Auto } } };
+        if (item.ContentTemplateRoot is not Grid grid) return;
+        grid.Children.Clear();
+        grid.ColumnDefinitions.Clear();
+        grid.MinHeight = item.MinHeight;
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         if (row.IsSection)
         {
             var heading = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
@@ -334,7 +341,6 @@ public sealed partial class OuroConversationList : Control
             heading.Children.Add(chevron);
             heading.Children.Add(Words(row.Title, p.Muted, bold: true));
             grid.Children.Add(heading);
-            item.Content = grid;
             return;
         }
         var lines = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Padding = new Thickness(0, 8, 0, 8) };
@@ -369,7 +375,6 @@ public sealed partial class OuroConversationList : Control
         };
         Grid.SetColumn(more, 1);
         grid.Children.Add(more);
-        item.Content = grid;
     }
 
     private static Button? FindMore(DependencyObject node)
