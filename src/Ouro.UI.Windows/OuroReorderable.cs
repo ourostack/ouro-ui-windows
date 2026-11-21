@@ -200,7 +200,7 @@ public sealed partial class OuroReorderable : Control
         FocusHandle(id);
     }
 
-    private void Drop(string id, bool keep)
+    private void Release(string id, bool keep)
     {
         if (picked != id) return;
         picked = null;
@@ -219,7 +219,7 @@ public sealed partial class OuroReorderable : Control
             case VirtualKey.Space:
                 space = true;
                 e.Handled = true;
-                if (picked == id) Drop(id, true);
+                if (picked == id) Release(id, true);
                 else
                 {
                     picked = id;
@@ -229,7 +229,7 @@ public sealed partial class OuroReorderable : Control
                 break;
             case VirtualKey.Escape when picked == id:
                 e.Handled = true;
-                Drop(id, false);
+                Release(id, false);
                 break;
             case VirtualKey.Up or VirtualKey.Down when picked == id:
                 e.Handled = true;
@@ -267,7 +267,7 @@ public sealed partial class OuroReorderable : Control
         handle.AddHandler(KeyUpEvent, new KeyEventHandler((_, _) => DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => space = false)), true);
         handle.LostFocus += (_, _) =>
         {
-            if (!moving) Drop(id, true);
+            if (!moving) Release(id, true);
         };
         handle.RegisterPropertyChangedCallback(Microsoft.UI.Xaml.Controls.Primitives.ButtonBase.IsPressedProperty, (_, _) =>
         {
