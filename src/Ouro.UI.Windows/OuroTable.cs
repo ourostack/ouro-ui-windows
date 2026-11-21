@@ -625,5 +625,5 @@ public sealed partial class OuroTableAutomationPeer(OuroTable owner) : Framework
         owner.HeaderRow?.Children.Select(c => ProviderFromPeer(CreatePeerForElement(c))).ToArray() ?? [];
 
     public IRawElementProviderSimple[] GetRowHeaders() =>
-        owner.Body.Children.Skip(1).Select(l => l switch { OuroTableLinkRow r => r.Cells, OuroTableCells c => c, _ => null }?.Children.FirstOrDefault()).OfType<UIElement>().Select(c => ProviderFromPeer(CreatePeerForElement(c))).ToArray();
+        owner.Body.Children.Skip(1).Select(l => (l switch { OuroTableLinkRow r => r.Cells, OuroTableCells c => c, _ => null })?.Children.FirstOrDefault()).OfType<UIElement>().Select(c => ProviderFromPeer(CreatePeerForElement(c))).ToArray();
 }
