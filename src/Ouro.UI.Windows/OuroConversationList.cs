@@ -437,7 +437,7 @@ public sealed partial class OuroConversationList : Control
             ("showsEmpty", showsEmpty), ("rows", conversations.Count), ("unread", conversations.Count(r => r.Unread)), ("selected", selectedId),
             ("rowNames", string.Join("|", conversations.Select(r => OuroListRules.ConversationName(r.Title, r.Unread, unreadLabel, r.Time, r.Preview, r.Id == selectedId)))),
             ("moreNames", string.Join("|", conversations.Select(r => OuroListRules.MoreName(r.Title, moreLabel)))),
-            ("realised", shown.Count(x => list.ContainerFromItem(x) is not null) + "/" + shown.Count + " h" + Math.Round(list.ActualHeight) + " t" + (title is null)), ("trimmed", title?.IsTextTrimmed ?? false), ("textHeight", Math.Round(Math.Max(0, (title?.ActualHeight ?? 0) - (showsEmpty ? 2 * EmptyPadding : 0)))));
+            ("trimmed", title?.IsTextTrimmed ?? false), ("textHeight", Math.Round(Math.Max(0, (title?.ActualHeight ?? 0) - (showsEmpty ? 2 * EmptyPadding : 0)))));
         if (!showsEmpty && (title is null || title.ActualHeight == 0) && tries++ < 20) Later();
     }
 
