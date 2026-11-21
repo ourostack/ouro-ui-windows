@@ -108,7 +108,6 @@ public sealed partial class OuroReorderable : Control
             if (!Locked) DispatcherQueue.TryEnqueue(() => Menu(id).ShowAt(handle));
         }), true);
         list.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => Cancel()), true);
-        list.AddHandler(PointerCaptureLostEvent, new PointerEventHandler((_, _) => Cancel()), true);
         list.DragItemsStarting += (_, e) => dragFrom = e.Items.Count == 0 ? -1 : list.Items.IndexOf(e.Items[0]);
         list.DragItemsCompleted += (_, e) => Dropped(e.Items.Count == 0 ? null : e.Items[0] as Grid);
         OuroUI.Follow(this, Refresh);
