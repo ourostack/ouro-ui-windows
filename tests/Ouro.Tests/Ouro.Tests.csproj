@@ -23,5 +23,6 @@
     <Compile Include="..\..\src\Ouro.UI.Windows\OuroFormRules.cs" Link="Kit\OuroFormRules.cs" />
     <Compile Include="..\..\src\Ouro.UI.Windows\OuroListRules.cs" Link="Kit\OuroListRules.cs" />
     <Compile Include="..\..\src\Ouro.UI.Windows\OuroChatRules.cs" Link="Kit\OuroChatRules.cs" />
+    <Compile Include="..\..\src\Ouro.UI.Windows\OuroTableRules.cs" Link="Kit\OuroTableRules.cs" />
   </ItemGroup>
 </Project>

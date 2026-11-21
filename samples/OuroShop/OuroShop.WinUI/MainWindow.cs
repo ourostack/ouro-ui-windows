@@ -20,7 +20,7 @@ public sealed class MainWindow : Window
     private readonly TextBlock status;
     private readonly TextBlock data = new() { TextWrapping = TextWrapping.Wrap };
 
-    /// <param name="page">"list" (the default), "gallery", "fields", "nav", "lists", "overlays", "confirms", "forms", "chat", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
+    /// <param name="page">"list" (the default), "gallery", "fields", "nav", "lists", "overlays", "confirms", "forms", "chat", "tables", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
     public MainWindow(string page = "list")
     {
         Title = "Ouro Shop";
@@ -104,12 +104,13 @@ public sealed class MainWindow : Window
             "confirms" => Column(16, Confirms(), status),
             "forms" => Column(16, Forms(), status),
             "chat" => Column(16, Chat(), status),
+            "tables" => Column(16, Tables(), status),
             "composed" => Column(16, Composed(), status, data),
             "a2ui" => Column(16, A2UI(), status, data),
             _ => Column(16, heading, list, status),
         };
         root.Padding = new Thickness(32);
-        var card = page is "composed" or "a2ui";
+        var card = page is "composed" or "a2ui" or "tables";
         root.MaxWidth = card ? double.PositiveInfinity : 900;
         root.HorizontalAlignment = card ? HorizontalAlignment.Stretch : HorizontalAlignment.Left;
         Content = new Grid
@@ -411,6 +412,37 @@ public sealed class MainWindow : Window
             Id(new OuroComposer { Label = "Reply in thread", Placeholder = "Write a reply", SendDisabledReason = "You're offline. Sending resumes when you reconnect." }, "gallery.composer.sending-off"),
             Id(new OuroComposer { Label = "Message Mia", Placeholder = "Write a message", Sending = true }, "gallery.composer.sending"));
         return Id(new OuroCard { Title = "Chat", Description = "Message, reaction bar, message list and composer", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = Side(Column(16, composers, bars), Column(16, messages, lists)) }, "card.chat");
+    }
+
+    /// <summary>The gallery's tables page: Table, in core's seven spec cases.</summary>
+    private static OuroCard Tables()
+    {
+        T Id<T>(T e, string id) where T : FrameworkElement
+        {
+            AutomationProperties.SetAutomationId(e, id);
+            return e;
+        }
+        const string rows = "Braised short ribs | 4 h | 6; Herb salad | 10 min | 2";
+        const string sortedRows = "Braised short ribs | 4 h | 6; Herb salad | 10 min | 2";
+        const string cols = "Recipe, Time, Serves";
+        var ids = new (OuroTable table, string id)[]
+        {
+            (new OuroTable { Caption = "Recipes", Columns = cols, Rows = rows }, "basic"),
+            (new OuroTable { Caption = "Recipes", HideCaption = true, Columns = cols, Rows = rows }, "hidden-caption"),
+            (new OuroTable { Caption = "Recipes", Columns = cols, Sortable = "Recipe, Serves", Rows = rows }, "sortable"),
+            (new OuroTable { Caption = "Recipes", Columns = cols, Sortable = "Recipe, Serves", SortedBy = "Serves", SortDirection = OuroSortDirection.Descending, Rows = sortedRows }, "sorted"),
+            (new OuroTable { Caption = "Recipes", Columns = cols, RowHref = true, Rows = rows }, "row-links"),
+            (new OuroTable { Caption = "Recipes", Columns = cols }, "empty"),
+            (new OuroTable { Caption = "Recipes", Columns = cols, Empty = "No recipes match." }, "empty-custom"),
+        };
+        var tables = new Grid { ColumnSpacing = 16, RowSpacing = 16, MinWidth = 800, ColumnDefinitions = { new ColumnDefinition(), new ColumnDefinition(), new ColumnDefinition() }, RowDefinitions = { new RowDefinition { Height = GridLength.Auto }, new RowDefinition { Height = GridLength.Auto }, new RowDefinition { Height = GridLength.Auto } } };
+        for (var i = 0; i < ids.Length; i++)
+        {
+            Grid.SetRow(ids[i].table, i / 3);
+            Grid.SetColumn(ids[i].table, i % 3);
+            tables.Children.Add(Id(ids[i].table, "gallery.table." + ids[i].id));
+        }
+        return Id(new OuroCard { Title = "Tables", Description = "Table", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = tables }, "card.tables");
     }
 
     /// <summary>The gallery's sixth page: Field, Select and Switch, in core's spec cases.</summary>
