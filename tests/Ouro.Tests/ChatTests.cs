@@ -68,4 +68,29 @@ public class ChatTests
     [InlineData(480, 500, true)]
     [InlineData(100, 500, false)]
     public void A_reader_near_the_end_is_at_the_newest(double offset, double extent, bool expected) => Assert.Equal(expected, OuroChatRules.AtBottom(offset, extent));
+
+    [Theory]
+    [InlineData(false, false, "enter", true)]
+    [InlineData(true, false, "enter", false)]
+    [InlineData(false, true, "modenter", true)]
+    [InlineData(false, false, "modenter", false)]
+    [InlineData(false, false, "anything", true)]
+    public void Enter_sends_or_adds_a_line_by_the_composers_mode(bool shift, bool ctrl, string sendOn, bool sends) => Assert.Equal(sends, OuroChatRules.IsSendKey(shift, ctrl, sendOn));
+
+    [Theory]
+    [InlineData("Hi", false, false, false, false, true)]
+    [InlineData("Hi", true, false, false, false, false)]
+    [InlineData("Hi", false, true, false, false, false)]
+    [InlineData("Hi", false, false, true, false, false)]
+    [InlineData("Hi", false, false, false, true, false)]
+    [InlineData("  ", false, false, false, false, false)]
+    public void A_composer_sends_only_when_nothing_stops_it(string text, bool composing, bool sending, bool reason, bool disabled, bool expected) =>
+        Assert.Equal(expected, OuroChatRules.CanSend(text, composing, sending, reason, disabled));
+
+    [Fact]
+    public void The_box_grows_to_its_row_limit()
+    {
+        Assert.Equal(10 * 21 + 20, OuroChatRules.BoxMaxHeight(OuroChatRules.DefaultMaxRows, 21, 20));
+        Assert.Equal(41, OuroChatRules.BoxMaxHeight(0, 21, 20));
+    }
 }
