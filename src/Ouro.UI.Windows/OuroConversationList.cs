@@ -84,7 +84,8 @@ public sealed partial class OuroConversationList : Control
     private List<OuroConversationRow> shown = [];
     private string label = "", selectedId = "", empty = "", moreLabel = "", unreadLabel = "", look = "";
     private OuroConversationDensity density;
-    private bool quiet, again;
+    private bool quiet, pending;
+    private int tries;
 
     public OuroConversationList()
     {
@@ -97,6 +98,7 @@ public sealed partial class OuroConversationList : Control
             if (e.InRecycleQueue || e.Item is not OuroConversationRow row || e.ItemContainer is not ListViewItem item) return;
             Fill(item, row);
             e.Handled = true;
+            Later();
         };
         list.SelectionChanged += (_, _) => Chosen();
         list.KeyDown += (_, e) =>
@@ -286,7 +288,7 @@ public sealed partial class OuroConversationList : Control
         }
         shown = next;
         look = "";
-        again = true;
+        tries = 0;
         quiet = true;
         list.ItemsSource = null;
         list.ItemsSource = shown;
@@ -431,11 +433,19 @@ public sealed partial class OuroConversationList : Control
             ("rowNames", string.Join("|", conversations.Select(r => OuroListRules.ConversationName(r.Title, r.Unread, unreadLabel, r.Time, r.Preview, r.Id == selectedId)))),
             ("moreNames", string.Join("|", conversations.Select(r => OuroListRules.MoreName(r.Title, moreLabel)))),
             ("trimmed", title?.IsTextTrimmed ?? false), ("textHeight", Math.Round(Math.Max(0, (title?.ActualHeight ?? 0) - (showsEmpty ? 2 * EmptyPadding : 0)))));
-        if (!showsEmpty && title is null && again)
+        if (!showsEmpty && (title is null || title.ActualHeight == 0) && tries++ < 20) Later();
+    }
+
+    // The rows are built when the ListView lays out, after the list asked for them; the report is made again once they exist.
+    private void Later()
+    {
+        if (pending) return;
+        pending = true;
+        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
         {
-            again = false;
-            DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, Refresh);
-        }
+            pending = false;
+            if (list.ActualHeight > 0 || ActualHeight > 0) Refresh();
+        });
     }
 }
 
