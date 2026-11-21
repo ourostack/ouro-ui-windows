@@ -43,7 +43,12 @@ if ($Grab -eq "click") {
   [OuroMouse]::mouse_event([OuroMouse]::Down, 0, 0, 0, [UIntPtr]::Zero)
   [OuroMouse]::mouse_event([OuroMouse]::Up, 0, 0, 0, [UIntPtr]::Zero)
   Start-Sleep -Milliseconds 1500
-  $menu = (Get-OuroWindow $ProcessName).FindAll([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty, "Move down"))).Count
+  $menu = [System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants, (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty, "Move down"))).Count
+  Add-Type -AssemblyName System.Drawing, System.Windows.Forms
+  $shot = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+  $bmp = New-Object System.Drawing.Bitmap $shot.Width, $shot.Height
+  [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen(0, 0, 0, 0, $bmp.Size)
+  $bmp.Save(($Out -replace '\.json$', '-after-click.png'))
   [ordered]@{ grab = $Grab; from = $from; moveDownItems = $menu } | ConvertTo-Json | Set-Content -Encoding utf8 $Out
   Get-Content $Out
   Get-Process -Name $ProcessName -ErrorAction SilentlyContinue | Stop-Process -Force
