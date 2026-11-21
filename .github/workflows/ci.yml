@@ -75,6 +75,58 @@ jobs:
           dotnet-version: 10.0.x
       - run: dotnet test tests/Ouro.Tests -c Release --logger "console;verbosity=normal"
 
+  nvda:
+    # NVDA, through Guidepup, reading Ouro Shop's tables page the way ourostack/ouro-ui's screen-reader lane reads the web
+    # (ourostack/ouro-ui-windows#79). The UI Automation claims in the `windows` job stay the base check.
+    name: nvda
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: powershell
+    env:
+      EV: ${{ github.workspace }}\evidence
+      APP: ${{ github.workspace }}\out\app\OuroShop.WinUI.exe
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Build Ouro Shop
+        run: |
+          dotnet publish samples/OuroShop/OuroShop.WinUI -c Release -o out/app
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Install Guidepup and NVDA
+        working-directory: tools/nvda
+        run: |
+          npm install --no-audit --no-fund
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          npx guidepup setup --ci
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          npx guidepup install
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: NVDA reads the tables page
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:EV | Out-Null
+          Start-Process -FilePath $env:APP -ArgumentList "--self-report --page tables --theme light" | Out-Null
+          . tools/uia.ps1
+          [void](Wait-OuroElement OuroShop.WinUI gallery.table.basic)
+          Start-Sleep -Seconds 3
+          cmd /c "node tools/nvda/read.mts > ""$env:EV\nvda.log"" 2>&1"
+          $code = $LASTEXITCODE
+          '```' + "`n" + (Get-Content "$env:EV\nvda.log" -Raw) + "`n" + '```' | Add-Content $env:GITHUB_STEP_SUMMARY
+          exit $code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nvda-evidence
+          path: evidence
+
   windows:
     # The kit on a free windows-latest runner (Windows Server, so no App Actions runtime, no Agent Registry and no
     # Mica: README). Build the kit and Ouro Shop, package and install the MSIX, then check that agents and people agree
