@@ -46,7 +46,7 @@ public static class OuroListRules
         (labels ?? "").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
     /// <summary>Whether a swipe past the end of a side runs its action: only a side with one, because WinUI's SwipeControl throws on an Execute side with several items ("Execute items should only have one item", microsoft-ui-xaml SwipeItems.cpp), and its Reveal mode has no long-swipe commit.</summary>
-    public static bool SwipeCommits(int actions) => true;
+    public static bool SwipeCommits(int actions) => actions == 1;
 
     /// <summary>The name of a row's actions button: the name the app gave it, else "Actions for {label}".</summary>
     public static string ActionsButtonName(string label, string? actionsLabel) => string.IsNullOrEmpty(actionsLabel) ? $"Actions for {label}" : actionsLabel;

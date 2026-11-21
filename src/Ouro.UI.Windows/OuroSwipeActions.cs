@@ -151,7 +151,7 @@ public sealed partial class OuroSwipeActions : Control
     private SwipeItems Items(string labels, OuroPaintResult primary, OuroPaintResult rest)
     {
         var names = OuroListRules.Actions(labels);
-        var items = new SwipeItems { Mode = names.Count == 1 ? SwipeMode.Execute : SwipeMode.Reveal };
+        var items = new SwipeItems { Mode = OuroListRules.SwipeCommits(names.Count) ? SwipeMode.Execute : SwipeMode.Reveal };
         foreach (var (name, i) in names.Select((name, i) => (name, i)))
         {
             var paint = i == 0 ? primary : rest;
