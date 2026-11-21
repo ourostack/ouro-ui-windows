@@ -1,7 +1,7 @@
 <Project>
   <!-- Shared by every project: the kit's version (RELEASING.md), and strict nullable C#. -->
   <PropertyGroup>
-    <Version>0.9.0</Version>
+    <Version>0.10.0</Version>
     <Authors>Ouro</Authors>
     <Company>Ouro</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
