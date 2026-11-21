@@ -20,7 +20,7 @@ public sealed class MainWindow : Window
     private readonly TextBlock status;
     private readonly TextBlock data = new() { TextWrapping = TextWrapping.Wrap };
 
-    /// <param name="page">"list" (the default), "gallery", "fields", "nav", "lists", "overlays", "confirms", "forms", "chat", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
+    /// <param name="page">"list" (the default), "gallery", "fields", "nav", "lists", "overlays", "confirms", "forms", "chat", "tables", "composed" or "a2ui": each fits a 1024 x 768 screen, as CI runners have.</param>
     public MainWindow(string page = "list")
     {
         Title = "Ouro Shop";
@@ -104,6 +104,7 @@ public sealed class MainWindow : Window
             "confirms" => Column(16, Confirms(), status),
             "forms" => Column(16, Forms(), status),
             "chat" => Column(16, Chat(), status),
+            "tables" => Column(16, Tables(), status),
             "composed" => Column(16, Composed(), status, data),
             "a2ui" => Column(16, A2UI(), status, data),
             _ => Column(16, heading, list, status),
@@ -411,6 +412,28 @@ public sealed class MainWindow : Window
             Id(new OuroComposer { Label = "Reply in thread", Placeholder = "Write a reply", SendDisabledReason = "You're offline. Sending resumes when you reconnect." }, "gallery.composer.sending-off"),
             Id(new OuroComposer { Label = "Message Mia", Placeholder = "Write a message", Sending = true }, "gallery.composer.sending"));
         return Id(new OuroCard { Title = "Chat", Description = "Message, reaction bar, message list and composer", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = Side(Column(16, composers, bars), Column(16, messages, lists)) }, "card.chat");
+    }
+
+    /// <summary>The gallery's tables page: Table, in core's seven spec cases.</summary>
+    private static OuroCard Tables()
+    {
+        T Id<T>(T e, string id) where T : FrameworkElement
+        {
+            AutomationProperties.SetAutomationId(e, id);
+            return e;
+        }
+        const string rows = "Braised short ribs | 4 h | 6; Herb salad | 10 min | 2; Rye bread | 18 h | 8";
+        const string sortedRows = "Rye bread | 18 h | 8; Braised short ribs | 4 h | 6; Herb salad | 10 min | 2";
+        const string cols = "Recipe, Time, Serves";
+        var tables = Column(16,
+            Id(new OuroTable { Caption = "Recipes", Columns = cols, Rows = rows }, "gallery.table.basic"),
+            Id(new OuroTable { Caption = "Recipes", HideCaption = true, Columns = cols, Rows = rows }, "gallery.table.hidden-caption"),
+            Id(new OuroTable { Caption = "Recipes", Columns = cols, Sortable = "Recipe, Serves", Rows = rows }, "gallery.table.sortable"),
+            Id(new OuroTable { Caption = "Recipes", Columns = cols, Sortable = "Recipe, Serves", SortedBy = "Serves", SortDirection = OuroSortDirection.Descending, Rows = sortedRows }, "gallery.table.sorted"),
+            Id(new OuroTable { Caption = "Recipes", Columns = cols, RowHref = true, Rows = rows }, "gallery.table.row-links"),
+            Id(new OuroTable { Caption = "Recipes", Columns = cols }, "gallery.table.empty"),
+            Id(new OuroTable { Caption = "Recipes", Columns = cols, Empty = "No recipes match." }, "gallery.table.empty-custom"));
+        return Id(new OuroCard { Title = "Tables", Description = "Table", Variant = OuroFrame.Plain, Density = OuroDensity.Small, Content = tables }, "card.tables");
     }
 
     /// <summary>The gallery's sixth page: Field, Select and Switch, in core's spec cases.</summary>
