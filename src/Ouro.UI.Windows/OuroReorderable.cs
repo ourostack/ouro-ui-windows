@@ -91,6 +91,23 @@ public sealed partial class OuroReorderable : Control
             e.ItemContainer.MinHeight = 0;
             e.ItemContainer.HorizontalContentAlignment = HorizontalAlignment.Stretch;
         };
+        // The list sees every press, because its row takes the pointer; a press and release on a handle's own square opens that handle's menu.
+        list.AddHandler(PointerPressedEvent, new PointerEventHandler((_, e) =>
+        {
+            tapped = HandleAt(e);
+            if (tapped is { } id) Press(parts[id].Handle, true);
+        }), true);
+        list.AddHandler(PointerReleasedEvent, new PointerEventHandler((_, e) =>
+        {
+            var id = tapped;
+            tapped = null;
+            foreach (var part in parts.Values) Press(part.Handle, false);
+            if (id is null || HandleAt(e) != id) return;
+            parts[id].Handle.Focus(FocusState.Pointer);
+            if (!Locked) Menu(id).ShowAt(parts[id].Handle);
+        }), true);
+        list.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => Cancel()), true);
+        list.AddHandler(PointerCaptureLostEvent, new PointerEventHandler((_, _) => Cancel()), true);
         list.DragItemsStarting += (_, e) => dragFrom = e.Items.Count == 0 ? -1 : list.Items.IndexOf(e.Items[0]);
         list.DragItemsCompleted += (_, e) => Dropped(e.Items.Count == 0 ? null : e.Items[0] as Grid);
         OuroUI.Follow(this, Refresh);
@@ -279,6 +296,16 @@ public sealed partial class OuroReorderable : Control
         return handle;
     }
 
+    private string? tapped;
+
+    private string? HandleAt(PointerRoutedEventArgs e) => parts.FirstOrDefault(p => OnHandle(p.Value.Handle, e.GetCurrentPoint(p.Value.Handle).Position)).Key;
+
+    private void Cancel()
+    {
+        tapped = null;
+        foreach (var part in parts.Values) Press(part.Handle, false);
+    }
+
     private void Press(OuroReorderHandle handle, bool pressed)
     {
         handle.CenterPoint = new Vector3((float)handle.ActualWidth / 2, (float)handle.ActualHeight / 2, 0);
@@ -306,24 +333,6 @@ public sealed partial class OuroReorderable : Control
             row.Children.Add(words);
             Grid.SetColumn(handle, 1);
             row.Children.Add(handle);
-            var id = source.Id;
-            var down = false;
-            row.AddHandler(PointerPressedEvent, new PointerEventHandler((_, e) =>
-            {
-                down = OnHandle(handle, e.GetCurrentPoint(handle).Position);
-                Press(handle, down);
-            }), true);
-            row.AddHandler(PointerReleasedEvent, new PointerEventHandler((_, e) =>
-            {
-                var tap = down && OnHandle(handle, e.GetCurrentPoint(handle).Position);
-                down = false;
-                Press(handle, false);
-                if (!tap) return;
-                handle.Focus(FocusState.Pointer);
-                if (!Locked) Menu(id).ShowAt(handle);
-            }), true);
-            row.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => { down = false; Press(handle, false); }), true);
-            row.AddHandler(PointerCaptureLostEvent, new PointerEventHandler((_, _) => { down = false; Press(handle, false); }), true);
             parts[source.Id] = (row, handle, source);
             list.Items.Add(row);
         }
