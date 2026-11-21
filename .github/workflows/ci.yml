@@ -117,7 +117,7 @@ jobs:
           . tools/uia.ps1
           [void](Wait-OuroElement OuroShop.WinUI gallery.table.basic)
           Start-Sleep -Seconds 3
-          node tools/nvda/read.mts 2>&1 | Tee-Object -FilePath "$env:EV\nvda.log"
+          cmd /c "node tools/nvda/read.mts > ""$env:EV\nvda.log"" 2>&1"
           $code = $LASTEXITCODE
           '```' + "`n" + (Get-Content "$env:EV\nvda.log" -Raw) + "`n" + '```' | Add-Content $env:GITHUB_STEP_SUMMARY
           exit $code
