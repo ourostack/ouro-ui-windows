@@ -1,0 +1,9 @@
+{
+  "name": "ouro-nvda-table",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@guidepup/guidepup": "0.35.0",
+    "@guidepup/setup": "0.29.2"
+  }
+}
