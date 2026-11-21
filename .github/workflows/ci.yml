@@ -175,6 +175,8 @@ jobs:
             & tools/dump.ps1 -Command $env:APP -Arguments "--self-report --page confirms $extra" -ProcessName OuroShop.WinUI -ReadyId gallery.confirm.delete -Out "$env:EV\uia-confirms-$s.json" @k
             $m = @{}; if ($Shots) { $m.Screenshot = "$env:EV\forms-$s.png" }
             & tools/dump.ps1 -Command $env:APP -Arguments "--self-report --page forms $extra" -ProcessName OuroShop.WinUI -ReadyId gallery.switch.wifi -Out "$env:EV\uia-forms-$s.json" @m
+            $h = @{}; if ($Shots) { $h.Screenshot = "$env:EV\chat-$s.png" }
+            & tools/dump.ps1 -Command $env:APP -Arguments "--self-report --page chat $extra" -ProcessName OuroShop.WinUI -ReadyId gallery.message.received -Out "$env:EV\uia-chat-$s.json" @h
             $c = @{}; if ($Shots) { $c.Screenshot = "$env:EV\composed-$s.png" }
             & tools/dump.ps1 -Command $env:APP -Arguments "--self-report --page composed $extra" -ProcessName OuroShop.WinUI -ReadyId composed.add_item -Out "$env:EV\uia-composed-$s.json" @c
           }

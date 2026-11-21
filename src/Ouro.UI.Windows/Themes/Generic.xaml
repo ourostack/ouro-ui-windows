@@ -431,6 +431,17 @@
         </Setter>
     </Style>
 
+    <Style TargetType="local:OuroMessage">
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:OuroMessage">
+                    <Grid x:Name="Root" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style TargetType="local:OuroSwipeActions">
         <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Template">
