@@ -53,6 +53,11 @@ foreach ($i in 1..$steps) {
   Start-Sleep -Milliseconds 30
 }
 Start-Sleep -Milliseconds 500
+Add-Type -AssemblyName System.Drawing, System.Windows.Forms
+$shot = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+$bmp = New-Object System.Drawing.Bitmap $shot.Width, $shot.Height
+[System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen(0, 0, 0, 0, $bmp.Size)
+$bmp.Save(($Out -replace '\.json$', '-mid-drag.png'))
 [OuroMouse]::mouse_event([OuroMouse]::Up, 0, 0, 0, [UIntPtr]::Zero)
 Start-Sleep -Milliseconds 1500
 $after = Get-Order
