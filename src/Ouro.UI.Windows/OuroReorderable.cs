@@ -272,15 +272,22 @@ public sealed partial class OuroReorderable : Control
         {
             if (moving == 0) Release(id, true);
         };
-        handle.RegisterPropertyChangedCallback(Microsoft.UI.Xaml.Controls.Primitives.ButtonBase.IsPressedProperty, (_, _) =>
-        {
-            handle.CenterPoint = new Vector3((float)handle.ActualWidth / 2, (float)handle.ActualHeight / 2, 0);
-            var s = handle.IsPressed && !Locked ? OuroUI.PressScale : 1f;
-            handle.ScaleTransition = OuroUI.AnimationsEnabled ? new Vector3Transition { Duration = TimeSpan.FromMilliseconds(OuroTokens.Duration.Press) } : null;
-            handle.Scale = new Vector3(s, s, 1);
-        });
+        handle.RegisterPropertyChangedCallback(Microsoft.UI.Xaml.Controls.Primitives.ButtonBase.IsPressedProperty, (_, _) => Press(handle, handle.IsPressed));
+        // A pointer never reaches the handle: a Button takes the pointer on a press, and then the list's drag, which starts from the row, never begins (#72). The
+        // row passes a press or tap on the handle's own square to it instead; UI Automation and the keyboard still reach the Button itself.
+        handle.IsHitTestVisible = false;
         return handle;
     }
+
+    private void Press(OuroReorderHandle handle, bool pressed)
+    {
+        handle.CenterPoint = new Vector3((float)handle.ActualWidth / 2, (float)handle.ActualHeight / 2, 0);
+        var s = pressed && !Locked ? OuroUI.PressScale : 1f;
+        handle.ScaleTransition = OuroUI.AnimationsEnabled ? new Vector3Transition { Duration = TimeSpan.FromMilliseconds(OuroTokens.Duration.Press) } : null;
+        handle.Scale = new Vector3(s, s, 1);
+    }
+
+    private static bool OnHandle(OuroReorderHandle handle, global::Windows.Foundation.Point at) => at.X >= 0 && at.Y >= 0 && at.X <= handle.ActualWidth && at.Y <= handle.ActualHeight;
 
     private void Build()
     {
@@ -299,6 +306,17 @@ public sealed partial class OuroReorderable : Control
             row.Children.Add(words);
             Grid.SetColumn(handle, 1);
             row.Children.Add(handle);
+            var id = source.Id;
+            row.AddHandler(PointerPressedEvent, new PointerEventHandler((_, e) => Press(handle, OnHandle(handle, e.GetCurrentPoint(handle).Position))), true);
+            row.AddHandler(PointerReleasedEvent, new PointerEventHandler((_, _) => Press(handle, false)), true);
+            row.AddHandler(PointerCanceledEvent, new PointerEventHandler((_, _) => Press(handle, false)), true);
+            row.AddHandler(PointerCaptureLostEvent, new PointerEventHandler((_, _) => Press(handle, false)), true);
+            row.Tapped += (_, e) =>
+            {
+                if (!OnHandle(handle, e.GetPosition(handle))) return;
+                handle.Focus(FocusState.Pointer);
+                if (!Locked) Menu(id).ShowAt(handle);
+            };
             parts[source.Id] = (row, handle, source);
             list.Items.Add(row);
         }
