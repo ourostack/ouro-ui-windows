@@ -6,7 +6,7 @@
     <RootNamespace>Ouro.UI.Windows</RootNamespace>
     <UseWinUI>true</UseWinUI>
     <PackageId>Ouro.UI.Windows</PackageId>
-    <Description>Ouro UI for Windows: Button, Badge, Card, Item, Checkbox, Switch, Select, Field, TextField, Separator, DescriptionList, Tabs, TabBar, Sidebar, ItemGroup, SwipeActions, Dialog, Sheet and ConfirmDialog as templated WinUI 3 controls from ouro-ui-core's specs and tokens, with light, dark and contrast themes, buttons that run defineAction actions through Ouro.Actions, and OuroComposedSurface, which draws an agent's composed tree validated against the app's catalog.</Description>
+    <Description>Ouro UI for Windows: Button, Badge, Card, Item, Checkbox, Switch, Select, Field, TextField, Separator, DescriptionList, Tabs, TabBar, Sidebar, ItemGroup, SwipeActions, Reorderable, Dialog, Sheet and ConfirmDialog as templated WinUI 3 controls from ouro-ui-core's specs and tokens, with light, dark and contrast themes, buttons that run defineAction actions through Ouro.Actions, and OuroComposedSurface, which draws an agent's composed tree validated against the app's catalog.</Description>
     <PackageTags>ouro;winui;windows-app-sdk;design-system;accessibility;agents</PackageTags>
   </PropertyGroup>
   <ItemGroup>

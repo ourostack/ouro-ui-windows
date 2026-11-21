@@ -41,4 +41,25 @@ public class ListTests
         Assert.Equal("Actions for Lunch plans", OuroListRules.ActionsButtonName("Lunch plans", ""));
         Assert.Equal("More for lunch", OuroListRules.ActionsButtonName("Lunch plans", "More for lunch"));
     }
+
+    [Theory]
+    [InlineData(2, 5, OuroMove.Up, 1)]
+    [InlineData(0, 5, OuroMove.Up, 0)]
+    [InlineData(2, 5, OuroMove.Down, 3)]
+    [InlineData(4, 5, OuroMove.Down, 4)]
+    [InlineData(3, 5, OuroMove.Top, 0)]
+    [InlineData(1, 5, OuroMove.Bottom, 4)]
+    [InlineData(0, 0, OuroMove.Bottom, 0)]
+    public void A_move_lands_in_place_and_stops_at_the_ends(int from, int count, OuroMove move, int to) => Assert.Equal(to, OuroListRules.MoveTarget(from, count, move));
+
+    [Fact]
+    public void A_reason_alone_locks_the_order_and_names_each_handle()
+    {
+        Assert.False(OuroListRules.Locked(false, null));
+        Assert.True(OuroListRules.Locked(true, null));
+        Assert.True(OuroListRules.Locked(false, "Sorted by date"));
+        Assert.Equal("Reorder Intro", OuroListRules.HandleName("Intro", null));
+        Assert.Equal("Reorder Intro, Sorted by date", OuroListRules.HandleName("Intro", "Sorted by date"));
+        Assert.Equal("Position 2 of 5", OuroListRules.Position(1, 5));
+    }
 }
