@@ -6,6 +6,8 @@
 
 # Ouro UI for Windows
 
+Ouro HX and Ouro AX for Windows, part of [Ouro UI](https://ui.ouroboros.bot/).
+
 Ouro UI's native kit for Windows: core's components as WinUI 3 controls, and the agent doors (Windows App Actions and an MCP server for the On-device Agent Registry), all generated from [ouro-ui-core](https://github.com/ourostack/ouro-ui-core)'s one `defineAction` declaration.
 
 **Status: v0.12.0.** Twenty-six components (Button, Badge, Card, Item, Checkbox, Switch, Select, Field, TextField, Separator, DescriptionList, Tabs, TabBar, Sidebar, ItemGroup, SwipeActions, Reorderable, ConversationList, Dialog, Sheet, ConfirmDialog, Message, ReactionBar, MessageList, Composer, Table), the agent side, and agent cards drawn natively, as Ouro's composed tree or as A2UI messages. The plan is in [the decision record](https://github.com/ourostack/ouro-ui-core/blob/main/docs/decisions/2026-11-14-native-kits.md)'s "Windows v0.1.0" section.
