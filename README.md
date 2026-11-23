@@ -8,7 +8,7 @@
 
 Ouro UI's native kit for Windows: core's components as WinUI 3 controls, and the agent doors (Windows App Actions and an MCP server for the On-device Agent Registry), all generated from [ouro-ui-core](https://github.com/ourostack/ouro-ui-core)'s one `defineAction` declaration.
 
-**Status: v0.12.0.** Twenty-six components (Button, Badge, Card, Item, Checkbox, Switch, Select, Field, TextField, Separator, DescriptionList, Tabs, TabBar, Sidebar, ItemGroup, SwipeActions, Reorderable, ConversationList, Dialog, Sheet, ConfirmDialog, Message, ReactionBar, MessageList, Composer, Table), the agent side, and agent cards drawn natively, as Ouro's composed tree or as A2UI messages. The plan is in [the decision record](https://github.com/ourostack/ouro-ui-core/blob/main/docs/decisions/2026-11-14-native-kits.md)'s "Windows v0.1.0" section.
+**Status: v0.12.1.** Twenty-six components (Button, Badge, Card, Item, Checkbox, Switch, Select, Field, TextField, Separator, DescriptionList, Tabs, TabBar, Sidebar, ItemGroup, SwipeActions, Reorderable, ConversationList, Dialog, Sheet, ConfirmDialog, Message, ReactionBar, MessageList, Composer, Table), the agent side, and agent cards drawn natively, as Ouro's composed tree or as A2UI messages. The plan is in [the decision record](https://github.com/ourostack/ouro-ui-core/blob/main/docs/decisions/2026-11-14-native-kits.md)'s "Windows v0.1.0" section.
 
 ## Agent cards
 
@@ -57,14 +57,15 @@ What's still missing:
 
 ## Use it
 
-Each release publishes the packages to GitHub Packages, ourostack's NuGet feed. GitHub's NuGet feed needs a sign-in even for public packages: a token with `read:packages` (for example `gh auth token`, after `gh auth refresh -s read:packages`).
+Each release publishes the packages to [nuget.org](https://www.nuget.org/packages/Ouro.UI.Windows), from v0.12.1 on, so there is nothing to sign in to and no token:
 
 ```sh
-dotnet nuget add source https://nuget.pkg.github.com/ourostack/index.json --name ourostack --username <your GitHub login> --password <token> --store-password-in-clear-text
-dotnet add package Ouro.UI.Windows --source ourostack
+dotnet add package Ouro.UI.Windows
 ```
 
-The `.nupkg` files are also attached to each [release](https://github.com/ourostack/ouro-ui-windows/releases), for a local feed with no sign-in. nuget.org comes later (RELEASING.md).
+`Ouro.UI.Windows` brings `Ouro.Actions` with it; add [`Ouro.Actions`](https://www.nuget.org/packages/Ouro.Actions) alone for the action runtime and MCP server without WinUI.
+
+The same packages go to GitHub Packages (`https://nuget.pkg.github.com/ourostack/index.json`, which needs a token with `read:packages` even for public packages, and holds every release before v0.12.1) and are attached to each [release](https://github.com/ourostack/ouro-ui-windows/releases), for a local feed.
 
 From v0.4.1 on, [the release workflow](.github/workflows/release.yml) gives each file it attaches a GitHub build attestation, so you can check that a package was built from its tag: `gh attestation verify Ouro.UI.Windows.0.4.1.nupkg --repo ourostack/ouro-ui-windows`.
 

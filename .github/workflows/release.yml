@@ -1,7 +1,8 @@
 name: Release
 
 # A tag vX.Y.Z on main becomes a GitHub release (the two NuGet packages and the Ouro Shop sample MSIX with its
-# certificate) and the two packages on GitHub Packages, ourostack's NuGet feed (RELEASING.md).
+# certificate), and the two packages on nuget.org and on GitHub Packages, ourostack's NuGet feed (RELEASING.md).
+# nuget.org takes the run's GitHub identity (Trusted Publishing), so the repository holds no NuGet API key.
 on:
   push:
     tags: ["v*.*.*"]
@@ -9,7 +10,8 @@ on:
 permissions:
   contents: write
   packages: write
-  # Build provenance: GitHub signs which workflow run built each file the release attaches.
+  # Build provenance: GitHub signs which workflow run built each file the release attaches. nuget.org's Trusted
+  # Publishing trades the same OIDC token for a short-lived API key.
   id-token: write
   attestations: write
 
@@ -71,12 +73,28 @@ jobs:
         run: |
           $tag = "${{ github.ref_name }}"
           $assets = @(Get-ChildItem out/packages/*.nupkg) + @(Get-Item "out/msix/OuroShop-$tag.msix", "out/msix/OuroShop-$tag.cer", "vendor/core/components/*.spec.json", "src/Ouro.UI.Windows/Vendor/OuroTokens.xaml") | ForEach-Object FullName
+          if ((gh release list --limit 100 --json tagName --jq '.[].tagName') -contains $tag) { Write-Output "The release $tag already exists, so it is kept as it is."; exit 0 }
           gh release create $tag --title $tag --notes-file "docs/releases/$tag.md" --verify-tag @assets
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Publish the packages to GitHub Packages
         run: |
           foreach ($p in Get-ChildItem out/packages/*.nupkg) {
             dotnet nuget push $p.FullName --source "https://nuget.pkg.github.com/ourostack/index.json" --api-key "${{ github.token }}" --skip-duplicate
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
+      # The Trusted Publishing policy on nuget.org (owner arimendelow) allows this repository's release.yml to push
+      # Ouro.Actions and Ouro.UI.Windows*. The key it returns lasts an hour and is never stored.
+      - name: Sign in to nuget.org with the run's GitHub identity
+        id: nuget
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: arimendelow
+      - name: Publish the packages to nuget.org
+        env:
+          NUGET_API_KEY: ${{ steps.nuget.outputs.NUGET_API_KEY }}
+        run: |
+          foreach ($p in Get-ChildItem out/packages/*.nupkg) {
+            dotnet nuget push $p.FullName --source "https://api.nuget.org/v3/index.json" --api-key $env:NUGET_API_KEY --skip-duplicate
             if ($LASTEXITCODE) { exit $LASTEXITCODE }
           }
       - name: Remove the certificate
